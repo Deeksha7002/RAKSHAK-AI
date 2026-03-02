@@ -1,4 +1,4 @@
-# How to Run the Honeypot AI Defense App
+# How to Run the Rakshak AI Defense App
 
 This guide explains how to run the application on your local machine or send it to others.
 

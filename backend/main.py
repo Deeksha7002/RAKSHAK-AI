@@ -1,7 +1,7 @@
 import time
 import logging
 from mock_api import MockScammerAPI
-from agent import HoneypotAgent
+from agent import RakshakAgent
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [MAIN] - %(message)s')
 

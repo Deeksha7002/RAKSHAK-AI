@@ -824,7 +824,7 @@ async def twilio_webhook(
     # 1. Analyze and ingest the incoming text
     analysis = temp_agent.ingest(text=Body, thread_id=From)
     
-    # 2. Update global stats (simulating that the honeypot caught something)
+    # 2. Update global stats (simulating that Rakshak caught something)
     if analysis["classification"] in ["scam", "likely_scam"]:
         stats = get_or_create_stats(db)
         stats.reports_filed += 1
@@ -843,7 +843,7 @@ async def twilio_webhook(
     if not response_text:
         response_text = "I'm sorry, who is this?"
 
-    logging.info(f"🤖 [HONEYPOT REPLY]: {response_text}")
+    logging.info(f"🤖 [RAKSHAK REPLY]: {response_text}")
 
     # Save state back to Redis
     save_agent(From, temp_agent)
@@ -916,7 +916,7 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
         if not response_text:
             response_text = "I received your email but I am not sure what you mean."
 
-        logging.info(f"🤖 [HONEYPOT EMAIL REPLY]: {response_text}")
+        logging.info(f"🤖 [RAKSHAK EMAIL REPLY]: {response_text}")
 
         # Save state back to Redis
         save_agent(clean_sender, temp_agent)
