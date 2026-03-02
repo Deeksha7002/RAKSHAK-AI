@@ -359,7 +359,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = () => {
                 </div>
             </div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, color: '#fff' }}>
-                RAKSHAK<span style={{ color: '#10b981' }}> AI</span>
+                RAKSHAK<span style={{ color: '#10b981' }}>-AI</span>
             </h1>
             <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', letterSpacing: '1px' }}>
                 {subtitle}
