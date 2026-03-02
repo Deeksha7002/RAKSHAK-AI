@@ -1,9 +1,9 @@
-# Presentation Deck: Honeypot AI Defense System
+# Presentation Deck: Rakshak AI Defense System
 
 ---
 
 ## Slide 1: Title Slide
-**Title:** Honeypot AI Defense System
+**Title:** Rakshak AI Defense System
 **Subtitle:** Autonomous Counter-Offensive Against Digital Fraud
 **Presenter:** [Your Name/Team Name]
 
