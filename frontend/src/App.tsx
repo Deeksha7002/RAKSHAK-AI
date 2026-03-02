@@ -64,7 +64,16 @@ function App() {
     if (!isMonitoring) return;
 
     // Connect to WebSocket using the backend API URL
-    const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/api/ws';
+    // If we're on Vercel (production), rewrites etc. don't handle WS well, 
+    // so we point directly to the Render backend for WebSocket events.
+    let wsUrl;
+    if (API_BASE_URL.startsWith('http')) {
+      wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/api/ws';
+    } else {
+      // In production/Vercel, API_BASE_URL might be empty or "/" due to proxying
+      // We point to the known Render backend for reliable real-time intercept
+      wsUrl = 'wss://scam-defender-honeypot-1.onrender.com/api/ws';
+    }
 
     const ws = new WebSocket(wsUrl);
 

@@ -62,7 +62,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.middleware("http")
 async def secure_headers_and_obfuscation(request: Request, call_next):
     # Dead-Drop API Obfuscation (only for /api/ routes)
-    if request.url.path.startswith("/api/"):
+    # EXEMPT webhooks as they come from external services (Twilio/SendGrid)
+    if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/webhook/"):
         token = request.headers.get("X-Rakshak-Token")
         if token != "rakshak-core-v1" and request.method != "OPTIONS":
             return JSONResponse(status_code=403, content={"detail": "Access Denied: Missing or Invalid Rakshak Security Token"})

@@ -1,6 +1,7 @@
 import random
 import logging
-from config import PERSONA
+import json
+from config import PERSONA, SENSITIVE_PATTERNS
 from safety import SafetyGuard
 from analyzer import ScamAnalyzer
 
@@ -9,13 +10,23 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [AGENT] - %(messag
 class HoneypotAgent:
     def __init__(self, state_dict=None):
         if state_dict:
-            self.conversation_history = state_dict.get("conversation_history", {})
-            self.classification_cache = state_dict.get("classification_cache", {})
-            self.sophistication_cache = state_dict.get("sophistication_cache", {})
+            self.conversation_history = state_dict.get("conversation_history", [])
+            self.classification_cache = state_dict.get("classification_cache", "benign")
+            self.threat_score = state_dict.get("threat_score", 0.1)
+            self.intent = state_dict.get("intent", "UNKNOWN")
+            self.current_persona = state_dict.get("current_persona", "default")
+            self.is_compromised = state_dict.get("is_compromised", False)
+            self.auto_reported = state_dict.get("auto_reported", False)
+            self.iocs = state_dict.get("iocs", {"urls":[], "domains":[], "paymentMethods":[], "sensitiveDataRedacted":0})
         else:
-            self.conversation_history = {} # store history per conversation_id
-            self.classification_cache = {}
-            self.sophistication_cache = {} # store sophistication score per conv_id
+            self.conversation_history = []
+            self.classification_cache = "benign"
+            self.threat_score = 0.1
+            self.intent = "UNKNOWN"
+            self.current_persona = "default"
+            self.is_compromised = False
+            self.auto_reported = False
+            self.iocs = {"urls":[], "domains":[], "paymentMethods":[], "sensitiveDataRedacted":0}
         
         self.analyzer = ScamAnalyzer()
 
@@ -23,119 +34,112 @@ class HoneypotAgent:
         return {
             "conversation_history": self.conversation_history,
             "classification_cache": self.classification_cache,
-            "sophistication_cache": self.sophistication_cache
+            "threat_score": self.threat_score,
+            "intent": self.intent,
+            "current_persona": self.current_persona,
+            "is_compromised": self.is_compromised,
+            "auto_reported": self.auto_reported,
+            "iocs": self.iocs
         }
 
-    def ingest(self, message):
+    def ingest(self, text, thread_id):
         """
-        Entry point for a new message.
+        Processes an incoming message, updates state, and returns analysis metadata.
+        Matches the signature expected by server.py: ingest(text=..., thread_id=...)
         """
-        conv_id = message['conversation_id']
-        text = message['text']
-        
-        # 1. Redact incoming PII immediately for storage/logs
+        # 1. Redact PII from the text before storing
         safe_text = SafetyGuard.redact_pii(text)
-        logging.info(f"Ingested from {conv_id}: {safe_text}")
         
-        if conv_id not in self.conversation_history:
-            self.conversation_history[conv_id] = []
+        # 2. Add to history
+        self.conversation_history.append({"role": "scammer", "content": safe_text})
+        logging.info(f"Ingested from {thread_id}: {safe_text}")
+
+        # 3. Behavior Analysis
+        # Note: analyzer.analyze_behavior expects a list of messages
+        score, category, neuro_matrix = self.analyzer.analyze_behavior(self.conversation_history)
+        self.threat_score = score
         
-        self.conversation_history[conv_id].append({"role": "scammer", "content": safe_text})
+        # Determine intent (simplified for now)
+        intent = "UNKNOWN"
+        if score > 0.6:
+            if any(k in text.lower() for k in ["bank", "card", "crypto", "wallet", "pay"]):
+                intent = "MONEY"
+            elif any(k in text.lower() for k in ["code", "otp", "pin", "verify"]):
+                intent = "CODES"
+            elif any(k in text.lower() for k in ["hurry", "fast", "immediately", "urgent"]):
+                intent = "URGENCY"
+            else:
+                intent = "COLLECTING_PII"
         
-        # 2. Classify (Scam vs Benign)
+        self.intent = intent
+
+        # 4. Classification
         classification = self._classify(safe_text)
-        self.classification_cache[conv_id] = classification
-        
-        # 3. Analyze Sophistication
-        score, category, neuro_matrix = self.analyzer.analyze_behavior(self.conversation_history[conv_id])
-        self.sophistication_cache[conv_id] = {"score": score, "category": category, "matrix": neuro_matrix}
-        
-        # 4. Extract IOCs
+        self.classification_cache = classification
+
+        # 5. Extract IOCs
         self._extract_iocs(safe_text)
 
-        # 5. AUTOMATED REPORTING (New)
-        if classification in ["scam", "likely_scam"]:
-             self.report_to_cyber_cell(conv_id, classification)
-        
-        return classification
-
-    def report_to_cyber_cell(self, conversation_id, threat_level):
-        """
-        Simulates sending a formal report (JSON + PDF) to the Cyber Cell.
-        """
-        logging.info(f"🚨 [AUTO-REPORT] High threat detected for {conversation_id} ({threat_level})")
-        logging.info(f"📤 [AUTO-REPORT] Generating JSON metadata...")
-        logging.info(f"📄 [AUTO-REPORT] Generating Evidence_Report_{conversation_id}.pdf...")
-        logging.info(f"✅ [AUTO-REPORT] Successfully transmitted to Cyber Cell reporting portal.")
-
-    def _classify(self, text):
-        """
-        Simple keyword-based classifier for demonstration.
-        In a real system, this would be an ML model.
-        """
-        scam_keywords = ["verify your wallet", "private key", "bank details", "earn $", "compromised", "limited spots"]
-        text_lower = text.lower()
-        
-        for kw in scam_keywords:
-            if kw in text_lower:
-                return "scam"
-        
-        if "http" in text_lower or ".com" in text_lower:
-            return "likely_scam"
+        # 6. Auto-Report Logic
+        if classification in ["scam", "likely_scam"] and score > 0.8:
+            self.auto_reported = True
             
-        return "benign"
+        return {
+            "classification": classification,
+            "safeText": safe_text,
+            "intent": intent,
+            "score": score,
+            "isCompromised": self.is_compromised,
+            "autoReported": self.auto_reported,
+            "scamType": category
+        }
 
-    def _extract_iocs(self, text):
+    def generateResponse(self, classification, text):
         """
-        Extracts non-sensitive IOCs like URLs.
+        Generates a persona-driven response. 
+        Matches the signature expected by server.py: generateResponse(classification=..., text=...)
         """
-        if "http" in text:
-             logging.info(f"IOC Captured [URL]: {text}") 
-
-    def generate_response(self, conversation_id):
-        """
-        Decides on a response based on classification and persona.
-        """
-        classification = self.classification_cache.get(conversation_id, "benign")
+        self.classification_cache = classification
         
         if classification == "benign":
-            # Disengage or simple reply
-            return None # Don't engage benign users in this honeypot logic
+            return None # server.py handles the fallback
+
+        # Decide Persona based on threat score
+        if self.threat_score < 0.4:
+            self.current_persona = "naive"
+        elif self.threat_score > 0.7:
+            self.current_persona = "skeptical"
+        else:
+            self.current_persona = "default"
+
+        persona_data = PERSONA.get(self.current_persona, PERSONA["default"])
         
-        # Scam Engagement Logic
-        response = self._create_persona_response(conversation_id)
+        # Select a response
+        response = random.choice(persona_data["safe_questions"])
         
         # Safety Check
         if not SafetyGuard.check_policy(response):
-            response = "I'm not comfortable with that."
-            
+            response = "I'm not sure how to help with that right now."
+
         # Log our response
-        self.conversation_history[conversation_id].append({"role": "agent", "content": response})
-        logging.info(f"Responding to {conversation_id}: {response}")
+        self.conversation_history.append({"role": "agent", "content": response})
+        logging.info(f"🤖 [AGENT RESPONSE]: {response}")
+        
         return response
 
-    def _create_persona_response(self, conversation_id):
-        """
-        Selects a safe, curious question based on the sophistication of the scammer.
-        """
-        sophistication_data = self.sophistication_cache.get(conversation_id, {"score": 0.5, "category": "unknown"})
-        score = sophistication_data["score"]
-        category = sophistication_data["category"]
-        
-        logging.info(f"Selecting Persona for {conversation_id} - Score: {score} ({category})")
+    def _classify(self, text):
+        text_lower = text.lower()
+        if any(kw in text_lower for kw in ["verify your wallet", "private key", "bank details", "earn $", "compromised"]):
+            return "scam"
+        if "http" in text_lower or ".com" in text_lower or ".io" in text_lower or ".xyz" in text_lower:
+            return "likely_scam"
+        return "benign"
 
-        # Select Persona
-        if score < 0.4:
-            # Low sophistication -> Use Naive Persona
-            selected_persona = PERSONA["naive"]
-            logging.info("Using Persona: NAIVE")
-        elif score > 0.7:
-             # High sophistication -> Use Skeptical Persona
-            selected_persona = PERSONA["skeptical"]
-            logging.info("Using Persona: SKEPTICAL")
-        else:
-             # Default/Average
-            selected_persona = PERSONA["default"]
-            logging.info("Using Persona: DEFAULT")
-            
-        return random.choice(selected_persona["safe_questions"])
+    def _extract_iocs(self, text):
+        # Extract URLs
+        import re
+        urls = re.findall(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', text)
+        for url in urls:
+            if url not in self.iocs["urls"]:
+                self.iocs["urls"].append(url)
+                logging.info(f"Captured IOC [URL]: {url}")
