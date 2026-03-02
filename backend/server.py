@@ -83,7 +83,8 @@ analyzer = ScamAnalyzer()
 # Redis State Management Setup
 redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
 try:
-    redis_client = redis.from_url(redis_url, decode_responses=True)
+    # Use a 1-second connect timeout so we don't hang server startup if Redis isn't there!
+    redis_client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=1)
     redis_client.ping()
     logging.info("🟢 Redis connected successfully for Agent State management.")
 except Exception as e:
