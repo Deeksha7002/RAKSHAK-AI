@@ -213,9 +213,9 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
                 <StatusCard
                     icon={<Cpu size={18} />}
                     label="NEURAL ENGINE"
-                    value={activeThreats > 0 ? (activeThreats * 10) + displayCpu : displayCpu}
+                    value={Math.min(99.9, activeThreats > 0 ? (activeThreats * 5) + displayCpu : displayCpu)}
                     subtext={activeThreats > 0 ? `${activeThreats} THREATS ACTIVE` : "Processing Load %"}
-                    metric={activeThreats > 0 ? "TEMP: 54°C" : "TEMP: 38°C"}
+                    metric={`TEMP: ${Math.floor(38 + (Math.min(100, displayCpu) * 0.4))}°C`}
                     color={activeThreats > 0 ? "var(--status-danger)" : "var(--primary)"}
                     pulse={activeThreats > 0}
                 />
