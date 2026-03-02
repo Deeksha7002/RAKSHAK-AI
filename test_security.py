@@ -56,7 +56,7 @@ else:
     print("   FAILED")
 
 # 5. Verify DB File
-if os.path.exists("./scam_honeypot.db"):
-    print("\n5. Database check: 'scam_honeypot.db' EXISTS.")
+if os.path.exists("./rakshak_ai.db"):
+    print("\n5. Database check: 'rakshak_ai.db' EXISTS.")
 else:
-    print("\n5. Database check: FAILED ('scam_honeypot.db' not found).")
+    print("\n5. Database check: FAILED ('rakshak_ai.db' not found).")
