@@ -1,6 +1,8 @@
 import requests
 
-WEBHOOK_URL = "http://localhost:8000/api/webhook/email"
+# Point the webhook simulator at your live Render backend
+WEBHOOK_URL = "https://scam-defender-honeypot.onrender.com/api/webhook/email"
+
 
 print(f"🚀 Sending mock email payload to {WEBHOOK_URL}...")
 

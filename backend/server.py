@@ -6,6 +6,7 @@ import logging
 import time
 import json
 import os
+import redis
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
@@ -78,7 +79,28 @@ async def secure_headers_and_obfuscation(request: Request, call_next):
 
 # Initialize Core Logic
 analyzer = ScamAnalyzer()
-agent = HoneypotAgent()
+
+# Redis State Management Setup
+redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
+try:
+    redis_client = redis.from_url(redis_url, decode_responses=True)
+    redis_client.ping()
+    logging.info("🟢 Redis connected successfully for Agent State management.")
+except Exception as e:
+    redis_client = None
+    logging.warning(f"⚠️ Could not connect to Redis: {e}. Falling back to transient memory.")
+
+def load_agent(thread_id: str) -> HoneypotAgent:
+    if redis_client:
+        state_str = redis_client.get(f"agent_state:{thread_id}")
+        if state_str:
+            return HoneypotAgent(state_dict=json.loads(state_str))
+    return HoneypotAgent()
+
+def save_agent(thread_id: str, agent: HoneypotAgent):
+    if redis_client:
+        state = agent.get_state()
+        redis_client.setex(f"agent_state:{thread_id}", 86400, json.dumps(state)) # 24 hour TTL
 
 # WebSockets Connection Manager
 class ConnectionManager:
@@ -743,8 +765,7 @@ async def twilio_webhook(
     
     # In a full production system, you would look up the persistent HoneypotAgent
     # for this specific phone number (From) in memory or a fast cache like Redis.
-    # For this prototype-to-production step, we'll instantiate one per request.
-    temp_agent = HoneypotAgent()
+    temp_agent = load_agent(From)
     
     # 1. Analyze and ingest the incoming text
     analysis = temp_agent.ingest(text=Body, thread_id=From)
@@ -769,6 +790,9 @@ async def twilio_webhook(
         response_text = "I'm sorry, who is this?"
 
     logging.info(f"🤖 [HONEYPOT REPLY]: {response_text}")
+
+    # Save state back to Redis
+    save_agent(From, temp_agent)
 
     # Broadcast to connected frontends
     await manager.broadcast(json.dumps({
@@ -813,7 +837,7 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
         email_match = re.search(r'<([^>]+)>', sender)
         clean_sender = email_match.group(1) if email_match else sender
 
-        temp_agent = HoneypotAgent()
+        temp_agent = load_agent(clean_sender)
         
         # 1. Analyze the text payload
         # Combine subject and body for analysis
@@ -839,6 +863,9 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
             response_text = "I received your email but I am not sure what you mean."
 
         logging.info(f"🤖 [HONEYPOT EMAIL REPLY]: {response_text}")
+
+        # Save state back to Redis
+        save_agent(clean_sender, temp_agent)
 
         # 4. Broadcast to frontend
         await manager.broadcast(json.dumps({

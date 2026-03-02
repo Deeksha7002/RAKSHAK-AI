@@ -7,11 +7,24 @@ from analyzer import ScamAnalyzer
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [AGENT] - %(message)s')
 
 class HoneypotAgent:
-    def __init__(self):
-        self.conversation_history = {} # store history per conversation_id
-        self.classification_cache = {}
+    def __init__(self, state_dict=None):
+        if state_dict:
+            self.conversation_history = state_dict.get("conversation_history", {})
+            self.classification_cache = state_dict.get("classification_cache", {})
+            self.sophistication_cache = state_dict.get("sophistication_cache", {})
+        else:
+            self.conversation_history = {} # store history per conversation_id
+            self.classification_cache = {}
+            self.sophistication_cache = {} # store sophistication score per conv_id
+        
         self.analyzer = ScamAnalyzer()
-        self.sophistication_cache = {} # store sophistication score per conv_id
+
+    def get_state(self):
+        return {
+            "conversation_history": self.conversation_history,
+            "classification_cache": self.classification_cache,
+            "sophistication_cache": self.sophistication_cache
+        }
 
     def ingest(self, message):
         """
