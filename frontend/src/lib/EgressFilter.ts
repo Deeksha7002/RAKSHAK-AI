@@ -16,7 +16,7 @@ export class EgressFilter {
         const violations: string[] = [];
         const payloadString = JSON.stringify(payload);
 
-        Object.entries(SENSITIVE_PATTERNS).forEach(([type, pattern]) => {
+        Object.entries(SENSITIVE_PATTERNS).forEach(([type, pattern]: [string, RegExp]) => {
             if (pattern.test(payloadString)) {
                 violations.push(`Unredacted PII detected: ${type}`);
             }
