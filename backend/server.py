@@ -691,6 +691,63 @@ from pydantic import BaseModel
 class AnalyzeRequest(BaseModel):
     text: str
 
+# --- Real-World Integration (Twilio Webhook) ---
+from fastapi import Form
+from fastapi.responses import PlainTextResponse
+
+@app.post("/api/webhook/twilio")
+async def twilio_webhook(
+    From: str = Form(...),
+    Body: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Receives real SMS messages from Twilio.
+    1. Sends the text to the NLP Analyzer.
+    2. Generates a Honeypot response.
+    3. Returns TwiML for Twilio to send the SMS back to the scammer.
+    """
+    logging.info(f"📱 [TWILIO WEBHOOK] Received SMS from {From}: {Body}")
+    
+    # In a full production system, you would look up the persistent HoneypotAgent
+    # for this specific phone number (From) in memory or a fast cache like Redis.
+    # For this prototype-to-production step, we'll instantiate one per request.
+    temp_agent = HoneypotAgent()
+    
+    # 1. Analyze and ingest the incoming text
+    analysis = temp_agent.ingest(text=Body, thread_id=From)
+    
+    # 2. Update global stats (simulating that the honeypot caught something)
+    if analysis["classification"] in ["scam", "likely_scam"]:
+        stats = get_or_create_stats(db)
+        stats.reports_filed += 1
+        current_types = dict(stats.types_json)
+        scam_type = analysis.get("scamType", "OTHER").upper()
+        current_types[scam_type] = current_types.get(scam_type, 0) + 1
+        stats.types_json = current_types
+        db.commit()
+
+    # 3. Generate the response
+    response_text = temp_agent.generateResponse(
+        classification=analysis["classification"],
+        text=Body
+    )
+    
+    if not response_text:
+        response_text = "I'm sorry, who is this?"
+
+    logging.info(f"🤖 [HONEYPOT REPLY]: {response_text}")
+
+    # 4. Return standard TwiML format for Twilio to reply
+    twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>{response_text}</Message>
+</Response>"""
+
+    return PlainTextResponse(content=twiml_response, media_type="application/xml")
+
+
+
 
 
 if __name__ == "__main__":
