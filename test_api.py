@@ -1,5 +1,5 @@
 import urllib.request, json
-req = urllib.request.Request('https://scam-defender-Rakshak AI-1.onrender.com/api/analyze', method='POST')
+req = urllib.request.Request('https://scam-defender-honeypot-1.onrender.com/api/analyze', method='POST')
 req.add_header('X-Rakshak-Token', 'rakshak-core-v1')
 req.add_header('Content-Type', 'application/json')
 try:
