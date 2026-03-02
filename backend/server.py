@@ -450,19 +450,18 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.ap
 
 def get_webauthn_config(request: Request):
     from urllib.parse import urlparse
-    # Always use the configured FRONTEND_URL for consistent RP ID
-    # This ensures WebAuthn credentials match the frontend domain
-    parsed = urlparse(FRONTEND_URL)
-    hostname = parsed.hostname or "localhost"
-    origin = f"{parsed.scheme}://{parsed.hostname}"
-    
-    # For local development, use the Origin header
     origin_header = request.headers.get("origin", "")
-    if origin_header and ("localhost" in origin_header or "127.0.0.1" in origin_header):
-        local_parsed = urlparse(origin_header)
-        return local_parsed.hostname or "localhost", origin_header
     
-    return hostname, origin
+    if origin_header:
+        parsed = urlparse(origin_header)
+        hostname = parsed.hostname or "localhost"
+        # Ensure we only allow origins that are in our ALLOWED_ORIGINS list
+        if origin_header in ALLOWED_ORIGINS or "localhost" in hostname or "127.0.0.1" in hostname:
+            return hostname, origin_header
+    
+    # Fallback to default if no origin header or not allowed
+    parsed = urlparse(FRONTEND_URL)
+    return parsed.hostname or "localhost", f"{parsed.scheme}://{parsed.hostname}"
 
 RP_NAME = "Rakshak AI"
 
