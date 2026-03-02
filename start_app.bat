@@ -1,7 +1,7 @@
 @echo off
-title Honeypot Unified Launcher
+title Rakshak AI Unified Launcher
 echo ==============================================
-echo   Honeypot AI Defense - Simultaneous Startup
+echo   Rakshak AI Defense - Simultaneous Startup
 echo ==============================================
 
 echo [1/1] Starting Unified System (Frontend + Backend)...
