@@ -7,9 +7,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [MAIN] - %(message
 
 def main():
     api = MockScammerAPI()
-    agent = HoneypotAgent()
+    agent = RakshakAgent()
     
-    print("=== AI Honeypot Agent System Started ===")
+    print("=== AI Rakshak AI Agent System Started ===")
     print("Listening for incoming messages...\n")
     
     # Simulation Loop

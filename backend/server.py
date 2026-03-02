@@ -391,7 +391,7 @@ def get_cases(request: Request, db: Session = Depends(get_db)):
 @limiter.limit("10/minute")
 def submit_report(report: ReportRequest, request: Request, db: Session = Depends(get_db)):
     """
-    Receives official scam reports from the frontend honeypot.
+    Receives official scam reports from the frontend Rakshak AI
     """
     logging.info(f"🚨 [REPORT RECEIVED] ID: {report.conversationId} | Type: {report.classification}")
     

@@ -23,8 +23,8 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Honeypot AI Defense',
-        short_name: 'Honeypot AI',
+        name: 'Rakshak AI Defense',
+        short_name: 'Rakshak AI',
         description: 'Autonomous Counter-Offensive Against Digital Fraud',
         theme_color: '#0f172a',
         background_color: '#0f172a',

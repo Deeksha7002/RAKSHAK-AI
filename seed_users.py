@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 from security import get_password_hash
 
-DB_PATH = "scam_honeypot.db"
+DB_PATH = "scam_Rakshak AI.db"
 
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()

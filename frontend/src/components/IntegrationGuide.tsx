@@ -7,7 +7,7 @@ export const IntegrationGuide: React.FC = () => {
 
     // Hardcode the production backend URL for clarity in the guide
     // If API_BASE_URL is relative, we assume the user is on the Vercel project
-    const backendUrl = "https://scam-defender-honeypot-1.onrender.com";
+    const backendUrl = "https://rakshak-ai-backend.onrender.com";
 
     const integrations = [
         {
