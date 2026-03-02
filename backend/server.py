@@ -27,7 +27,7 @@ if backend_dir not in sys.path:
 
 # Internal Modules
 from analyzer import ScamAnalyzer
-from agent import HoneypotAgent
+from agent import RakshakAgent
 from database import SessionLocal, engine, init_db, User, Case, Stats, WebAuthnChallenge
 import security
 
@@ -90,19 +90,20 @@ try:
     # Use a 1-second connect timeout so we don't hang server startup if Redis isn't there!
     redis_client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=1)
     redis_client.ping()
-    logging.info("🟢 Redis connected successfully for Agent State management.")
+    logging.info("🟢 Redis connected successfully for Rakshak State management.")
 except Exception as e:
     redis_client = None
     logging.warning(f"⚠️ Could not connect to Redis: {e}. Falling back to transient memory.")
 
-def load_agent(thread_id: str) -> HoneypotAgent:
+def load_agent(thread_id: str) -> RakshakAgent:
     if redis_client:
         state_str = redis_client.get(f"agent_state:{thread_id}")
         if state_str:
-            return HoneypotAgent(state_dict=json.loads(state_str))
-    return HoneypotAgent()
+            agent = RakshakAgent(json.loads(state_str))
+            return agent
+    return RakshakAgent()
 
-def save_agent(thread_id: str, agent: HoneypotAgent):
+def save_agent(thread_id: str, agent: RakshakAgent):
     if redis_client:
         state = agent.get_state()
         redis_client.setex(f"agent_state:{thread_id}", 86400, json.dumps(state)) # 24 hour TTL

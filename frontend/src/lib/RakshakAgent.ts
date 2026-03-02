@@ -6,7 +6,7 @@ import { ScamAnalyzer } from './ScamAnalyzer';
 import { CyberCellService } from './CyberCellService';
 import type { Classification, Message, IncidentReport, IOCs, ScamType } from './types';
 
-export class HoneypotAgent {
+export class RakshakAgent {
     private iocs: IOCs = {
         urls: [],
         domains: [],
@@ -100,7 +100,7 @@ export class HoneypotAgent {
 
         const currentAutoReported = this.hasAutoReported;
 
-        console.log(`[HoneypotAgent] Ingest Complete. Class: ${this.maxThreatLevel}, Reported: ${currentAutoReported}, Intent: ${intent}`);
+        console.log(`[RakshakAgent] Ingest Complete. Class: ${this.maxThreatLevel}, Reported: ${currentAutoReported}, Intent: ${intent}`);
 
         if (currentClassification === 'scam' || currentClassification === 'likely_scam') {
             this.currentScamType = this.detectScamType(text);

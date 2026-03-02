@@ -288,7 +288,7 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
 
             <div className="services-list">
                 <div className="service-item">
-                    <Server size={14} /> <span>Honeypot Protocols: <span className="text-green">READY</span></span>
+                    <Server size={14} /> <span>Rakshak Protocols: <span className="text-green">READY</span></span>
                 </div>
                 <div className="service-item">
                     <Lock size={14} /> <span>Encryption: <span className="text-green">VERIFIED</span></span>

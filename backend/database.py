@@ -9,7 +9,7 @@ _db_url = os.environ.get("DATABASE_URL", "")
 
 if not _db_url or _db_url.startswith("sqlite"):
     # Use a path inside the working directory (always writable in Docker)
-    _db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scam_honeypot.db")
+    _db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rakshak_ai.db")
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_file}"
     # Ensure parent directory exists
     os.makedirs(os.path.dirname(_db_file), exist_ok=True)

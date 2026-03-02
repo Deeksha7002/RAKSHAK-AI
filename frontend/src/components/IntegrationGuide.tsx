@@ -27,7 +27,7 @@ export const IntegrationGuide: React.FC = () => {
             name: 'Inbound Email (SendGrid)',
             icon: <Mail size={18} className="text-purple-400" />,
             url: `${backendUrl}/api/webhook/email`,
-            desc: 'Route scam emails directly into the honeypot.',
+            desc: 'Route scam emails directly into Rakshak AI.',
             steps: [
                 'Log in to SendGrid > Settings > Inbound Parse',
                 'Add Host & Point to this Webhook URL',

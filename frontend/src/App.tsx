@@ -6,7 +6,7 @@ import { LockScreen } from './components/LockScreen';
 import { SystemDashboard } from './components/SystemDashboard';
 import { LiveIntercept } from './components/LiveIntercept';
 import { MockScammerAPI } from './lib/MockScammerAPI';
-import { HoneypotAgent } from './lib/HoneypotAgent';
+import { RakshakAgent } from './lib/RakshakAgent';
 import { IntelligenceService } from './lib/IntelligenceService';
 import { IntelligenceReport } from './components/IntelligenceReport';
 import { soundManager } from './lib/SoundManager';
@@ -55,7 +55,7 @@ function App() {
 
   const isMonitoringRef = useRef(false);
   const apiRef = useRef(new MockScammerAPI());
-  const agentsRef = useRef<Map<string, HoneypotAgent>>(new Map());
+  const agentsRef = useRef<Map<string, RakshakAgent>>(new Map());
   const scammerProgressRef = useRef<Map<string, number>>(new Map());
   const threadsRef = useRef<Thread[]>([]);
 
@@ -78,7 +78,7 @@ function App() {
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('🔗 WebSocket Connected to Cyber Cell Core');
+      console.log('🔗 WebSocket Connected to Rakshak AI Core');
       setNotification('🔗 SECURE UPLINK ESTABLISHED: LISTENING FOR LIVE THREATS');
     };
 

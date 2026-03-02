@@ -7,7 +7,7 @@ from analyzer import ScamAnalyzer
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [AGENT] - %(message)s')
 
-class HoneypotAgent:
+class RakshakAgent:
     def __init__(self, state_dict=None):
         if state_dict:
             self.conversation_history = state_dict.get("conversation_history", [])
