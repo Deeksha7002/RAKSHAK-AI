@@ -16,3 +16,4 @@ textblob
 nltk
 slowapi
 redis
+python-multipart
