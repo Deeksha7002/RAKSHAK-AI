@@ -17,3 +17,5 @@ nltk
 slowapi
 redis
 python-multipart
+sendgrid
+twilio

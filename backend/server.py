@@ -10,6 +10,9 @@ import redis
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
+import sendgrid
+from sendgrid.helpers.mail import Mail, Email, To, Content
+from twilio.rest import Client as TwilioClient
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -34,7 +37,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [API] - %(message)
 # Initialize DB tables
 init_db()
 
-app = FastAPI(title="Honeypot Cyber Cell API")
+app = FastAPI(title="Rakshak AI Cyber Cell API")
 
 # Enable CORS for frontend
 ALLOWED_ORIGINS = [
@@ -103,6 +106,55 @@ def save_agent(thread_id: str, agent: HoneypotAgent):
     if redis_client:
         state = agent.get_state()
         redis_client.setex(f"agent_state:{thread_id}", 86400, json.dumps(state)) # 24 hour TTL
+
+# --- External API Helpers ---
+
+def send_email_reply(to_email: str, subject: str, content: str):
+    """Dispatches an email reply via SendGrid."""
+    sg_key = os.environ.get("SENDGRID_API_KEY")
+    from_email = os.environ.get("FROM_EMAIL", "alerts@rakshak-ai.com")
+    
+    if not sg_key:
+        logging.warning("⚠️ SENDGRID_API_KEY not set. Skipping real email dispatch.")
+        return False
+        
+    try:
+        sg = sendgrid.SendGridAPIClient(api_key=sg_key)
+        mail = Mail(
+            from_email=Email(from_email),
+            to_emails=To(to_email),
+            subject=subject,
+            plain_text_content=Content("text/plain", content)
+        )
+        response = sg.client.mail.send.post(request_body=mail.get())
+        logging.info(f"📧 Email sent to {to_email}. Status: {response.status_code}")
+        return True
+    except Exception as e:
+        logging.error(f"❌ Failed to send email via SendGrid: {e}")
+        return False
+
+def send_sms_reply(to_phone: str, body: str):
+    """Dispatches an SMS reply via Twilio API (fallback for stateful triggers)."""
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_phone = os.environ.get("TWILIO_PHONE_NUMBER")
+    
+    if not all([account_sid, auth_token, from_phone]):
+        logging.warning("⚠️ Twilio credentials missing. Skipping real SMS dispatch.")
+        return False
+        
+    try:
+        client = TwilioClient(account_sid, auth_token)
+        message = client.messages.create(
+            body=body,
+            from_=from_phone,
+            to=to_phone
+        )
+        logging.info(f"📱 SMS sent to {to_phone}. SID: {message.sid}")
+        return True
+    except Exception as e:
+        logging.error(f"❌ Failed to send SMS via Twilio: {e}")
+        return False
 
 # WebSockets Connection Manager
 class ConnectionManager:
@@ -868,7 +920,10 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
         # Save state back to Redis
         save_agent(clean_sender, temp_agent)
 
-        # 4. Broadcast to frontend
+        # 4. Dispatch the real email reply via SendGrid
+        send_email_reply(clean_sender, f"Re: {subject}", response_text)
+
+        # 5. Broadcast to frontend
         await manager.broadcast(json.dumps({
             "type": "NEW_INTERCEPT",
             "threadId": clean_sender,

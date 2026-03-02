@@ -72,7 +72,7 @@ function App() {
     } else {
       // In production/Vercel, API_BASE_URL might be empty or "/" due to proxying
       // We point to the known Render backend for reliable real-time intercept
-      wsUrl = 'wss://scam-defender-honeypot-1.onrender.com/api/ws';
+      wsUrl = 'wss://rakshak-ai-backend.onrender.com/api/ws';
     }
 
     const ws = new WebSocket(wsUrl);
