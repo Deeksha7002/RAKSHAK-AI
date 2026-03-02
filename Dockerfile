@@ -11,7 +11,8 @@ COPY backend/ .
 
 # Create data directory and set database path
 RUN mkdir -p /app/data
-ENV DATABASE_URL="sqlite:////app/data/scam_honeypot.db"
+LABEL description="Rakshak AI Defense System"
+ENV DATABASE_URL="sqlite:////app/data/rakshak_ai.db"
 
 # Expose the port Render provides via $PORT
 EXPOSE 8000

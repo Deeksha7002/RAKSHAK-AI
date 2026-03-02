@@ -15,7 +15,7 @@ This guide walks you through deploying the app publicly using **Render** (backen
    - `SECRET_KEY` → (click "Generate" — Render does this automatically from render.yaml)
 6. Click **"Create Web Service"** and wait for the build to finish (~3 minutes).
 7. Copy your backend URL, it will look like:  
-   `https://scam-defender-backend.onrender.com`
+   `https://rakshak-ai-backend.onrender.com`
 
 ---
 
@@ -29,7 +29,7 @@ This guide walks you through deploying the app publicly using **Render** (backen
    - **Value:** `https://scam-defender-backend.onrender.com` ← (your Render URL from Step 1)
 5. Click **"Deploy"** and wait (~2 minutes).
 6. Your app is live! Vercel gives you a URL like:  
-   `https://scam-defender-honeypot.vercel.app`
+   `https://rakshak-ai.vercel.app`
 
 ---
 
