@@ -18,6 +18,7 @@ import { ForensicsService } from './lib/ForensicsService';
 import { MediaLogService } from './lib/MediaLogService';
 import { Anonymizer } from './lib/Anonymizer';
 import { CyberCellService } from './lib/CyberCellService';
+import { IntegrationGuide } from './components/IntegrationGuide';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import type { Message, Thread, CaseFile, Scenario } from './lib/types';
@@ -743,6 +744,8 @@ function App() {
             </>
           )}
         </div>
+        {/* --- Global Overlay Tools --- */}
+        <IntegrationGuide />
       </div>
     </>
   );
