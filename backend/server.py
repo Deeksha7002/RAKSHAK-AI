@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
@@ -79,6 +79,28 @@ async def secure_headers_and_obfuscation(request: Request, call_next):
 # Initialize Core Logic
 analyzer = ScamAnalyzer()
 agent = HoneypotAgent()
+
+# WebSockets Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logging.error(f"Failed to broadcast to a connection: {e}")
+
+manager = ConnectionManager()
 
 # Dependency
 def get_db():
@@ -695,6 +717,16 @@ class AnalyzeRequest(BaseModel):
 from fastapi import Form
 from fastapi.responses import PlainTextResponse
 
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
 @app.post("/api/webhook/twilio")
 async def twilio_webhook(
     From: str = Form(...),
@@ -737,6 +769,17 @@ async def twilio_webhook(
         response_text = "I'm sorry, who is this?"
 
     logging.info(f"🤖 [HONEYPOT REPLY]: {response_text}")
+
+    # Broadcast to connected frontends
+    await manager.broadcast(json.dumps({
+        "type": "NEW_INTERCEPT",
+        "threadId": From,
+        "scammerText": Body,
+        "agentReply": response_text,
+        "classification": analysis["classification"],
+        "intent": analysis.get("intent", "UNKNOWN"),
+        "timestamp": int(time.time() * 1000)
+    }))
 
     # 4. Return standard TwiML format for Twilio to reply
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>

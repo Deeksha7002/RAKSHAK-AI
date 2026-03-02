@@ -57,6 +57,93 @@ function App() {
   const scammerProgressRef = useRef<Map<string, number>>(new Map());
   const threadsRef = useRef<Thread[]>([]);
 
+  // --- Live WebSocket Connection ---
+  useEffect(() => {
+    if (!isMonitoring) return;
+
+    // Connect to WebSocket
+    const wsUrl = import.meta.env.PROD
+      ? `wss://${window.location.hostname}/api/ws`
+      : 'ws://localhost:8000/api/ws';
+
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('🔗 WebSocket Connected to Cyber Cell Core');
+      setNotification('🔗 SECURE UPLINK ESTABLISHED: LISTENING FOR LIVE THREATS');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'NEW_INTERCEPT') {
+          handleLiveIntercept(data);
+        }
+      } catch (e) {
+        console.error('WebSocket parsing error:', e);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('🔗 WebSocket Disconnected');
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [isMonitoring]);
+
+  const handleLiveIntercept = (data: any) => {
+    const threadId = data.threadId;
+
+    // Check if thread exists
+    const existingThread = threadsRef.current.find(t => t.id === threadId);
+
+    if (!existingThread) {
+      const newThread: Thread = {
+        id: threadId,
+        scenarioId: 'LIVE',
+        senderName: data.threadId,
+        source: 'sms',
+        messages: [],
+        classification: data.classification,
+        isIntercepted: true,
+        isScanning: false,
+        location: "Unknown",
+        detectedLocation: { country: "Unknown", city: "Unknown", lat: 0, lng: 0, ip: "0.0.0.0", isp: "Carrier" },
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.threadId}`,
+        isCompromised: false,
+        isArchived: false,
+        intent: data.intent
+      };
+      setThreads((prev: Thread[]) => [newThread, ...prev]);
+      soundManager.playAlert();
+    }
+
+    // Add Scammer Message
+    addMessageToThread(threadId, {
+      id: `live-s-${data.timestamp}`,
+      sender: 'scammer',
+      senderName: data.threadId,
+      content: data.scammerText,
+      timestamp: data.timestamp,
+      isRedacted: false
+    });
+
+    // Add Agent Reply
+    if (data.agentReply) {
+      setTimeout(() => {
+        addMessageToThread(threadId, {
+          id: `live-a-${data.timestamp}`,
+          sender: 'agent',
+          content: data.agentReply,
+          timestamp: data.timestamp + 500,
+          isRedacted: false
+        });
+      }, 1000);
+    }
+  };
+
   useEffect(() => {
     threadsRef.current = threads;
   }, [threads]);
