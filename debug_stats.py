@@ -3,7 +3,7 @@ import datetime
 import os
 
 def debug_stats():
-    conn = sqlite3.connect('scam_Rakshak AI.db')
+    conn = sqlite3.connect('rakshak_ai.db')
     cur = conn.cursor()
     
     now = datetime.datetime.now(datetime.timezone.utc)

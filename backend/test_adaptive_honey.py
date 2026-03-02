@@ -1,13 +1,13 @@
 import logging
-from agent import HoneypotAgent
+from agent import RakshakAgent
 from config import PERSONA
 
 # Configure logging to see our agent's internal state
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def test_adaptive_honeypot():
-    print("=== Testing Adaptive Honeypot ===\n")
-    agent = HoneypotAgent()
+    print("=== Testing Rakshak AI ===\n")
+    agent = RakshakAgent()
 
     # Scenario 1: Low Sophistication (Grandma Betty should respond)
     print("--- Scenario 1: Low Sophistication Scam ---")
