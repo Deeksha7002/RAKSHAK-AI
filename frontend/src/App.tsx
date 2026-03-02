@@ -206,7 +206,7 @@ function App() {
 
   const spawnBotnetThread = (scenario: Scenario) => {
     const threadId = scenario.id;
-    const agent = new HoneypotAgent();
+    const agent = new RakshakAgent();
     agentsRef.current.set(threadId, agent);
     scammerProgressRef.current.set(threadId, 1);
 
@@ -235,7 +235,7 @@ function App() {
     if (!isMonitoringRef.current) return;
     const scenario = apiRef.current.getRandomScenario();
     const threadId = Math.random().toString(36).substring(7);
-    const agent = new HoneypotAgent();
+    const agent = new RakshakAgent();
     agentsRef.current.set(threadId, agent);
     scammerProgressRef.current.set(threadId, 1);
 
@@ -352,7 +352,7 @@ function App() {
 
       let agent = agentsRef.current.get(threadId);
       if (!agent) {
-        agent = new HoneypotAgent();
+        agent = new RakshakAgent();
         agentsRef.current.set(threadId, agent);
       }
 

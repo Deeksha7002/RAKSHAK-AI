@@ -1,6 +1,6 @@
 # Rakshak AI 🛡️🤖
 
-An AI-powered honeypot system designed to engage with and analyze scammers in real-time. This project uses multiple personas to trap scammers, extract intelligence, and generate evidence for cybersecurity teams.
+An AI-powered Rakshak system designed to engage with and analyze scammers in real-time. This project uses multiple personas to trap scammers, extract intelligence, and generate evidence for cybersecurity teams.
 
 ## 🚀 Features
 
@@ -13,7 +13,7 @@ An AI-powered honeypot system designed to engage with and analyze scammers in re
 ## 🏗️ Architecture
 
 - **frontend/**: A Vite-powered React application providing the user interface and dashboard metrics.
-- **backend/**: Handles the AI logic, persona management, and core scam analysis routines.
+- **backend/**: Handles the AI logic, persona management, and core Rakshak analysis routines.
 - **PWA Support**: Can be installed as a Progressive Web App for a native-like experience on desktop and mobile.
 
 ## 🛡️ Zero-Trust Forensic Architecture

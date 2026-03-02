@@ -11,7 +11,7 @@ This guide walks you through deploying the app publicly using **Render** (backen
 3. Connect your GitHub account and select the **`Scam_defender_honeypot`** repository.
 4. Render will auto-detect the `render.yaml` file and fill in the settings.
 5. **Environment Variables** — Add this in the Render dashboard:
-   - `DATABASE_URL` → `sqlite:////data/scam_honeypot.db`
+   - `DATABASE_URL` → `sqlite:////data/rakshak_ai.db`
    - `SECRET_KEY` → (click "Generate" — Render does this automatically from render.yaml)
 6. Click **"Create Web Service"** and wait for the build to finish (~3 minutes).
 7. Copy your backend URL, it will look like:  

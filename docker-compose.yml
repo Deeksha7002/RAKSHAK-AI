@@ -1,11 +1,11 @@
 services:
   db:
     image: postgres:15
-    container_name: honeypot-postgres
+    container_name: rakshak-postgres
     environment:
       POSTGRES_USER: rakshak
       POSTGRES_PASSWORD: rakshakpassword
-      POSTGRES_DB: honeypot_db
+      POSTGRES_DB: rakshak_db
     ports:
       - "5432:5432"
     volumes:
@@ -13,20 +13,20 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: honeypot-redis
+    container_name: rakshak-redis
     ports:
       - "6379:6379"
 
   backend:
     build: ./backend
-    container_name: honeypot-backend
+    container_name: rakshak-backend
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql://rakshak:rakshakpassword@db:5432/honeypot_db
+      - DATABASE_URL=postgresql://rakshak:rakshakpassword@db:5432/rakshak_db
       - REDIS_URL=redis://redis:6379
     depends_on:
       - db
@@ -34,7 +34,7 @@ services:
 
   frontend:
     build: ./frontend
-    container_name: honeypot-frontend
+    container_name: rakshak-frontend
     ports:
       - "80:80"
     depends_on:

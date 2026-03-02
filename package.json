@@ -1,7 +1,7 @@
 {
     "name": "scam-honeypot-root",
     "version": "1.0.0",
-    "description": "Unified launcher for AI Honeypot",
+    "description": "Unified launcher for Rakshak AI",
     "scripts": {
         "dev:frontend": "cd frontend && npm run dev",
         "dev:backend": "python backend/server.py",
