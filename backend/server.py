@@ -789,9 +789,76 @@ async def twilio_webhook(
 
     return PlainTextResponse(content=twiml_response, media_type="application/xml")
 
+@app.post("/api/webhook/email")
+async def email_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Receives real incoming emails from SendGrid Inbound Parse.
+    1. Parses the multipart/form-data payload.
+    2. Extracts the plain text body and sender address.
+    3. Analyzes it and broadcasts to the frontend.
+    """
+    try:
+        # SendGrid sends data as multipart/form-data
+        form_data = await request.form()
+        
+        # Extract fields
+        sender = form_data.get("from", "Unknown Sender")
+        subject = form_data.get("subject", "No Subject")
+        text_body = form_data.get("text", "")
+        
+        logging.info(f"📧 [EMAIL WEBHOOK] Received Email from {sender}. Subject: {subject}")
+        
+        # Clean the sender email if it comes in format "Name <email@domain.com>"
+        import re
+        email_match = re.search(r'<([^>]+)>', sender)
+        clean_sender = email_match.group(1) if email_match else sender
 
+        temp_agent = HoneypotAgent()
+        
+        # 1. Analyze the text payload
+        # Combine subject and body for analysis
+        full_text = f"Subject: {subject}\n\n{text_body}"
+        analysis = temp_agent.ingest(text=full_text, thread_id=clean_sender)
+        
+        # 2. Update stats 
+        if analysis["classification"] in ["scam", "likely_scam"]:
+            stats = get_or_create_stats(db)
+            stats.reports_filed += 1
+            current_types = dict(stats.types_json)
+            scam_type = analysis.get("scamType", "OTHER").upper()
+            current_types[scam_type] = current_types.get(scam_type, 0) + 1
+            stats.types_json = current_types
+            db.commit()
 
+        # 3. Generate response
+        response_text = temp_agent.generateResponse(
+            classification=analysis["classification"],
+            text=full_text
+        )
+        if not response_text:
+            response_text = "I received your email but I am not sure what you mean."
 
+        logging.info(f"🤖 [HONEYPOT EMAIL REPLY]: {response_text}")
+
+        # 4. Broadcast to frontend
+        await manager.broadcast(json.dumps({
+            "type": "NEW_INTERCEPT",
+            "threadId": clean_sender,
+            "scammerText": full_text[:500] + ("..." if len(full_text) > 500 else ""), # Truncate massive emails for UI
+            "agentReply": response_text,
+            "classification": analysis["classification"],
+            "intent": analysis.get("intent", "UNKNOWN"),
+            "timestamp": int(time.time() * 1000)
+        }))
+
+        # (In reality, here is where you would call the SendGrid API to dispatch the email reply)
+        # return JSONResponse(status_code=200, content={"message": "Email Processed"})
+
+        return JSONResponse(status_code=200, content={"status": "received"})
+        
+    except Exception as e:
+        logging.error(f"❌ [EMAIL WEBHOOK ERROR] {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":
     import uvicorn
