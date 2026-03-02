@@ -21,6 +21,7 @@ import { CyberCellService } from './lib/CyberCellService';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import type { Message, Thread, CaseFile, Scenario } from './lib/types';
+import { API_BASE_URL } from './lib/config';
 import './index.css';
 
 const EvidenceLocker = lazy(() => import('./components/EvidenceLocker').then(module => ({ default: module.EvidenceLocker })));
@@ -61,10 +62,8 @@ function App() {
   useEffect(() => {
     if (!isMonitoring) return;
 
-    // Connect to WebSocket
-    const wsUrl = import.meta.env.PROD
-      ? `wss://${window.location.hostname}/api/ws`
-      : 'ws://localhost:8000/api/ws';
+    // Connect to WebSocket using the backend API URL
+    const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/api/ws';
 
     const ws = new WebSocket(wsUrl);
 
