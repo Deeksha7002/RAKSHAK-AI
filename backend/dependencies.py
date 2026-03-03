@@ -9,6 +9,7 @@ from database import SessionLocal, User
 from agent import RakshakAgent
 from analyzer import ScamAnalyzer
 import security
+import asyncio
 
 # ── Auth Helper ────────────────────────────────────────────────────────────────
 _bearer_scheme = HTTPBearer(auto_error=False)
@@ -46,6 +47,7 @@ def get_db():
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        self.pubsub_channel = "rakshak_events"
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -57,12 +59,46 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
             logging.info(f"🔌 WebSocket client disconnected. Remaining: {len(self.active_connections)}")
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message: str, publish_to_redis: bool = True):
+        """Broadcasts to local clients AND optionally publishes to Redis for other instances."""
+        # 1. Local broadcast
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
             except Exception as e:
-                logging.error(f"Failed to broadcast to a client: {e}")
+                logging.error(f"Failed to broadcast locally: {e}")
+        
+        # 2. Global sync (Pub/Sub)
+        if publish_to_redis and redis_client:
+            try:
+                redis_client.publish(self.pubsub_channel, message)
+            except Exception as e:
+                logging.error(f"Redis Publish failed: {e}")
+
+    async def pubsub_listener(self):
+        """Background task to listen for events from other instances via Redis."""
+        if not redis_client:
+            return
+            
+        pubsub = redis_client.pubsub()
+        pubsub.subscribe(self.pubsub_channel)
+        logging.info(f"🛰️ Redis Pub/Sub listener active on channel: {self.pubsub_channel}")
+        
+        try:
+            while True:
+                # Use a non-blocking check to allow for cancellation
+                message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message and message['type'] == 'message':
+                    data = message['data']
+                    # Broadcast to local clients ONLY (set publish_to_redis=False to avoid loops!)
+                    logging.info("📢 Global event received from Redis, broadcasting to local clients.")
+                    await self.broadcast(data, publish_to_redis=False)
+                await asyncio.sleep(0.01)
+        except asyncio.CancelledError:
+            logging.info("🛑 Redis Pub/Sub listener stopping.")
+            pubsub.unsubscribe(self.pubsub_channel)
+        except Exception as e:
+            logging.error(f"❌ Redis Pub/Sub Listener Error: {e}")
 
 manager = ConnectionManager()
 

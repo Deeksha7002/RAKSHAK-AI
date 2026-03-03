@@ -24,6 +24,17 @@ class ScamAnalyzer:
             "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide"]
         }
 
+    def analyze(self, text, context="general"):
+        """Convenience wrapper for single-message analysis."""
+        score, category, matrix, llm_needed = self.analyze_behavior([{"role": "scammer", "content": text}])
+        return {
+            "risk_score": score,
+            "classification": category,
+            "neural_matrix": matrix,
+            "llm_verification_required": llm_needed,
+            "intent": self.intent
+        }
+
     def analyze_behavior(self, history):
         if not history:
             return 0.0, "unknown"
@@ -139,7 +150,12 @@ class ScamAnalyzer:
         }
 
         logging.info(f"[NLP Core] Vector Magnitude: {dominant_intent[1]:.4f} | Escalation: {escalation_multiplier} | Threat: {threat_classification}")
-        return self.sophistication_score, threat_classification, neuro_matrix
+        
+        # Determine if we need a second-pass verification via LLM
+        # Cases in the "likely_scam" (Yellow) range need the LLM's opinion.
+        llm_verification_required = (threat_classification == "likely_scam")
+        
+        return self.sophistication_score, threat_classification, neuro_matrix, llm_verification_required
 
     def _structural_link_check(self, text):
         link_pattern = r"(click|tap|visit|open|download|install).{0,30}(link|url|website|page|attachment|app|.apk|.exe)"

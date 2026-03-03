@@ -6,8 +6,9 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from database import init_db
-from dependencies import get_db, _prune_stale_challenges
+from dependencies import get_db, _prune_stale_challenges, manager
 from contextlib import asynccontextmanager
+import asyncio
 
 # Import Routers
 from routers import auth, agent, stats, webhooks
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     import asyncio
     stop_event = asyncio.Event()
     
+    # 1. Start Challenge Pruner
     async def prune_loop():
         while not stop_event.is_set():
             try:
@@ -36,12 +38,16 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(60)
 
     pruner = asyncio.create_task(prune_loop())
+
+    # 2. Start Redis Pub/Sub Listener (for multi-server Sync)
+    sync_task = asyncio.create_task(manager.pubsub_listener())
     
     yield
     
     # Shutdown
     stop_event.set()
     pruner.cancel()
+    sync_task.cancel()
     logging.info("👋 Rakshak AI Core Shutting Down")
 
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)

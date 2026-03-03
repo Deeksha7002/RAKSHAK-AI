@@ -94,7 +94,7 @@ class RakshakAgent:
         logging.info(f"Ingested from {thread_id}: {safe_text}")
 
         # 3. Behavior Analysis
-        score, category, neuro_matrix = self.analyzer.analyze_behavior(self.conversation_history)
+        score, category, neuro_matrix, llm_verification_required = self.analyzer.analyze_behavior(self.conversation_history)
         self.threat_score = score
 
         # Determine intent
@@ -113,6 +113,19 @@ class RakshakAgent:
 
         # 4. Classification
         classification = self._classify(safe_text)
+        
+        # If heuristics say it's borderline, we trigger the PASS 2 (LLM Verification)
+        if llm_verification_required and _groq_client:
+            logging.info(f"🔍 [PASS 2] Triggering LLM Verification for {thread_id}...")
+            # Note: verify_scam is async but called in a sync-like context here. 
+            # In a real environment, we'd use await, but the ingest method in server.py 
+            # is called by endpoints that are async.
+            # Let's make verify_scam sync for simplicity as Groq client is sync by default here.
+            llm_verdict = self.verify_scam(safe_text)
+            if llm_verdict:
+                classification = llm_verdict
+                logging.info(f"🧠 [LLM VERDICT]: {classification}")
+
         self.classification_cache = classification
 
         # 5. Extract IOCs
@@ -129,8 +142,55 @@ class RakshakAgent:
             "score": score,
             "isCompromised": self.is_compromised,
             "autoReported": self.auto_reported,
-            "scamType": category
+            "scamType": category,
+            "llmVerified": llm_verification_required,
+            "neuro_matrix": neuro_matrix
         }
+
+    def verify_scam(self, latest_message: str) -> str | None:
+        """
+        PASS 2 Detection: Asks the LLM to perform a high-level verification of a borderline message.
+        Returns "scam", "likely_scam", or "benign".
+        """
+        if not _groq_client:
+            return None
+
+        prompt = f"""You are a Cyber Security Forensic Analyst. 
+Analyze the following message and conversation history to determine if it is a scam.
+Current Message: "{latest_message}"
+
+Reply with ONLY ONE WORD from this list: [scam, likely_scam, benign]
+- SCAM: High confidence it is a scam (asking for money/PII explicitly).
+- LIKELY_SCAM: Suspicious patterns, social engineering, or unusual urgency.
+- BENIGN: Normal conversation.
+
+Your verdict:"""
+        
+        try:
+            # Build history but exclude agent responses to focus on scammer patterns
+            scammer_history = [t["content"] for t in self.conversation_history if t["role"] == "scammer"][-5:]
+            history_str = "\n".join([f"- {m}" for m in scammer_history])
+            
+            full_prompt = f"{prompt}\nRecent History:\n{history_str}"
+
+            chat_completion = _groq_client.chat.completions.create(
+                messages=[{"role": "user", "content": full_prompt}],
+                model="llama-3.1-8b-instant",
+                max_tokens=5,
+                temperature=0.0, # Be deterministic for analysis
+                timeout=3.0
+            )
+
+            verdict = chat_completion.choices[0].message.content.strip().lower()
+            # Clean up verdict in case LLM added punctuation
+            for v in ["scam", "likely_scam", "benign"]:
+                if v in verdict:
+                    return v
+            return None
+
+        except Exception as e:
+            logging.warning(f"⚠️ [GROQ VERIFIER] API call failed: {e}")
+            return None
 
     def generateResponse(self, classification, text):
         """
