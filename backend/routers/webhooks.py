@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
-from database import Case, Stats
-from dependencies import get_db, analyzer, manager
-from utils import send_email_reply, send_sms_reply
-from schemas import AnalyzeRequest
+from ..database import Case, Stats
+from ..dependencies import get_db, analyzer, manager
+from ..utils import send_email_reply, send_sms_reply
+from ..schemas import AnalyzeRequest
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 

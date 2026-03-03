@@ -4,9 +4,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from database import Case, Stats
-from dependencies import get_db
-from schemas import ReportRequest
+from ..database import Case, Stats
+from ..dependencies import get_db
+from ..schemas import ReportRequest
 
 router = APIRouter(prefix="/api", tags=["statistics"])
 
