@@ -2,14 +2,15 @@
 import logging
 import math
 from textblob import TextBlob
-from collections import Counter
-import nltk
 try:
+    import nltk
     nltk.download('punkt', quiet=True)
     nltk.download('wordnet', quiet=True)
     nltk.download('omw-1.4', quiet=True)
-except:
-    pass
+except ImportError:
+    logging.warning("⚠️ nltk package not installed. Sophisticated NLP features may be limited.")
+except Exception as e:
+    logging.warning(f"⚠️ NLTK download failed: {e}")
 
 class ScamAnalyzer:
     """
