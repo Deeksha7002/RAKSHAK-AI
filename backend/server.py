@@ -137,6 +137,18 @@ app.include_router(agent.router)
 app.include_router(stats.router)
 app.include_router(webhooks.router)
 
+@app.get("/api/debug/db-schema")
+async def debug_db_schema():
+    """Diagnostic endpoint to check production DB columns."""
+    from database import engine
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    report = {}
+    for table_name in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns(table_name)]
+        report[table_name] = columns
+    return report
+
 @app.get("/")
 def read_root():
     return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.0 (Fortified)"}
