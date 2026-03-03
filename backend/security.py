@@ -4,6 +4,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import os
 import logging
+import secrets
 
 # ── SECRET_KEY Guard ──────────────────────────────────────────────────────────
 # The server REFUSES to start if SECRET_KEY has not been set via environment variable.
