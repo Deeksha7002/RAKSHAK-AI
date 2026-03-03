@@ -208,6 +208,7 @@ function App() {
   const spawnBotnetThread = (scenario: Scenario) => {
     const threadId = scenario.id;
     const agent = new RakshakAgent();
+    agent.senderName = scenario.senderName;
     agentsRef.current.set(threadId, agent);
     scammerProgressRef.current.set(threadId, 1);
 
@@ -237,6 +238,7 @@ function App() {
     const scenario = apiRef.current.getRandomScenario();
     const threadId = Math.random().toString(36).substring(7);
     const agent = new RakshakAgent();
+    agent.senderName = scenario.senderName;
     agentsRef.current.set(threadId, agent);
     scammerProgressRef.current.set(threadId, 1);
 

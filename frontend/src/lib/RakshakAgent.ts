@@ -23,6 +23,7 @@ export class RakshakAgent {
 
     // Current Persona state
     public currentPersona: PersonaType = 'ELDERLY';
+    public senderName: string = 'Unknown';
 
     // Track if already reported to avoid duplicates
     private hasAutoReported: boolean = false;
@@ -355,6 +356,7 @@ export class RakshakAgent {
                 },
                 body: JSON.stringify({
                     message: incomingText ?? '',
+                    sender_name: this.senderName,
                     persona: backendPersona,
                     conversation_history: historyForLLM,
                     classification
