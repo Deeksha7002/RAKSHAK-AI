@@ -319,15 +319,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = () => {
             setStatusMsg('FOLLOW DEVICE PROMPT...');
             await enrollBiometrics(regUsername);
             setStatusMsg('✓ BIOMETRICS ENROLLED! Logging you in...');
+            // Only login automatically if biometric succeeded
+            const success = await login(regUsername, regPassword);
+            if (!success) setError('Login failed — try logging in manually');
         } catch (bioErr: any) {
-            setError(`BIOMETRIC SETUP FAILED: ${bioErr?.message || 'dismissed'} — tap "Skip" to login with password instead.`);
+            // Leave error on screen. Do NOT auto-login, otherwise the page reloads
+            // and the user never gets to read what went wrong.
+            setError(`BIOMETRIC SETUP FAILED: ${bioErr?.message || 'dismissed'} — Please use manual login.`);
             setStatusMsg(null);
-        } finally {
             setIsLoading(false);
         }
-        // Proceed to login regardless
-        const success = await login(regUsername, regPassword);
-        if (!success) setError('Login failed — try logging in manually');
     };
 
     // ── Password login submit ───────────────────────────────────────────────

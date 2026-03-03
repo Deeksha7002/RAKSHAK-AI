@@ -37,12 +37,13 @@ async def twilio_webhook(
     
     # 2. Broadcast to frontend
     alert_msg = json.dumps({
-        "type": "INTERCEPT",
+        "type": "NEW_INTERCEPT",
         "data": {
-            "platform": "sms",
-            "from": From,
-            "text": Body,
-            "analysis": analysis
+            "threadId": f"sms_{From}",
+            "scammerText": Body,
+            "classification": analysis.get("classification"),
+            "intent": analysis.get("intent"),
+            "timestamp": int(time.time() * 1000)
         }
     })
     await manager.broadcast(alert_msg)
@@ -92,12 +93,13 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
 
         # Broadcast
         alert_msg = json.dumps({
-            "type": "INTERCEPT",
+            "type": "NEW_INTERCEPT",
             "data": {
-                "platform": "email",
-                "from": sender,
-                "text": body,
-                "analysis": analysis
+                "threadId": f"email_{sender}",
+                "scammerText": body,
+                "classification": analysis.get("classification"),
+                "intent": analysis.get("intent"),
+                "timestamp": int(time.time() * 1000)
             }
         })
         await manager.broadcast(alert_msg)

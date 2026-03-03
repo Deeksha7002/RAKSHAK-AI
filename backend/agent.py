@@ -110,8 +110,11 @@ class RakshakAgent:
         classification = self._classify(safe_text)
         if llm_verification_required and _groq_client:
             llm_verdict = self.verify_scam(safe_text)
-            if llm_verdict:
-                classification = llm_verdict
+            # Only Allow LLM to Upgrade or Stay, NOT Downgrade a hard heuristic 'scam'
+            if llm_verdict == "scam":
+                classification = "scam"
+            elif classification != "scam":
+                classification = llm_verdict or classification
 
         self.classification_cache = classification
         self._extract_iocs(safe_text)

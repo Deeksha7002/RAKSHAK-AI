@@ -20,8 +20,9 @@ async def generate_llm_response(
     """
     Generates a persona-driven agent response using the logic class.
     """
-    # Create or load a thread based on the message content
-    thread_id = hashlib.sha256(payload.message.encode()).hexdigest()[:12]
+    # Create or load a thread based on the message content and sender
+    thread_key = f"{payload.sender_name}:{payload.message}"
+    thread_id = hashlib.sha256(thread_key.encode()).hexdigest()[:12]
     # FIX #3: current_user is already the username string, not a dict
     agent = load_agent(thread_id, current_user)
 
