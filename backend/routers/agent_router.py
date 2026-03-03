@@ -5,9 +5,9 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
-from ..schemas import GenerateResponseRequest, AnalysisRequest
-from ..dependencies import analyzer, load_agent, save_agent, get_current_user, manager, get_db
-from ..agent import RakshakAgent
+from schemas import GenerateResponseRequest, AnalysisRequest
+from dependencies import analyzer, load_agent, save_agent, get_current_user, manager, get_db
+from agent import RakshakAgent
 
 router = APIRouter(tags=["agent"])
 

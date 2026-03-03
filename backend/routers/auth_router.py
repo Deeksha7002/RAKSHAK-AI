@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from ..database import User, RefreshToken, WebAuthnChallenge
-from ..dependencies import get_db, get_current_user
-from ..schemas import LoginRequest, RefreshRequest
+from database import User, RefreshToken, WebAuthnChallenge
+from dependencies import get_db, get_current_user
+from schemas import LoginRequest, RefreshRequest
 import security
 
 # Biometric Imports
