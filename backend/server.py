@@ -16,7 +16,31 @@ from routers import auth, agent, stats, webhooks
 # ── Lifespan & Initialization ────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize DB
+    # 🛠️ Database Auto-Migration Logic ─────────────────────────────────────────
+    # Since SQLAlchemy metadata.create_all() doesn't add missing columns,
+    # we manually execute ALTER TABLE commands for our latest schema update.
+    try:
+        from database import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            logging.info("🛠️ Running schema migration checks...")
+            # 'cases' table updates
+            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"))
+            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS classification VARCHAR"))
+            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS scam_type VARCHAR"))
+            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS confidence_score FLOAT"))
+            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS conversation_id VARCHAR"))
+            # 'stats' table updates
+            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS total_intercepted INTEGER DEFAULT 0"))
+            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS scams_prevented INTEGER DEFAULT 0"))
+            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS safe_conversations INTEGER DEFAULT 0"))
+            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS current_threat_level FLOAT DEFAULT 0.1"))
+            conn.commit()
+            logging.info("✅ Database schema synchronized.")
+    except Exception as e:
+        logging.warning(f"⚠️ Migration warning (may already exist): {e}")
+
+    # Startup logic
     init_db()
     logging.info("🚀 Rakshak AI Core Initialized")
     
