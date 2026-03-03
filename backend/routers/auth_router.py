@@ -205,7 +205,7 @@ def register_bio_finish(response: Dict[str, Any], username: str, request: Reques
     config = get_webauthn_config(request)
     try:
         verification = verify_registration_response(
-            credential=RegistrationCredential.parse_obj(response),
+            credential=response,  # Pass raw dict directly
             expected_challenge=challenge,
             expected_origin=config["origin"],
             expected_rp_id=config["rp_id"],

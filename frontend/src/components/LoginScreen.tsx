@@ -204,6 +204,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
+    // Phase tracking for registration: 'form' → account created → 'biometric'
+    const [regPhase, setRegPhase] = useState<'form' | 'biometric' | 'done'>('form');
+    const [regUsername, setRegUsername] = useState('');
+    const [regPassword, setRegPassword] = useState('');
     const bioAttempted = useRef(false);
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
@@ -288,39 +292,42 @@ export const LoginScreen: React.FC<LoginScreenProps> = () => {
         if (password !== confirmPassword) { setError('PASSWORDS DO NOT MATCH'); return; }
         setIsLoading(true);
         try {
-            // Step 1: Create account (no auto-login — keeps LoginScreen mounted)
+            // Step 1: Create account only — do NOT chain biometrics here.
+            // Render free tier takes 50+ seconds to wake up. If we chain biometric
+            // enrollment immediately after, Chrome's user-gesture timer expires and
+            // silently kills the fingerprint prompt.
             await register(username, password);
             localStorage.setItem('scam_registered', 'true');
             localStorage.setItem('scam_last_user', username);
-
-            // Step 2: Enroll biometrics while LoginScreen is still mounted
-            if (window.PublicKeyCredential) {
-                try {
-                    setStatusMsg('SETTING UP BIOMETRICS — FOLLOW DEVICE PROMPT...');
-                    await enrollBiometrics(username);
-                    setStatusMsg('✓ BIOMETRICS ENROLLED SUCCESSFULLY!');
-                } catch (bioErr: any) {
-                    console.warn('Biometric enrollment failed:', bioErr);
-                    // Show visible warning — don't leave user confused with a frozen screen
-                    setError(`BIOMETRIC SETUP FAILED: ${bioErr?.message || 'device prompt dismissed'} — You can use your Access Code to login instead.`);
-                    setStatusMsg(null);
-                    // Still proceed to login — biometrics are optional
-                }
-            } else {
-                setStatusMsg('✓ ACCOUNT CREATED (biometrics not supported on this device)');
-            }
-
-            // Step 3: NOW login (this sets isAuthenticated → enters the app)
-            setStatusMsg('LOGGING IN...');
-            const success = await login(username, password);
-            if (!success) {
-                setError('Account created but login failed — try logging in manually');
-            }
+            // Save for biometric phase
+            setRegUsername(username);
+            setRegPassword(password);
+            setStatusMsg('✓ ACCOUNT CREATED — Now tap the button below to set up biometrics');
+            setRegPhase('biometric');
         } catch (e: any) {
             setError(e.message || 'REGISTRATION FAILED — TRY AGAIN');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // ── Biometric enroll (separate user gesture after account creation) ──────
+    const handleEnrollBiometrics = async () => {
+        setError(null);
+        setIsLoading(true);
+        try {
+            setStatusMsg('FOLLOW DEVICE PROMPT...');
+            await enrollBiometrics(regUsername);
+            setStatusMsg('✓ BIOMETRICS ENROLLED! Logging you in...');
+        } catch (bioErr: any) {
+            setError(`BIOMETRIC SETUP FAILED: ${bioErr?.message || 'dismissed'} — tap "Skip" to login with password instead.`);
+            setStatusMsg(null);
+        } finally {
+            setIsLoading(false);
+        }
+        // Proceed to login regardless
+        const success = await login(regUsername, regPassword);
+        if (!success) setError('Login failed — try logging in manually');
     };
 
     // ── Password login submit ───────────────────────────────────────────────
