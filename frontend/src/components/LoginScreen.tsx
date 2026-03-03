@@ -275,11 +275,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = () => {
                 try {
                     setStatusMsg('SETTING UP BIOMETRICS — FOLLOW DEVICE PROMPT...');
                     await enrollBiometrics(username);
-                    setStatusMsg('✓ BIOMETRICS ENROLLED!');
-                } catch (bioErr) {
-                    console.log('Biometric enrollment skipped:', bioErr);
-                    setStatusMsg('✓ ACCOUNT CREATED');
+                    setStatusMsg('✓ BIOMETRICS ENROLLED SUCCESSFULLY!');
+                } catch (bioErr: any) {
+                    console.warn('Biometric enrollment failed:', bioErr);
+                    // Show visible warning — don't leave user confused with a frozen screen
+                    setError(`BIOMETRIC SETUP FAILED: ${bioErr?.message || 'device prompt dismissed'} — You can use your Access Code to login instead.`);
+                    setStatusMsg(null);
+                    // Still proceed to login — biometrics are optional
                 }
+            } else {
+                setStatusMsg('✓ ACCOUNT CREATED (biometrics not supported on this device)');
             }
 
             // Step 3: NOW login (this sets isAuthenticated → enters the app)
