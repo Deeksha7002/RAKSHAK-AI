@@ -240,7 +240,8 @@ export const UNSAFE_KEYWORDS = [
 ];
 
 // Dynamically resolve the backend URL — relative requests are proxied via Vite/Nginx
-const rawUrl = import.meta.env.VITE_API_URL || '';
+// @ts-ignore
+const rawUrl = (import.meta as any).env?.VITE_API_URL || '';
 if (!rawUrl && !import.meta.env.DEV) {
     console.error("🚨 CRITICAL: VITE_API_URL is not set in production. Frontend will attempt relative calls, which may fail.");
 }
