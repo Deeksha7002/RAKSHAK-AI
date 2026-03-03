@@ -16,42 +16,14 @@ from routers import auth, agent, stats, webhooks
 # ── Lifespan & Initialization ────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 🛠️ Database Reset & Sync (One-time schema reconciliation)
-    try:
-        from database import engine, Base, User, init_db
-        from sqlalchemy.orm import Session
-        import security
-        
-        logging.warning("🛠️ Reconciling database schema...")
-        # WARNING: This deletes data, but fixes the 500 errors on Render!
-        Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
-        
-        # Seed Admin User
-        with Session(engine) as session:
-            admin = User(
-                username="admin", 
-                hashed_password=security.get_password_hash("admin123"),
-                role="admin"
-            )
-            session.add(admin)
-            session.commit()
-            logging.info("👨‍💻 Admin user seeded.")
-        logging.info("✅ Database optimized and synced.")
-    except Exception as e:
-        logging.error(f"❌ DB INITIALIZATION ERROR: {e}")
-
     # Startup logic
-    # init_db() # Metadata created above
+    init_db()
     logging.info("🚀 Rakshak AI Core Initialized")
     
-    # Optional: Start background task for challenge pruning
-    # In a real production app, you might use a separate worker/cron,
-    # but for this deployment, we can use an asyncio task.
+    # 1. Start Challenge Pruner
     import asyncio
     stop_event = asyncio.Event()
     
-    # 1. Start Challenge Pruner
     async def prune_loop():
         while not stop_event.is_set():
             try:
@@ -74,10 +46,6 @@ async def lifespan(app: FastAPI):
     pruner.cancel()
     sync_task.cancel()
     logging.info("👋 Rakshak AI Core Shutting Down")
-
-# ── GLOBAL DEBUG TOGGLE ───────────────────────────────────────────────────────
-# Set to "1" to see full tracebacks in JSON responses during production debugging.
-os.environ["DEBUG_MODE"] = "1"
 
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 

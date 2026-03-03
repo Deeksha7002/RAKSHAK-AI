@@ -21,12 +21,12 @@ def get_or_create_stats(db: Session):
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
-    stats = get_or_create_stats(db)
+    global_stats = get_or_create_stats(db)
     
     def get_stats_for_range(time_threshold):
-        cases = db.query(Case).filter(Case.created_at >= time_threshold).all()
-        scams = [c for c in cases if c.classification == "scam"]
-        safe = [c for c in cases if c.classification == "safe"]
+        cases_list = db.query(Case).filter(Case.created_at >= time_threshold).all()
+        scams = [c for c in cases_list if c.classification == "scam"]
+        safe = [c for c in cases_list if c.classification == "safe"]
         
         # Calculate types breakdown
         types = {}
@@ -35,7 +35,7 @@ def get_stats(db: Session = Depends(get_db)):
             types[t] = types.get(t, 0) + 1
             
         return {
-            "total_intercepted": len(cases),
+            "total_intercepted": len(cases_list),
             "scams_prevented": len(scams),
             "safe_conversations": len(safe),
             "breakdown": types
@@ -47,10 +47,10 @@ def get_stats(db: Session = Depends(get_db)):
         "week": get_stats_for_range(now - timedelta(days=7)),
         "month": get_stats_for_range(now - timedelta(days=30)),
         "all_time": {
-            "total_intercepted": stats.total_intercepted,
-            "scams_prevented": stats.scams_prevented,
-            "safe_conversations": stats.safe_conversations,
-            "current_threat_level": stats.current_threat_level
+            "total_intercepted": global_stats.total_intercepted,
+            "scams_prevented": global_stats.scams_prevented,
+            "safe_conversations": global_stats.safe_conversations,
+            "current_threat_level": global_stats.current_threat_level
         }
     }
 

@@ -67,6 +67,7 @@ class Stats(Base):
     scams_prevented = Column(Integer, default=0)
     safe_conversations = Column(Integer, default=0)
     current_threat_level = Column(Float, default=0.1)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
 class WebAuthnChallenge(Base):
