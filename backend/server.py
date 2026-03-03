@@ -81,12 +81,21 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── Security Middleware ──────────────────────────────────────────────────────
 @app.middleware("http")
 async def secure_headers_and_obfuscation(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Server"] = "Rakshak-Core/2.0"  # Obfuscation
-    return response
+    try:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Server"] = "Rakshak-Core/2.0"  # Obfuscation
+        return response
+    except Exception as e:
+        import traceback
+        logging.error(f"❌ MIDDLEWARE CRASH: {e}\n{traceback.format_exc()}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error_type": type(e).__name__, "msg": str(e), "traceback": traceback.format_exc()}
+        )
 
 # ── Route Registration ───────────────────────────────────────────────────────
 app.include_router(auth.router)
