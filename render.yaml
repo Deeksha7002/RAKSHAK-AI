@@ -20,6 +20,12 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
 
+      # ── Frontend URL ───────────────────────────────────────────────────────────
+      # FIX #8: Required for WebAuthn rp_id resolution and CORS. Set this in
+      # Render dashboard to your active Vercel deployment URL.
+      - key: FRONTEND_URL
+        sync: false
+
       # ── Database ───────────────────────────────────────────────────────────────
       # Automatically wired to the PostgreSQL instance defined in the databases: block above.
       # Render injects the full connection string (postgresql://user:pass@host/db).

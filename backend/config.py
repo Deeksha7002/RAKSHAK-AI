@@ -57,3 +57,34 @@ SENSITIVE_PATTERNS = {
 UNSAFE_KEYWORDS = [
     "send money", "transfer", "bank account", "password", "login", "otp", "pin", "cvv"
 ]
+
+# FIX #7: Static response templates used as LLM fallback in agent.py
+RESPONSE_TEMPLATES = {
+    "default": {
+        "GENERAL": [
+            "Hmm, I'm not sure I understand. Can you explain that a bit more?",
+            "Can you send me a link to verify this?",
+            "I need to think about this. What's the deadline exactly?",
+            "I'll need to check with someone first. Can I get back to you?",
+            "Is there an official reference number I can look up?",
+        ]
+    },
+    "naive": {
+        "GENERAL": [
+            "Oh my, I'm not sure how to do that. My grandson usually helps me!",
+            "Where do I find this 'link' you mention? Is it near the any key?",
+            "Do I need my reading glasses for this, dear?",
+            "Is this the Google? I usually use the Google.",
+            "Oh dear, this is all very confusing. Can you go slower?",
+        ]
+    },
+    "skeptical": {
+        "GENERAL": [
+            "Can you provide your employee ID and your organization's registered domain?",
+            "This is suspicious. I'm going to need cryptographic proof of identity.",
+            "I'm tracing this IP right now. You should know that.",
+            "Why does your domain not appear in any WHOIS database?",
+            "I'm going to need to verify this with your CISO. Stand by.",
+        ]
+    }
+}

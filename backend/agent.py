@@ -138,7 +138,7 @@ class RakshakAgent:
             )
             verdict = res.choices[0].message.content.strip().lower()
             return "scam" if "scam" in verdict else "benign"
-        except:
+        except Exception:
             return None
 
     def generate_response(self, classification, text):
@@ -181,7 +181,8 @@ class RakshakAgent:
                 timeout=5.0
             )
             return chat_completion.choices[0].message.content.strip()
-        except:
+        except Exception as e:
+            logging.warning(f"⚠️ LLM response generation failed: {e}")
             return None
 
     def _classify(self, text):

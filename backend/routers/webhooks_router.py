@@ -13,7 +13,8 @@ from schemas import AnalyzeRequest
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
 def get_or_create_stats(db: Session):
-    from routers.stats import get_or_create_stats as _get_stats
+    # FIX #4: correct module name is stats_router, not stats
+    from routers.stats_router import get_or_create_stats as _get_stats
     return _get_stats(db)
 
 @router.post("/twilio", response_class=PlainTextResponse)

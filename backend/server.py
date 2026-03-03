@@ -1,12 +1,12 @@
 import os
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from database import init_db
-from dependencies import get_db, _prune_stale_challenges, manager
+from dependencies import get_db, _prune_stale_challenges, manager, get_current_user
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -53,6 +53,8 @@ app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 ALLOWED_ORIGINS = [
     os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.app"),
     "https://rakshak-ai-drab.vercel.app",
+    # FIX #6: New Vercel deployment URL added to CORS whitelist
+    "https://rakshak-ai-git-main-deeksha-bansals-projects.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
@@ -107,11 +109,22 @@ app.include_router(stats.router)
 app.include_router(webhooks.router)
 
 @app.get("/api/debug/db-schema")
-async def debug_db_schema(reset: bool = False):
-    """Diagnostic endpoint to check and optionally reset production DB schema."""
-    from database import engine, Base
+async def debug_db_schema(reset: bool = False, current_user: str = Depends(get_current_user)):
+    """Diagnostic endpoint to check and optionally reset production DB schema. Requires admin auth."""
+    from database import engine, Base, SessionLocal, User
     from sqlalchemy import inspect
-    
+
+    # FIX #5: Require authentication and admin role
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == current_user).first()
+        if not user or user.role != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+    finally:
+        db.close()
+
     if reset:
         logging.warning("🚨 EMERGENCY DATABASE RESET TRIGGERED!")
         Base.metadata.drop_all(bind=engine)

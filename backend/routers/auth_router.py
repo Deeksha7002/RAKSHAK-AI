@@ -63,12 +63,22 @@ def get_webauthn_config(request: Request):
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.app")
     host = request.headers.get("host", "localhost")
     origin = request.headers.get("origin", FRONTEND_URL)
-    
+
     if "localhost" in host or "127.0.0.1" in host:
+        # Local development: rp_id must be 'localhost'
         rp_id = "localhost"
+        # If no origin header (e.g. Swagger test), default to localhost
+        if not request.headers.get("origin"):
+            origin = "http://localhost:5173"
     else:
-        rp_id = host.split(":")[0]
-    
+        # Production: rp_id MUST come from the Origin header (the browser-facing domain),
+        # NOT the Host header (which is the backend Render domain — wrong for WebAuthn).
+        # e.g. origin = 'https://rakshak-ai-git-main-deeksha-bansals-projects.vercel.app'
+        # → rp_id = 'rakshak-ai-git-main-deeksha-bansals-projects.vercel.app'
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        rp_id = parsed.hostname or host.split(":")[0]
+
     return {"rp_id": rp_id, "origin": origin}
 
 # ── Standard Auth ────────────────────────────────────────────────────────────
@@ -82,7 +92,7 @@ def login(creds: LoginRequest, db: Session = Depends(get_db)):
             users_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "users.json")
             with open(users_path, "r") as f:
                 valid_users = json.load(f)
-        except:
+        except Exception:
             valid_users = {}
         
         if creds.username in valid_users and creds.password == valid_users[creds.username]:
