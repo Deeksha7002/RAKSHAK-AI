@@ -12,7 +12,7 @@ import { IntelligenceReport } from './components/IntelligenceReport';
 import { soundManager } from './lib/SoundManager';
 import { GeoTracer } from './lib/GeoTracer';
 import { DemoConsole } from './components/DemoConsole';
-import { Play, Database, Volume2, VolumeX, ShieldAlert, LogOut, BarChart3, ScanEye, Shield, Zap, ChevronLeft } from 'lucide-react';
+import { Play, Database, Volume2, VolumeX, ShieldAlert, LogOut, BarChart3, ScanEye, Shield, Zap, ChevronLeft, Link as LinkIcon } from 'lucide-react';
 import { DeepfakeAnalyzer } from './components/DeepfakeAnalyzer';
 import { ForensicsService } from './lib/ForensicsService';
 import { MediaLogService } from './lib/MediaLogService';
@@ -37,6 +37,7 @@ function App() {
   const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
 
   const [notification, setNotification] = useState<string | null>(null);
   const [persistentCases, setPersistentCases] = useState<CaseFile[]>([]);
@@ -599,6 +600,13 @@ function App() {
                   {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
                 <button
+                  onClick={() => setIsIntegrationOpen(true)}
+                  className="btn btn-icon"
+                  title="Connect Integrations"
+                >
+                  <LinkIcon size={20} />
+                </button>
+                <button
                   onClick={() => {
                     logout();
                     clearThreads();
@@ -753,9 +761,8 @@ function App() {
             </>
           )}
         </div>
-        {/* --- Global Overlay Tools --- */}
-        <IntegrationGuide />
       </div>
+      <IntegrationGuide isOpen={isIntegrationOpen} onClose={() => setIsIntegrationOpen(false)} />
     </>
   );
 }

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Terminal, Copy, Check, X, Info, ExternalLink, MessageSquare, Mail } from 'lucide-react';
 
-export const IntegrationGuide: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
+interface IntegrationGuideProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const IntegrationGuide: React.FC<IntegrationGuideProps> = ({ isOpen, onClose }) => {
     const [copied, setCopied] = useState<string | null>(null);
 
     // Hardcode the production backend URL for clarity in the guide
-    // If API_BASE_URL is relative, we assume the user is on the Vercel project
     const backendUrl = "https://rakshak-ai-backend.onrender.com";
 
     const integrations = [
@@ -42,118 +45,92 @@ export const IntegrationGuide: React.FC = () => {
         setTimeout(() => setCopied(null), 2000);
     };
 
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="floating-connect-btn"
-                title="Connect Apps"
-            >
-                <Terminal size={20} />
-                <span className="btn-label">CONNECT APPS</span>
-            </button>
-        );
-    }
+    if (!isOpen) return null;
 
     return (
-        <div className="floating-integration-box">
-            <div className="integration-header">
-                <div className="flex items-center gap-2">
-                    <Terminal size={18} className="text-primary" />
-                    <span className="font-bold text-sm tracking-wider">COMMAND CONSOLE: INTEGRATIONS</span>
-                </div>
-                <button onClick={() => setIsOpen(false)} className="close-btn">
-                    <X size={18} />
-                </button>
-            </div>
-
-            <div className="integration-content">
-                <div className="integration-alert">
-                    <Info size={14} className="shrink-0" />
-                    <span>Provide these Webhook URLs to your external apps to begin live interception.</span>
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="floating-integration-box" onClick={e => e.stopPropagation()}>
+                <div className="integration-header">
+                    <div className="flex items-center gap-2">
+                        <Terminal size={18} className="text-primary" />
+                        <span className="font-bold text-sm tracking-wider">COMMAND CONSOLE: INTEGRATIONS</span>
+                    </div>
+                    <button onClick={onClose} className="close-btn">
+                        <X size={18} />
+                    </button>
                 </div>
 
-                <div className="integration-list">
-                    {integrations.map((app) => (
-                        <div key={app.id} className="integration-card">
-                            <div className="card-top">
-                                <div className="flex items-center gap-2">
-                                    {app.icon}
-                                    <span className="app-name">{app.name}</span>
-                                </div>
-                                <button
-                                    onClick={() => copyToClipboard(app.url, app.id)}
-                                    className={`copy-btn ${copied === app.id ? 'copied' : ''}`}
-                                >
-                                    {copied === app.id ? <Check size={14} /> : <Copy size={14} />}
-                                    <span>{copied === app.id ? 'COPIED' : 'COPY WEBHOOK'}</span>
-                                </button>
-                            </div>
+                <div className="integration-content">
+                    <div className="integration-alert">
+                        <Info size={14} className="shrink-0" />
+                        <span>Provide these Webhook URLs to your external apps to begin live interception.</span>
+                    </div>
 
-                            <div className="webhook-display">
-                                {app.url}
-                            </div>
-
-                            <div className="steps-container">
-                                {app.steps.map((step, i) => (
-                                    <div key={i} className="step-item">
-                                        <span className="step-num">{i + 1}</span>
-                                        <span className="step-text">{step}</span>
+                    <div className="integration-list">
+                        {integrations.map((app) => (
+                            <div key={app.id} className="integration-card">
+                                <div className="card-top">
+                                    <div className="flex items-center gap-2">
+                                        {app.icon}
+                                        <span className="app-name">{app.name}</span>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                                    <button
+                                        onClick={() => copyToClipboard(app.url, app.id)}
+                                        className={`copy-btn ${copied === app.id ? 'copied' : ''}`}
+                                    >
+                                        {copied === app.id ? <Check size={14} /> : <Copy size={14} />}
+                                        <span>{copied === app.id ? 'COPIED' : 'COPY WEBHOOK'}</span>
+                                    </button>
+                                </div>
 
-                <div className="integration-footer">
-                    <a href="https://github.com/Deeksha7002/Scam_defender_honeypot" target="_blank" rel="noreferrer" className="docs-link">
-                        <ExternalLink size={14} /> VIEW FULL DOCUMENTATION
-                    </a>
+                                <div className="webhook-display">
+                                    {app.url}
+                                </div>
+
+                                <div className="steps-container">
+                                    {app.steps.map((step, i) => (
+                                        <div key={i} className="step-item">
+                                            <span className="step-num">{i + 1}</span>
+                                            <span className="step-text">{step}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="integration-footer">
+                        <a href="https://github.com/Deeksha7002/Scam_defender_honeypot" target="_blank" rel="noreferrer" className="docs-link">
+                            <ExternalLink size={14} /> VIEW FULL DOCUMENTATION
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <style>{`
-                .floating-connect-btn {
+                .modal-overlay {
                     position: fixed;
-                    bottom: 2rem;
-                    right: 2rem;
-                    background: var(--primary);
-                    color: white;
-                    border: none;
-                    border-radius: 50px;
-                    padding: 0.75rem 1.5rem;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.75);
+                    backdrop-filter: blur(4px);
                     display: flex;
                     align-items: center;
-                    gap: 0.75rem;
-                    box-shadow: 0 4px 20px rgba(0, 135, 255, 0.4);
-                    cursor: pointer;
-                    z-index: 1000;
-                    font-weight: bold;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    border: 1px solid rgba(255,255,255,0.2);
-                }
-
-                .floating-connect-btn:hover {
-                    transform: translateY(-4px) scale(1.05);
-                    box-shadow: 0 8px 30px rgba(0, 135, 255, 0.6);
-                    background: var(--primary-hover);
+                    justify-content: center;
+                    z-index: 10000;
+                    padding: 1rem;
                 }
 
                 .floating-integration-box {
-                    position: fixed;
-                    bottom: 2rem;
-                    right: 2rem;
-                    width: 380px;
+                    width: 100%;
+                    max-width: 420px;
                     background: #0f172a;
                     border: 1px solid var(--border-color);
                     border-radius: var(--radius-lg);
                     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-                    z-index: 1001;
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
-                    animation: slideUp 0.3s ease-out;
+                    animation: zoomIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                 }
 
                 .integration-header {
@@ -170,7 +147,7 @@ export const IntegrationGuide: React.FC = () => {
                     display: flex;
                     flex-direction: column;
                     gap: 1.25rem;
-                    max-height: 500px;
+                    max-height: 80vh;
                     overflow-y: auto;
                 }
 
@@ -322,24 +299,9 @@ export const IntegrationGuide: React.FC = () => {
                     color: white;
                 }
 
-                @keyframes slideUp {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-
-                @media (max-width: 480px) {
-                    .floating-integration-box {
-                        width: calc(100vw - 2rem);
-                        bottom: 1rem;
-                        right: 1rem;
-                    }
-                    .floating-connect-btn {
-                        bottom: 1rem;
-                        right: 1rem;
-                    }
-                    .btn-label {
-                        display: none;
-                    }
+                @keyframes zoomIn {
+                    from { transform: scale(0.95); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
                 }
             `}</style>
         </div>
