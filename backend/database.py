@@ -46,24 +46,27 @@ class User(Base):
 class Case(Base):
     __tablename__ = "cases"
 
-    id = Column(String, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(String, index=True)
     scammer_name = Column(String)
     platform = Column(String)
-    status = Column(String)
-    threat_level = Column(String)
+    classification = Column(String)    # e.g., "scam", "safe"
+    scam_type = Column(String)         # e.g., "Financial", "Impersonation"
+    confidence_score = Column(Float)
     iocs = Column(JSON)
-    transcript = Column(JSON)
-    timestamp = Column(String)
+    transcript = Column(Text)
     auto_reported = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
 class Stats(Base):
     __tablename__ = "stats"
 
     id = Column(Integer, primary_key=True, index=True)
-    reports_filed = Column(Integer, default=0)
-    scams_detected = Column(Integer, default=0)
-    types_json = Column(JSON, default=dict)  # default=dict avoids shared mutable default
+    total_intercepted = Column(Integer, default=0)
+    scams_prevented = Column(Integer, default=0)
+    safe_conversations = Column(Integer, default=0)
+    current_threat_level = Column(Float, default=0.1)
 
 
 class WebAuthnChallenge(Base):
