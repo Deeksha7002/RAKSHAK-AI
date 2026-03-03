@@ -1,27 +1,36 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, Boolean, JSON, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import datetime
+from datetime import datetime, timezone
 import os
 
-# Determine database URL - always use a path we can write to
+# ── Database URL Resolution ───────────────────────────────────────────────────
+# In production (Render), DATABASE_URL is automatically set to the PostgreSQL
+# connection string from the managed database defined in render.yaml.
+# Locally, it falls back to a SQLite file next to this script.
 _db_url = os.environ.get("DATABASE_URL", "")
 
 if not _db_url or _db_url.startswith("sqlite"):
-    # Use a path inside the working directory (always writable in Docker)
     _db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rakshak_ai.db")
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_file}"
-    # Ensure parent directory exists
     os.makedirs(os.path.dirname(_db_file), exist_ok=True)
 else:
-    # Render gives postgres:// but SQLAlchemy needs postgresql://
+    # Render issues postgres:// but SQLAlchemy 1.4+ requires postgresql://
     SQLALCHEMY_DATABASE_URL = _db_url.replace("postgres://", "postgresql://", 1)
 
-connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+_is_sqlite = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+
+# pool_pre_ping ensures stale connections are recycled (important for PostgreSQL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    pool_pre_ping=not _is_sqlite,   # no-op for SQLite; keeps PG connections alive
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 
 class User(Base):
     __tablename__ = "users"
@@ -30,7 +39,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String, default="operator")
-    webauthn_credentials = Column(JSON, default=[]) # Store list of registered credentials
+    webauthn_credentials = Column(JSON, default=list)  # default=list avoids shared mutable default
+
 
 class Case(Base):
     __tablename__ = "cases"
@@ -45,20 +55,24 @@ class Case(Base):
     timestamp = Column(String)
     auto_reported = Column(Boolean, default=True)
 
+
 class Stats(Base):
     __tablename__ = "stats"
 
     id = Column(Integer, primary_key=True, index=True)
     reports_filed = Column(Integer, default=0)
     scams_detected = Column(Integer, default=0)
-    types_json = Column(JSON, default={}) # Store scam types count as JSON
+    types_json = Column(JSON, default=dict)  # default=dict avoids shared mutable default
+
 
 class WebAuthnChallenge(Base):
     __tablename__ = "webauthn_challenges"
 
-    key = Column(String, primary_key=True)  # e.g. "LOGIN_username" or "REGISTER_username"
-    challenge = Column(Text)  # base64url encoded challenge bytes
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    key = Column(String, primary_key=True)       # e.g. "LOGIN_username" or "REGISTER_username"
+    challenge = Column(Text)                      # base64url-encoded challenge bytes
+    # Use timezone-aware UTC — datetime.utcnow() is deprecated since Python 3.12
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
 
 def init_db():
     Base.metadata.create_all(bind=engine)

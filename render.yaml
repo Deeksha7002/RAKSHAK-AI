@@ -1,3 +1,10 @@
+databases:
+  # Render-managed PostgreSQL — free tier, persists across deploys
+  - name: rakshak-ai-db
+    databaseName: rakshak_ai
+    user: rakshak_user
+    plan: free          # upgrade to 'starter' in production for dedicated resources
+
 services:
   # Backend FastAPI Service
   - type: web
@@ -9,21 +16,21 @@ services:
       - key: SECRET_KEY
         generateValue: true          # Render auto-generates a secure value
       - key: ALLOW_INSECURE_KEY
-        value: ""                    # Leave empty in production — server will refuse to start without SECRET_KEY
+        value: ""                    # Leave empty — server refuses to start without SECRET_KEY
       - key: PYTHON_VERSION
         value: 3.11.0
 
       # ── Database ───────────────────────────────────────────────────────────────
-      # SQLite is fine for local development and demos.
-      # For production with multiple dynos, provision a Render PostgreSQL instance
-      # and set DATABASE_URL to the connection string it provides (postgres://...).
+      # Automatically wired to the PostgreSQL instance defined in the databases: block above.
+      # Render injects the full connection string (postgresql://user:pass@host/db).
+      # Falls back to SQLite automatically in local dev (see database.py).
       - key: DATABASE_URL
-        value: sqlite:///rakshak_ai.db
+        fromDatabase:
+          name: rakshak-ai-db
+          property: connectionString
 
       # ── Redis ─────────────────────────────────────────────────────────────────
-      # Required for agent state persistence across requests and multi-instance
-      # WebSocket fan-out.  Provision a Render Redis instance and paste its
-      # Internal Redis URL here.
+      # Provision a Render Redis instance and paste its Internal Redis URL here.
       - key: REDIS_URL
         sync: false                  # Set in Render dashboard — do NOT commit to git
 
@@ -40,4 +47,3 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
-
