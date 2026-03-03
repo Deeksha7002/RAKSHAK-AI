@@ -6,13 +6,16 @@ import logging
 import time
 import json
 import os
+import asyncio
 import redis
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 import sendgrid
 from sendgrid.helpers.mail import Mail, Email, To, Content
 from twilio.rest import Client as TwilioClient
+from contextlib import asynccontextmanager
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -37,7 +40,49 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [API] - %(message)
 # Initialize DB tables
 init_db()
 
-app = FastAPI(title="Rakshak AI Cyber Cell API")
+# ── Auth Helper ────────────────────────────────────────────────────────────────
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme)) -> Optional[str]:
+    """Decodes JWT and returns the username, or None if unauthenticated."""
+    if not credentials:
+        return None
+    payload = security.decode_access_token(credentials.credentials)
+    if payload:
+        return payload.get("sub")
+    return None
+
+# ── WebAuthn Challenge Pruning ─────────────────────────────────────────────────
+async def _prune_stale_challenges():
+    """Background task: delete WebAuthn challenges older than 5 minutes."""
+    while True:
+        await asyncio.sleep(60)  # Run every 60 seconds
+        try:
+            db = SessionLocal()
+            cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+            stale = db.query(WebAuthnChallenge).filter(WebAuthnChallenge.created_at < cutoff).all()
+            if stale:
+                for row in stale:
+                    db.delete(row)
+                db.commit()
+                logging.info(f"🧹 Pruned {len(stale)} stale WebAuthn challenge(s).")
+            db.close()
+        except Exception as e:
+            logging.warning(f"⚠️ Challenge pruning error: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: launch background pruning task
+    task = asyncio.create_task(_prune_stale_challenges())
+    yield
+    # Shutdown: cancel the task cleanly
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 
 # Enable CORS for frontend
 ALLOWED_ORIGINS = [
@@ -95,18 +140,22 @@ except Exception as e:
     redis_client = None
     logging.warning(f"⚠️ Could not connect to Redis: {e}. Falling back to transient memory.")
 
-def load_agent(thread_id: str) -> RakshakAgent:
+def _redis_agent_key(username: Optional[str], thread_id: str) -> str:
+    """Scope Redis agent keys to a user so sessions can't bleed across accounts."""
+    prefix = username if username else "anon"
+    return f"agent_state:{prefix}:{thread_id}"
+
+def load_agent(thread_id: str, username: Optional[str] = None) -> RakshakAgent:
     if redis_client:
-        state_str = redis_client.get(f"agent_state:{thread_id}")
+        state_str = redis_client.get(_redis_agent_key(username, thread_id))
         if state_str:
-            agent = RakshakAgent(json.loads(state_str))
-            return agent
+            return RakshakAgent(json.loads(state_str))
     return RakshakAgent()
 
-def save_agent(thread_id: str, agent: RakshakAgent):
+def save_agent(thread_id: str, agent: RakshakAgent, username: Optional[str] = None):
     if redis_client:
         state = agent.get_state()
-        redis_client.setex(f"agent_state:{thread_id}", 86400, json.dumps(state)) # 24 hour TTL
+        redis_client.setex(_redis_agent_key(username, thread_id), 86400, json.dumps(state))  # 24 h TTL
 
 # --- External API Helpers ---
 
@@ -221,7 +270,11 @@ class GenerateResponseRequest(BaseModel):
 
 @app.post("/api/generate-response")
 @limiter.limit("60/minute")
-def generate_llm_response(payload: GenerateResponseRequest, request: Request):
+def generate_llm_response(
+    payload: GenerateResponseRequest,
+    request: Request,
+    current_user: Optional[str] = Depends(get_current_user)
+):
     """
     Called by the frontend demo to generate a Groq LLM-powered agent response.
     Uses the RakshakAgent's LLM logic and falls back gracefully if Groq is unavailable.
@@ -240,14 +293,12 @@ def generate_llm_response(payload: GenerateResponseRequest, request: Request):
         }
         agent = RakshakAgent(state)
 
-        # Try LLM response
         response = agent._generate_llm_response(payload.message)
 
         if response:
-            logging.info(f"✨ [/api/generate-response] LLM response generated for persona '{payload.persona}'")
+            logging.info(f"✨ [/api/generate-response] LLM response for persona '{payload.persona}' (user: {current_user or 'anon'})")
             return {"response": response, "source": "llm", "persona": payload.persona}
         else:
-            # LLM unavailable — signal frontend to use its static fallback
             return {"response": None, "source": "fallback", "persona": payload.persona}
 
     except Exception as e:
@@ -258,62 +309,45 @@ def generate_llm_response(payload: GenerateResponseRequest, request: Request):
 @limiter.limit("20/minute")
 def analyze_text(payload: AnalysisRequest, request: Request):
     """
-    Performs deep heuristic analysis on a text snippet with robust NLTK fallback.
+    Performs deep NLP analysis on a text snippet with heuristic fallback.
     """
     import re
     import traceback
-    
+
     start_time = time.time()
     classification = "benign"
     intent = "GENERAL INQUIRY"
     score = 0.1
     iocs = []
     neuro_matrix = {}
-    
-    # Very basic regex for URLs/domains/phones/crypto (always runs)
+
     req_text = payload.text
-    urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', req_text)
+
+    # Always run fast regex IOC extraction first
+    urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', req_text)
     domains = re.findall(r'[a-zA-Z0-9-]+\.(?:com|net|org|io|biz|info)', req_text)
-    
     iocs.extend(urls)
     for d in domains:
         if not any(d in u for u in urls):
             iocs.append(d)
-            
-    phones = re.findall(r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', req_text)
+    phones = re.findall(r'\(?\d{3}\)?[-\.\s]?\d{3}[-\.\s]?\d{4}', req_text)
     iocs.extend(phones)
-    
     crypto = re.findall(r'\b(?:1|3|bc1|0x)[a-zA-Z0-9]{25,40}\b', req_text)
     iocs.extend(crypto)
-    
+
     try:
-        from backend.analyzer import ScamAnalyzer
-        import nltk
-        
-        # Best effort corpora download, skip if it fails
-        corpora = ['punkt_tab', 'averaged_perceptron_tagger', 'brown', 'wordnet']
-        for c in corpora:
-            try:
-                nltk.data.find(f'tokenizers/{c}' if 'punkt' in c else f'corpora/{c}')
-            except LookupError:
-                try:
-                    nltk.download(c, quiet=True)
-                except Exception:
-                    pass
-        
-        # Reusing the globally instantiated analyzer for performance
-        # analyzer is defined globally in server.py
+        # Use the module-level analyzer (already imported at top of file)
         history = [{"role": "scammer", "content": req_text}]
         score, classification, neuro_matrix = analyzer.analyze_behavior(history)
         intent = analyzer.intent.replace("_", " ")
-        
+
     except Exception as e:
         logging.error(f"NLP Analyzer failed, falling back to basic heuristics: {e}")
         traceback.print_exc()
-        
-        # Fallback Heuristics
+
+        # Fallback heuristics
         lower_text = req_text.lower()
-        if any(w in lower_text for w in ["password", "otp", "code", "wallet", "crypto", "arrest", "warrant", "urgent"]):
+        if any(w in lower_text for w in ["password", "otp", "wallet", "crypto", "arrest", "warrant", "urgent"]):
             classification = "scam"
             intent = "SUSPICIOUS ACTIVITY"
             score = 0.85
@@ -323,10 +357,7 @@ def analyze_text(payload: AnalysisRequest, request: Request):
             score = 0.95
         if urls or crypto:
             classification = "scam"
-            
-    # Simulate processing delay for "Deep Scan" effect
-    time.sleep(0.5) 
-    
+
     return {
         "classification": classification,
         "score": score,

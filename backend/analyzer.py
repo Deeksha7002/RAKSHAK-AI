@@ -46,12 +46,14 @@ class ScamAnalyzer:
         # Detect Exponential Escalation (scammer getting impatient/aggressive)
         escalation_multiplier = 1.0
         if len(urgency_graph) >= 3:
-            # If the last two messages have higher urgency density than the first half average
+            # Compare urgency density of the first half vs the second half of the conversation.
+            # If the scammer is ramping up pressure, the late average will exceed the early one.
             early_avg = sum(urgency_graph[:len(urgency_graph)//2]) / max(len(urgency_graph[:len(urgency_graph)//2]), 1)
             late_avg = sum(urgency_graph[len(urgency_graph)//2:]) / max(len(urgency_graph[len(urgency_graph)//2:]), 1)
-            
-            if late_avg > early_avg + 0.1: # Noticeable spike in pressure
-                escalation_multiplier = 1.4 # 40% Threat Spike
+
+            # 0.1 threshold: a 10-percentage-point spike in urgency density is considered significant
+            if late_avg > early_avg + 0.1:
+                escalation_multiplier = 1.4  # +40% threat when scammer clearly escalates pressure
                 logging.info("[NLP Core] Coercion Escalation Detected: Scammer is applying pressure.")
 
         # 2. Vectorized Intent Processing (TF-IDF approximation for contexts)
@@ -86,12 +88,14 @@ class ScamAnalyzer:
             self.intent = dominant_intent[0]
 
         # 3. Final Mathematical Risk Calculation
-        # Short messages with high command density ("send otp") are highly suspicious
-        risk_multiplier = 10.0
-        max_base_risk = 0.6
+        # Short messages with high command density (e.g. "send otp", "wire now") are hyper-suspicious:
+        # A long-winded message dilutes term frequency; a 3-word command does not.
+        risk_multiplier = 10.0      # Base scale: domain-tuned so a TF of 0.1 maps to ~risk of 1.0 before clamp
+        max_base_risk = 0.6         # Conservative cap for normal-length messages
         if total_words <= 8 and dominant_intent[1] > 0.4:
+            # Very short message + strong signal = extremely dangerous (e.g. "send me your pin")
             risk_multiplier = 15.0
-            max_base_risk = 0.85
+            max_base_risk = 0.85   # Allow higher ceiling for command-style messages
 
         # Base risk is the magnitude of the dominant intent vector, scaled
         base_risk = min(dominant_intent[1] * risk_multiplier, max_base_risk)
@@ -103,14 +107,14 @@ class ScamAnalyzer:
         if blob.sentiment.polarity < -0.3: # Highly negative/threatening language
             mathematical_risk += 0.2
             
-        # Sophistication Logic 
+        # Sophistication: measures how "professional" the scam sounds.
+        # High vocabulary richness (+0.2) = crafted, professional scam.
+        # Use of "kindly" (-0.3) = common in southeast-Asian script scams; strong inverse signal.
         unique_words = len(set(words))
         vocab_richness = unique_words / total_words
-        
-        # Smart scammers use rich vocabulary; dumb scammers script-kiddie paste
         sophistication = 0.5
         if vocab_richness > 0.6: sophistication += 0.2
-        if "kindly" in full_text: sophistication -= 0.3 # Classic script giveaway
+        if "kindly" in full_text: sophistication -= 0.3  # Classic script giveaway
         
         self.sophistication_score = max(0.0, min(1.0, mathematical_risk + (sophistication * 0.2)))
 

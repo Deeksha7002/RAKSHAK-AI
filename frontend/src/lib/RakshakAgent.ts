@@ -52,7 +52,7 @@ export class RakshakAgent {
             this.iocs.sensitiveDataRedacted++;
         }
 
-        // Add to history (temporary message object for analysis)
+        // Add to history
         this.conversationHistory.push({
             id: Date.now().toString(),
             sender: 'scammer',
@@ -61,32 +61,32 @@ export class RakshakAgent {
         });
 
         // 2. Classify & Extract IOCs
-        const currentClassification = this.classify(text); // Use raw text for IOC extraction
+        const currentClassification = this.classify(text);
         this.extractIOCs(text);
 
-        // 3. Adaptive Persona Switching
-        this.checkForPersonaSwitch(text);
+        // 3. NLP analysis — run ONCE and share result (avoids duplicate call in checkForPersonaSwitch)
+        const { score } = this.analyzer.analyzeBehavior(this.conversationHistory);
 
-        // 4. Update State (Threat Level Ratchet)
+        // 4. Adaptive Persona Switching — reuse the score we already computed
+        this.checkForPersonaSwitch(text, score);
+
+        // 5. Update State (Threat Level Ratchet)
         if (currentClassification === 'scam') {
             this.maxThreatLevel = 'scam';
         } else if (currentClassification === 'likely_scam' && this.maxThreatLevel !== 'scam') {
             this.maxThreatLevel = 'likely_scam';
         }
 
-        // 5. Advanced Analysis for UI
+        // 6. Intent Detection
         const intent = this.detectIntent(text);
-        const { score } = this.analyzer.analyzeBehavior(this.conversationHistory);
 
-        // 6. Contextual Anomaly Detection (New)
+        // 7. Contextual Anomaly Detection
         const isCompromised = this.detectCompromise(text, relationalContext);
         if (isCompromised) {
-            // If compromised, force escalate to scam level
             this.maxThreatLevel = 'scam';
         }
 
-        // 7. Heuristic Score Override
-        // If the AI analyzer detects high threat but keywords missed it, upgrade classification
+        // 8. Heuristic Score Override — NLP can upgrade classification even if keywords missed it
         if (score >= 0.85 && this.maxThreatLevel !== 'scam') {
             this.maxThreatLevel = 'scam';
         } else if (score >= 0.6 && this.maxThreatLevel === 'benign') {
@@ -99,9 +99,7 @@ export class RakshakAgent {
             CyberCellService.autoReport(report);
         }
 
-        const currentAutoReported = this.hasAutoReported;
-
-        console.log(`[RakshakAgent] Ingest Complete. Class: ${this.maxThreatLevel}, Reported: ${currentAutoReported}, Intent: ${intent}`);
+        console.log(`[RakshakAgent] Ingest Complete. Class: ${this.maxThreatLevel}, Reported: ${this.hasAutoReported}, Intent: ${intent}`);
 
         if (currentClassification === 'scam' || currentClassification === 'likely_scam') {
             this.currentScamType = this.detectScamType(text);
@@ -110,7 +108,7 @@ export class RakshakAgent {
             classification: this.maxThreatLevel,
             safeText,
             intent,
-            score: Math.round(score * 100), // 0-100 scale
+            score: Math.round(score * 100),
             isCompromised,
             autoReported: this.hasAutoReported,
             missionComplete: this.isIntelligenceSufficient(),
@@ -139,18 +137,12 @@ export class RakshakAgent {
         return false;
     }
 
-    private checkForPersonaSwitch(text: string) {
-        // ... (existing logic) relies on analyzeBehavior which is fine
-        // We just need to make sure we don't duplicate the analysis call unnecessarily if performance matters, 
-        // but for this scale it's fine to call it again or cache it.
-        // For simplicity, I will leave the private call inside checkPersona separate from the public return.
-
-        // 1. Check Sophistication via Analyzer
-        const { score } = this.analyzer.analyzeBehavior(this.conversationHistory);
-        // ... rest of checking logic
+    // score is passed in from ingest() to avoid a redundant analyzeBehavior() call
+    private checkForPersonaSwitch(text: string, score: number) {
+        // 1. High-sophistication scammer → deploy skeptical SysAdmin persona
         if (score > 0.7) {
             if (this.currentPersona !== 'SKEPTICAL') {
-                console.log(`[Persona Switch] ${this.currentPersona} -> SKEPTICAL (High Sophistication)`);
+                console.log(`[Persona Switch] ${this.currentPersona} -> SKEPTICAL (High Sophistication score: ${score.toFixed(2)})`);
                 this.currentPersona = 'SKEPTICAL';
             }
             return;
@@ -158,18 +150,20 @@ export class RakshakAgent {
 
         const lower = text.toLowerCase();
 
-        // 2. Context Triggers (if not sophisticated)
+        // 2. Topic-based persona triggers (only if threat isn't high enough for SKEPTICAL)
         if (lower.match(/(bitcoin|crypto|invest|yield|profit|usdt|binance|coinbase)/)) {
             if (this.currentPersona !== 'INVESTOR') {
+                console.log(`[Persona Switch] ${this.currentPersona} -> INVESTOR (crypto keywords detected)`);
                 this.currentPersona = 'INVESTOR';
             }
-        }
-        else if (lower.match(/(police|warrant|arrest|irs|federal|jail|legal|court)/)) {
+        } else if (lower.match(/(police|warrant|arrest|irs|federal|jail|legal|court)/)) {
             if (this.currentPersona !== 'CITIZEN') {
+                console.log(`[Persona Switch] ${this.currentPersona} -> CITIZEN (authority keywords detected)`);
                 this.currentPersona = 'CITIZEN';
             }
-        }
-        else if (score < 0.4 && this.currentPersona !== 'ELDERLY') {
+        } else if (score < 0.4 && this.currentPersona !== 'ELDERLY') {
+            // Low-threat, unrecognised pattern → confused elderly persona wastes the most time
+            console.log(`[Persona Switch] ${this.currentPersona} -> ELDERLY (low threat score: ${score.toFixed(2)})`);
             this.currentPersona = 'ELDERLY';
         }
     }
@@ -183,21 +177,51 @@ export class RakshakAgent {
         };
     }
 
+    /**
+     * Keyword-level classifier — intentionally conservative to avoid false positives.
+     * Single generic words ("code", "account", "support") are NOT enough on their own.
+     * Requires either:
+     *   a) A scam-specific COMPOUND phrase, OR
+     *   b) A financial artifact (crypto address / UPI / suspicious URL pattern)
+     * The NLP score from analyzeBehavior() is the primary signal; this is a fast pre-filter.
+     */
     private classify(text: string): Classification {
         const lower = text.toLowerCase();
-        // Expanded keywords for IRS, Tech Support, and general scams
-        const scamKeywords = [
-            "verify", "wallet", "private key", "bank", "earn", "compromised",
-            "limited", "proposal", "transfer", "urgent", "click", "upi",
-            "warrant", "arrest", "irs", "tax", "federal", "jail", // IRS/Authority
-            "virus", "infected", "microsoft", "support", "hacked", "illegal", // Tech Support
-            "prize", "winner", "won", "lottery", "claim", "reward", // Lottery
-            "otp", "code", "pin", "password", "login", "account", // Phishing
-            "btc", "eth", "crypto", "invest", "profit", "return" // Crypto
+
+        // Tier 1 — unambiguous scam compound phrases
+        const scamPhrases = [
+            // Phishing / credential harvesting
+            "verify your account", "confirm your identity", "share your otp",
+            "enter your pin", "provide your password", "share your password",
+            "send your otp", "give me the code",
+            // Financial theft
+            "send money", "wire transfer", "send bitcoin", "send usdt",
+            "send crypto", "send eth", "deposit now", "transfer funds",
+            "private key", "seed phrase", "wallet address",
+            // Authority impersonation
+            "arrest warrant", "legal action will", "irs agent", "federal warrant",
+            "suspended your account", "account has been frozen",
+            // Tech support
+            "your computer is infected", "call microsoft", "download anydesk",
+            "download teamviewer", "remote access",
+            // Lottery / advance-fee
+            "claim your prize", "you have won", "lottery winner", "claim reward",
+            "release fee", "processing fee", "advance fee",
         ];
 
-        if (scamKeywords.some(kw => lower.includes(kw))) return 'scam';
-        if (lower.includes("http") || lower.includes(".com")) return 'likely_scam';
+        if (scamPhrases.some(phrase => lower.includes(phrase))) return 'scam';
+
+        // Tier 2 — high-confidence single tokens (unambiguous in any context)
+        const strongSingleTokens = [
+            "upi", "btc", "usdt", "bc1",   // payment artifacts
+            "0x",                             // ETH address prefix
+        ];
+        if (strongSingleTokens.some(kw => lower.includes(kw))) return 'scam';
+
+        // Tier 3 — suspicious URL patterns
+        if (/https?:\/\//.test(lower) || /\.(?:xyz|tk|ml|ga|cf|gq)(\b|\/|$)/.test(lower)) return 'likely_scam';
+        if (lower.includes(".com") && (lower.includes("click") || lower.includes("verify"))) return 'likely_scam';
+
         return 'benign';
     }
 

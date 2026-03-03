@@ -7,11 +7,27 @@ services:
     startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SECRET_KEY
-        generateValue: true
+        generateValue: true          # Render auto-generates a secure value
+      - key: ALLOW_INSECURE_KEY
+        value: ""                    # Leave empty in production — server will refuse to start without SECRET_KEY
       - key: PYTHON_VERSION
         value: 3.11.0
+
+      # ── Database ───────────────────────────────────────────────────────────────
+      # SQLite is fine for local development and demos.
+      # For production with multiple dynos, provision a Render PostgreSQL instance
+      # and set DATABASE_URL to the connection string it provides (postgres://...).
       - key: DATABASE_URL
         value: sqlite:///rakshak_ai.db
+
+      # ── Redis ─────────────────────────────────────────────────────────────────
+      # Required for agent state persistence across requests and multi-instance
+      # WebSocket fan-out.  Provision a Render Redis instance and paste its
+      # Internal Redis URL here.
+      - key: REDIS_URL
+        sync: false                  # Set in Render dashboard — do NOT commit to git
+
+      # ── External Integrations ─────────────────────────────────────────────────
       - key: SENDGRID_API_KEY
         sync: false
       - key: FROM_EMAIL
@@ -24,3 +40,4 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+
