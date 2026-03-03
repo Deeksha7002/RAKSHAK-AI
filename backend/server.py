@@ -73,6 +73,11 @@ app.add_middleware(
 # ── Rate Limiter Handling ────────────────────────────────────────────────────
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.error(f"❌ CRITICAL SERVER ERROR: {exc}", exc_info=True)
+    return {"status": "error", "detail": "Internal Server Error", "msg": str(exc)}
+
 # ── Security Middleware ──────────────────────────────────────────────────────
 @app.middleware("http")
 async def secure_headers_and_obfuscation(request: Request, call_next):

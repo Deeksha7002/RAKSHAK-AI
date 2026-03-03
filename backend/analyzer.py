@@ -3,6 +3,13 @@ import logging
 import math
 from textblob import TextBlob
 from collections import Counter
+import nltk
+try:
+    nltk.download('punkt', quiet=True)
+    nltk.download('wordnet', quiet=True)
+    nltk.download('omw-1.4', quiet=True)
+except:
+    pass
 
 class ScamAnalyzer:
     """
