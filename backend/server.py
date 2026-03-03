@@ -138,10 +138,17 @@ app.include_router(stats.router)
 app.include_router(webhooks.router)
 
 @app.get("/api/debug/db-schema")
-async def debug_db_schema():
-    """Diagnostic endpoint to check production DB columns."""
-    from database import engine
+async def debug_db_schema(reset: bool = False):
+    """Diagnostic endpoint to check and optionally reset production DB schema."""
+    from database import engine, Base
     from sqlalchemy import inspect
+    
+    if reset:
+        logging.warning("🚨 EMERGENCY DATABASE RESET TRIGGERED!")
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        return {"status": "reset", "msg": "Database tables dropped and recreated."}
+
     inspector = inspect(engine)
     report = {}
     for table_name in inspector.get_table_names():
