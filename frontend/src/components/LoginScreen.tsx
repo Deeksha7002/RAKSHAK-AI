@@ -222,8 +222,10 @@ export const LoginScreen: React.FC<any> = () => {
     // ── Registration submit ─────────────────────────────────────────────────
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+        setStatusMsg(null);
         setError(null);
         if (!username.trim() || !password.trim()) { setError('ALL FIELDS REQUIRED'); return; }
+        console.log(`[Registration] Attempting for: "${username.trim()}"`);
         if (password !== confirmPassword) { setError('PASSWORDS DO NOT MATCH'); return; }
         setIsLoading(true);
         try {
@@ -237,6 +239,7 @@ export const LoginScreen: React.FC<any> = () => {
             // setRegUsername(username);
             // setRegPassword(password);
             setStatusMsg('✓ ACCOUNT CREATED — Now tap the button below to set up biometrics');
+            setError(null);
             setRegPhase('biometric');
         } catch (e: any) {
             setError(e.message || 'REGISTRATION FAILED — TRY AGAIN');
@@ -270,8 +273,10 @@ export const LoginScreen: React.FC<any> = () => {
     // ── Password login submit ───────────────────────────────────────────────
     const handlePasswordLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setStatusMsg(null);
         setError(null);
         if (!username.trim() || !password.trim()) { setError('CREDENTIALS REQUIRED'); return; }
+        console.log(`[Login] Attempting for: "${username.trim()}"`);
         setIsLoading(true);
         try {
             const success = await login(username, password);
