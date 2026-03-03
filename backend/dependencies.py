@@ -1,12 +1,11 @@
 import os
 import redis
 import logging
-from typing import List, Optional
+from typing import List, Optional, Any
 from fastapi import WebSocket, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import SessionLocal, User
-from agent import RakshakAgent
 from analyzer import ScamAnalyzer
 import security
 import asyncio
@@ -121,13 +120,14 @@ def _redis_agent_key(username: Optional[str], thread_id: str) -> str:
     prefix = f"user:{username}:" if username else "anon:"
     return f"agent_state:{prefix}{thread_id}"
 
-def load_agent(thread_id: str, username: Optional[str] = None) -> RakshakAgent:
+def load_agent(thread_id: str, username: Optional[str] = None) -> Any:
+    from agent import RakshakAgent
     if redis_client:
         state = redis_client.get(_redis_agent_key(username, thread_id))
         if state:
             return RakshakAgent.deserialize(state)
     return RakshakAgent(thread_id=thread_id)
 
-def save_agent(thread_id: str, agent: RakshakAgent, username: Optional[str] = None):
+def save_agent(thread_id: str, agent: Any, username: Optional[str] = None):
     if redis_client:
         redis_client.setex(_redis_agent_key(username, thread_id), 3600, agent.serialize())
