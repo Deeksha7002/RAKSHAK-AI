@@ -191,7 +191,9 @@ def register_bio_start(username: str, request: Request, db: Session = Depends(ge
         attestation=AttestationConveyancePreference.NONE,
     )
     store_challenge(db, "REGISTER_" + username, options.challenge)
-    return options_to_json(options)
+    # FIX: options_to_json() returns a JSON *string*; json.loads() converts it back
+    # to a dict so FastAPI serialises it as a proper JSON object (not double-encoded)
+    return json.loads(options_to_json(options))
 
 @router.post("/auth/biometric/register/finish")
 def register_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
@@ -239,7 +241,8 @@ def login_bio_start(username: str, request: Request, db: Session = Depends(get_d
         user_verification=UserVerificationRequirement.PREFERRED,
     )
     store_challenge(db, "LOGIN_" + username, options.challenge)
-    return options_to_json(options)
+    # FIX: same double-encoding fix as register/start
+    return json.loads(options_to_json(options))
 
 @router.post("/auth/biometric/login/finish")
 def login_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
