@@ -213,7 +213,7 @@ def register_bio_finish(response: Dict[str, Any], username: str, request: Reques
         # Store credential
         cred_data = {
             "credential_id": bytes_to_base64url(verification.credential_id),
-            "public_key": bytes_to_base64url(verification.public_key),
+            "public_key": bytes_to_base64url(verification.credential_public_key),
             "sign_count": verification.sign_count,
         }
         credentials = list(user.webauthn_credentials)
