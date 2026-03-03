@@ -1,11 +1,50 @@
 import random
 import logging
 import json
+import os
+import re
 from config import PERSONA, SENSITIVE_PATTERNS
 from safety import SafetyGuard
 from analyzer import ScamAnalyzer
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [AGENT] - %(message)s')
+
+# ── Groq Client Setup ──────────────────────────────────────────────────────────
+# Lazily imported so the server still starts even if groq isn't installed yet.
+try:
+    from groq import Groq
+    _groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY", "")) if os.environ.get("GROQ_API_KEY") else None
+except ImportError:
+    _groq_client = None
+    logging.warning("⚠️ groq package not installed. Falling back to static responses.")
+
+# ── Persona System Prompts ─────────────────────────────────────────────────────
+PERSONA_SYSTEM_PROMPTS = {
+    "naive": """You are Grandma Betty, a confused and trusting 76-year-old woman. 
+You are talking to someone who is trying to scam you. Your job is to WASTE THEIR TIME 
+by being genuinely confused, asking silly off-topic questions, and never giving them 
+any real information. You are technically illiterate. Keep responses short (1-2 sentences).
+NEVER give away any real personal info, bank details, PINs, passwords, or OTPs.
+Be endearing, confused, and ask about things like your cat, your grandson, or the weather.
+Example style: "Oh my, where do I find this 'link' you mention? Is it near the any key?"
+""",
+    "skeptical": """You are Dave, a paranoid IT systems administrator with 20 years of experience.
+You are talking to a suspected scammer. Your job is to WASTE THEIR TIME by asking 
+highly technical, unanswerable questions, requesting impossible verification steps, 
+and acting suspicious of everything they say. Keep responses short (1-2 sentences).
+NEVER provide any real credentials, tokens, access, or personal information.
+Example style: "Interesting. Can you provide your employee ID and the SHA-256 fingerprint 
+of your organization's TLS certificate? I'll need to cross-reference with our SIEM."
+""",
+    "default": """You are Alex, a cautious but polite person who suspects this message might be a scam.
+Your job is to WASTE THE SCAMMER'S TIME by asking vague, non-committal questions that 
+sound genuine but never give them what they need to proceed.
+Keep responses short and natural (1-2 sentences).
+NEVER provide any real personal information, bank details, OTPs, or passwords.
+Example style: "Hmm, I'm not sure I understand. Can you explain a little more about what exactly you need?"
+"""
+}
+
 
 class RakshakAgent:
     def __init__(self, state_dict=None):
@@ -17,7 +56,7 @@ class RakshakAgent:
             self.current_persona = state_dict.get("current_persona", "default")
             self.is_compromised = state_dict.get("is_compromised", False)
             self.auto_reported = state_dict.get("auto_reported", False)
-            self.iocs = state_dict.get("iocs", {"urls":[], "domains":[], "paymentMethods":[], "sensitiveDataRedacted":0})
+            self.iocs = state_dict.get("iocs", {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0})
         else:
             self.conversation_history = []
             self.classification_cache = "benign"
@@ -26,8 +65,8 @@ class RakshakAgent:
             self.current_persona = "default"
             self.is_compromised = False
             self.auto_reported = False
-            self.iocs = {"urls":[], "domains":[], "paymentMethods":[], "sensitiveDataRedacted":0}
-        
+            self.iocs = {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
+
         self.analyzer = ScamAnalyzer()
 
     def get_state(self):
@@ -49,28 +88,27 @@ class RakshakAgent:
         """
         # 1. Redact PII from the text before storing
         safe_text = SafetyGuard.redact_pii(text)
-        
+
         # 2. Add to history
         self.conversation_history.append({"role": "scammer", "content": safe_text})
         logging.info(f"Ingested from {thread_id}: {safe_text}")
 
         # 3. Behavior Analysis
-        # Note: analyzer.analyze_behavior expects a list of messages
         score, category, neuro_matrix = self.analyzer.analyze_behavior(self.conversation_history)
         self.threat_score = score
-        
-        # Determine intent (simplified for now)
+
+        # Determine intent
         intent = "UNKNOWN"
         if score > 0.6:
-            if any(k in text.lower() for k in ["bank", "card", "crypto", "wallet", "pay"]):
+            if any(k in text.lower() for k in ["bank", "card", "crypto", "wallet", "pay", "upi", "transfer"]):
                 intent = "MONEY"
-            elif any(k in text.lower() for k in ["code", "otp", "pin", "verify"]):
+            elif any(k in text.lower() for k in ["code", "otp", "pin", "verify", "token"]):
                 intent = "CODES"
-            elif any(k in text.lower() for k in ["hurry", "fast", "immediately", "urgent"]):
+            elif any(k in text.lower() for k in ["hurry", "fast", "immediately", "urgent", "now"]):
                 intent = "URGENCY"
             else:
                 intent = "COLLECTING_PII"
-        
+
         self.intent = intent
 
         # 4. Classification
@@ -83,7 +121,7 @@ class RakshakAgent:
         # 6. Auto-Report Logic
         if classification in ["scam", "likely_scam"] and score > 0.8:
             self.auto_reported = True
-            
+
         return {
             "classification": classification,
             "safeText": safe_text,
@@ -96,13 +134,14 @@ class RakshakAgent:
 
     def generateResponse(self, classification, text):
         """
-        Generates a persona-driven response. 
+        Generates a persona-driven response.
+        Tries Groq LLM first; falls back to static list if unavailable.
         Matches the signature expected by server.py: generateResponse(classification=..., text=...)
         """
         self.classification_cache = classification
-        
+
         if classification == "benign":
-            return None # server.py handles the fallback
+            return None  # server.py handles the fallback
 
         # Decide Persona based on threat score
         if self.threat_score < 0.4:
@@ -112,20 +151,67 @@ class RakshakAgent:
         else:
             self.current_persona = "default"
 
-        persona_data = PERSONA.get(self.current_persona, PERSONA["default"])
-        
-        # Select a response
-        response = random.choice(persona_data["safe_questions"])
-        
-        # Safety Check
+        # ── Try LLM first ───────────────────────────────────────────────────────
+        response = self._generate_llm_response(text)
+
+        # ── Fallback to static list if LLM fails ────────────────────────────────
+        if not response:
+            logging.info("🔁 [AGENT] LLM unavailable, using static persona response.")
+            persona_data = PERSONA.get(self.current_persona, PERSONA["default"])
+            response = random.choice(persona_data["safe_questions"])
+
+        # ── Safety Check (apply to both LLM and static output) ──────────────────
         if not SafetyGuard.check_policy(response):
+            logging.warning("🛡️ [SAFETY] LLM response blocked by policy. Using safe fallback.")
             response = "I'm not sure how to help with that right now."
 
-        # Log our response
+        # Add to history and log
         self.conversation_history.append({"role": "agent", "content": response})
         logging.info(f"🤖 [AGENT RESPONSE]: {response}")
-        
+
         return response
+
+    def _generate_llm_response(self, latest_scammer_message: str) -> str | None:
+        """
+        Calls Groq API to generate a contextual, persona-driven response.
+        Returns None if Groq is not available or the call fails.
+        """
+        if not _groq_client:
+            return None
+
+        try:
+            system_prompt = PERSONA_SYSTEM_PROMPTS.get(self.current_persona, PERSONA_SYSTEM_PROMPTS["default"])
+
+            # Build messages for the LLM — use last 10 turns to stay within context limits
+            recent_history = self.conversation_history[-10:]
+            messages = [{"role": "system", "content": system_prompt}]
+
+            for turn in recent_history:
+                # Map our internal roles to OpenAI-style roles:
+                # scammer → user (they are sending to us)
+                # agent → assistant (we reply)
+                role = "user" if turn["role"] == "scammer" else "assistant"
+                messages.append({"role": role, "content": turn["content"]})
+
+            # If the last message wasn't from the scammer, add the latest one
+            if not recent_history or recent_history[-1]["role"] != "scammer":
+                messages.append({"role": "user", "content": latest_scammer_message})
+
+            chat_completion = _groq_client.chat.completions.create(
+                messages=messages,
+                model="llama-3.1-8b-instant",
+                max_tokens=120,       # Keep responses short and punchy
+                temperature=0.85,     # Some creativity whilst staying coherent
+                timeout=5.0           # Hard timeout — we can't block the server
+            )
+
+            response = chat_completion.choices[0].message.content.strip()
+            logging.info(f"✨ [GROQ LLM] Generated response for persona '{self.current_persona}'")
+            return response if response else None
+
+        except Exception as e:
+            logging.warning(f"⚠️ [GROQ] API call failed: {e}. Will use static fallback.")
+            return None
 
     def _classify(self, text):
         text_lower = text.lower()
@@ -136,8 +222,6 @@ class RakshakAgent:
         return "benign"
 
     def _extract_iocs(self, text):
-        # Extract URLs
-        import re
         urls = re.findall(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', text)
         for url in urls:
             if url not in self.iocs["urls"]:
