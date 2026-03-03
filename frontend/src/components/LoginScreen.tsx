@@ -366,123 +366,105 @@ export const LoginScreen: React.FC<any> = () => {
             {/* ── MODE: REGISTER ── */}
             {mode === 'register' && (
                 <div style={cardStyle}>
-                    <Header subtitle="NEW OPERATOR ENROLLMENT" />
-                    <form onSubmit={handleRegister}>
-                        {regPhase === 'form' ? (
-                            <>
-                                <div className="space-y-4 mb-6">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">Create Operator ID</label>
-                                        <div className="relative group">
-                                            <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type="text"
-                                                value={username}
-                                                onChange={(e) => { setUsername(e.target.value); setError(null); setStatusMsg(null); }}
-                                                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all font-mono"
-                                                placeholder="e.g. op_7792"
-                                            />
-                                        </div>
-                                    </div>
+                    <Header subtitle={regPhase === 'form' ? "NEW OPERATOR ENROLLMENT" : "ENROLLED SUCCESSFUL"} />
 
-                                    <div className="relative">
-                                        <label className="block text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">Create Access Code</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type={showPassword ? "text" : "password"}
-                                                value={password}
-                                                onChange={(e) => { setPassword(e.target.value); setError(null); setStatusMsg(null); }}
-                                                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-12 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all font-mono tracking-widest"
-                                                placeholder="••••"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                                            >
-                                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">Confirm Access Code</label>
-                                        <div className="relative group">
-                                            <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type="password"
-                                                value={confirmPassword}
-                                                onChange={(e) => { setConfirmPassword(e.target.value); setError(null); setStatusMsg(null); }}
-                                                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all font-mono tracking-widest"
-                                                placeholder="••••"
-                                            />
-                                        </div>
-                                    </div>
+                    {regPhase === 'form' ? (
+                        <form onSubmit={handleRegister}>
+                            <div style={{ marginBottom: '1.2rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE OPERATOR ID</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={e => { setUsername(e.target.value); setError(null); setStatusMsg(null); }}
+                                        style={inputStyle}
+                                        placeholder="Choose a username..."
+                                    />
+                                    <Fingerprint size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
                                 </div>
-
-                                {/* Status Messages */}
-                                {error && (
-                                    <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm animate-shake">
-                                        <AlertTriangle className="w-5 h-5 shrink-0" />
-                                        <span className="font-mono">{error}</span>
-                                    </div>
-                                )}
-
-                                {statusMsg && (
-                                    <div className="mb-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 text-emerald-400 text-sm">
-                                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                                        <span className="font-mono">{statusMsg}</span>
-                                    </div>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-full group relative overflow-hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-emerald-900/20 disabled:opacity-50"
-                                >
-                                    <div className="relative z-10 flex items-center justify-center gap-3 tracking-widest uppercase text-sm">
-                                        {isLoading ? (
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                            <>
-                                                <UserPlus className="w-5 h-5" />
-                                                CREATE ACCOUNT & SETUP BIOMETRICS
-                                            </>
-                                        )}
-                                    </div>
-                                </button>
-                            </>
-                        ) : (
-                            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-                                {/* Step 2 View */}
-                                <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
-                                    <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <ShieldCheck className="w-8 h-8 text-emerald-400" />
-                                    </div>
-                                    <h3 className="text-white font-bold mb-2 tracking-widest">ACCOUNT CREATED</h3>
-                                    <p className="text-gray-400 text-xs leading-relaxed">
-                                        Step 2: Initialize secure biometric enclave for passwordless login.
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {/* The original handleEnrollBiometrics logic was commented out, but we still trigger the UI path */ }}
-                                    disabled={isLoading}
-                                    className="w-full group relative bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-cyan-900/20"
-                                >
-                                    <div className="relative z-10 flex items-center justify-center gap-3 tracking-widest uppercase text-sm">
-                                        <Fingerprint className="w-5 h-5" />
-                                        FINISH BIOMETRIC ENROLLMENT
-                                    </div>
-                                </button>
                             </div>
-                        )}
-                    </form>
-                    <button type="button" onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.25)', marginTop: '0.75rem', fontSize: '0.75rem' }}>
-                        ALREADY REGISTERED? SWITCH TO LOGIN
-                    </button>
+
+                            <div style={{ marginBottom: '1.2rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE ACCESS CODE</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={password}
+                                        onChange={e => { setPassword(e.target.value); setError(null); setStatusMsg(null); }}
+                                        style={{ ...inputStyle, paddingRight: 40 }}
+                                        placeholder="••••••••"
+                                    />
+                                    <Lock size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}>
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CONFIRM ACCESS CODE</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={e => { setConfirmPassword(e.target.value); setError(null); setStatusMsg(null); }}
+                                        style={inputStyle}
+                                        placeholder="••••••••"
+                                    />
+                                    <ShieldCheck size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                                </div>
+                            </div>
+
+                            <StatusBar />
+
+                            <button type="submit" disabled={isLoading} style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                {isLoading ? <span>CREATING ACCOUNT...</span> : <><UserPlus size={18} /><span>CREATE ACCOUNT & SETUP BIOMETRICS</span></>}
+                            </button>
+                        </form>
+                    ) : (
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{
+                                background: 'rgba(16,185,129,0.05)',
+                                border: '1px solid rgba(16,185,129,0.2)',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                marginBottom: '1.5rem'
+                            }}>
+                                <div style={{
+                                    width: '48px', height: '48px',
+                                    background: 'rgba(16,185,129,0.1)',
+                                    borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 1rem'
+                                }}>
+                                    <ShieldCheck size={24} color="#10b981" />
+                                </div>
+                                <h3 style={{ color: '#fff', fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 1 COMPLETE</h3>
+                                <p style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.5 }}>
+                                    Account established. Now initialize biometric security for passwordless access.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }}
+                                style={{ ...btnPrimary, background: '#10b981' }}
+                            >
+                                <Fingerprint size={18} />
+                                <span>FINISH BIOMETRIC ENROLLMENT</span>
+                            </button>
+
+                            <p style={{ marginTop: '1.2rem', color: '#475569', fontSize: '0.65rem' }}>
+                                PRE-ENCRYPTED AUTHENTICATOR HANDSHAKE REQUIRED
+                            </p>
+                        </div>
+                    )}
+
+                    {!isLoading && (
+                        <button type="button" onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.25)', marginTop: '0.75rem', fontSize: '0.75rem' }}>
+                            ALREADY REGISTERED? SWITCH TO LOGIN
+                        </button>
+                    )}
                 </div>
             )}
 
