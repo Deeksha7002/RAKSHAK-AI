@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
 import os
+import secrets
 
 # ── Database URL Resolution ───────────────────────────────────────────────────
 # In production (Render), DATABASE_URL is automatically set to the PostgreSQL
@@ -71,6 +72,17 @@ class WebAuthnChallenge(Base):
     key = Column(String, primary_key=True)       # e.g. "LOGIN_username" or "REGISTER_username"
     challenge = Column(Text)                      # base64url-encoded challenge bytes
     # Use timezone-aware UTC — datetime.utcnow() is deprecated since Python 3.12
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class RefreshToken(Base):
+    """Server-side refresh token store. Allows logout/revocation."""
+    __tablename__ = "refresh_tokens"
+
+    token_hash = Column(String, primary_key=True)  # SHA-256 of the raw token
+    username = Column(String, index=True)
+    expires_at = Column(DateTime(timezone=True))   # 7-day TTL
+    revoked = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 

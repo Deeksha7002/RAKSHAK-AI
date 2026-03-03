@@ -31,7 +31,7 @@ if backend_dir not in sys.path:
 # Internal Modules
 from analyzer import ScamAnalyzer
 from agent import RakshakAgent
-from database import SessionLocal, engine, init_db, User, Case, Stats, WebAuthnChallenge
+from database import SessionLocal, engine, init_db, User, Case, Stats, WebAuthnChallenge, RefreshToken
 import security
 
 # Setup logging
@@ -503,9 +503,10 @@ def submit_report(report: ReportRequest, request: Request, db: Session = Depends
 @app.post("/api/login")
 @limiter.limit("5/minute")
 def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    import hashlib
     user = db.query(User).filter(User.username == creds.username).first()
-    
-    # If user doesn't exist in DB, look them up in users.json to auto-create
+
+    # Fallback: auto-create from users.json (legacy support)
     if not user:
         try:
             users_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.json")
@@ -514,7 +515,7 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
         except Exception as e:
             logging.error(f"Could not load users.json: {e}")
             valid_users = {"admin": "password123"}
-            
+
         if creds.username in valid_users and creds.password == valid_users[creds.username]:
             hashed_pw = security.get_password_hash(creds.password)
             role = "admin" if creds.username == "admin" else "operator"
@@ -524,30 +525,99 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
             user = new_user
         else:
             raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+
     if not security.verify_password(creds.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+
     access_token = security.create_access_token(data={"sub": user.username, "role": user.role})
-    return {"status": "success", "token": access_token}
+    raw_refresh = security.create_refresh_token()
+    token_hash = hashlib.sha256(raw_refresh.encode()).hexdigest()
+
+    from datetime import timedelta, timezone as tz
+    db_refresh = RefreshToken(
+        token_hash=token_hash,
+        username=user.username,
+        expires_at=datetime.now(tz.utc) + timedelta(days=security.REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    db.add(db_refresh)
+    db.commit()
+
+    logging.info(f"✅ Login successful: {user.username}")
+    return {"status": "success", "token": access_token, "refresh_token": raw_refresh}
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+@app.post("/api/auth/refresh")
+@limiter.limit("30/minute")
+def refresh_access_token(payload: RefreshRequest, request: Request, db: Session = Depends(get_db)):
+    """Issue a new short-lived access token from a valid, non-revoked refresh token."""
+    import hashlib
+    token_hash = hashlib.sha256(payload.refresh_token.encode()).hexdigest()
+    stored = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).first()
+
+    if not stored:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    if stored.revoked:
+        raise HTTPException(status_code=401, detail="Refresh token has been revoked")
+
+    from datetime import timezone as tz
+    if stored.expires_at.replace(tzinfo=tz.utc) < datetime.now(tz.utc):
+        raise HTTPException(status_code=401, detail="Refresh token has expired")
+
+    # Issue a fresh access token
+    user = db.query(User).filter(User.username == stored.username).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    new_access = security.create_access_token(data={"sub": user.username, "role": user.role})
+    logging.info(f"🔄 Token refreshed for: {user.username}")
+    return {"token": new_access}
+
+
+@app.post("/api/auth/logout")
+def logout(payload: RefreshRequest, db: Session = Depends(get_db)):
+    """Revoke a refresh token server-side so it can't be used again."""
+    import hashlib
+    token_hash = hashlib.sha256(payload.refresh_token.encode()).hexdigest()
+    stored = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).first()
+    if stored:
+        stored.revoked = True
+        db.commit()
+    logging.info("🚪 Refresh token revoked (logout)")
+    return {"status": "logged_out"}
 
 @app.post("/api/register")
 @limiter.limit("5/minute")
 def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    import hashlib
     logging.info(f"--- REGISTRATION ATTEMPT: {creds.username} ---")
     user = db.query(User).filter(User.username == creds.username).first()
     if user:
         logging.warning(f"Registration Blocked: {creds.username} already exists in DB.")
         raise HTTPException(status_code=400, detail="Operator ID already exists")
-    
+
     try:
         hashed_pw = security.get_password_hash(creds.password)
         new_user = User(username=creds.username, hashed_password=hashed_pw, role="operator")
         db.add(new_user)
         db.commit()
-        
+
         access_token = security.create_access_token(data={"sub": new_user.username, "role": new_user.role})
-        return {"status": "created", "token": access_token}
+        raw_refresh = security.create_refresh_token()
+        token_hash = hashlib.sha256(raw_refresh.encode()).hexdigest()
+        from datetime import timedelta, timezone as tz
+        db_refresh = RefreshToken(
+            token_hash=token_hash,
+            username=new_user.username,
+            expires_at=datetime.now(tz.utc) + timedelta(days=security.REFRESH_TOKEN_EXPIRE_DAYS)
+        )
+        db.add(db_refresh)
+        db.commit()
+
+        return {"status": "created", "token": access_token, "refresh_token": raw_refresh}
     except Exception as e:
         logging.error(f"Registration Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -24,7 +24,8 @@ if SECRET_KEY == _DEFAULT_INSECURE_KEY:
     logging.warning("⚠️ [SECURITY] Running with INSECURE default SECRET_KEY. NOT safe for production.")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 15      # Short-lived; refreshed silently by the client
+REFRESH_TOKEN_EXPIRE_DAYS = 7         # Long-lived opaque secret stored hashed in DB
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
@@ -43,6 +44,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def create_refresh_token() -> str:
+    """Returns a cryptographically secure random opaque token (not a JWT)."""
+    return secrets.token_urlsafe(48)   # 384-bit entropy — effectively impossible to brute-force
 
 
 def decode_access_token(token: str) -> Optional[dict]:
