@@ -259,7 +259,7 @@ def login_bio_finish(response: Dict[str, Any], username: str, request: Request, 
             raise HTTPException(status_code=400, detail="Credential not found")
 
         verification = verify_authentication_response(
-            credential=AuthenticationCredential.parse_obj(response),
+            credential=response,
             expected_challenge=challenge,
             expected_origin=config["origin"],
             expected_rp_id=config["rp_id"],
