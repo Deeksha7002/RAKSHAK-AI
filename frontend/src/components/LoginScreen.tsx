@@ -55,32 +55,52 @@ function prepareAuthenticationOptions(options: any): PublicKeyCredentialRequestO
 // â”€â”€ Enroll biometrics for a newly-registered user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function enrollBiometrics(username: string): Promise<void> {
     // 1. Get registration options from backend
-    const startRes = await fetch(
-        `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(username)}`,
-        {
-            method: 'POST',
-            headers: { 'X-Rakshak-Token': 'rakshak-core-v1' }
-        }
-    );
-    if (!startRes.ok) throw new Error(await startRes.text());
-    const rawOptions = await startRes.json();
-    const creationOptions = prepareRegistrationOptions(rawOptions);
+    let startRes: Response;
+    try {
+        startRes = await fetch(
+            `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(username)}`,
+            { method: 'POST', headers: { 'X-Rakshak-Token': 'rakshak-core-v1' } }
+        );
+    } catch (e: any) {
+        throw new Error(`[Step 1 - Network] ${e.message}`);
+    }
+    if (!startRes.ok) {
+        const txt = await startRes.text().catch(() => startRes.status.toString());
+        throw new Error(`[Step 1 - Server ${startRes.status}] ${txt}`);
+    }
 
-    // 2. Trigger real OS biometric prompt (Windows Hello / Touch ID)
-    const credential = await navigator.credentials.create({ publicKey: creationOptions }) as PublicKeyCredential;
-    if (!credential) throw new Error('No credential returned by browser');
+    let rawOptions: any;
+    try {
+        rawOptions = await startRes.json();
+    } catch (e: any) {
+        throw new Error(`[Step 1 - JSON Parse] ${e.message}`);
+    }
+
+    let creationOptions: PublicKeyCredentialCreationOptions;
+    try {
+        creationOptions = prepareRegistrationOptions(rawOptions);
+    } catch (e: any) {
+        throw new Error(`[Step 2 - Prepare Options] ${e.message} | raw: ${JSON.stringify(typeof rawOptions)}`);
+    }
+
+    // 2. Trigger real OS biometric prompt (Windows Hello / Touch ID / Android)
+    let credential: PublicKeyCredential;
+    try {
+        const cred = await navigator.credentials.create({ publicKey: creationOptions });
+        if (!cred) throw new Error('Browser returned null credential');
+        credential = cred as PublicKeyCredential;
+    } catch (e: any) {
+        throw new Error(`[Step 3 - Browser Prompt] ${e.name}: ${e.message}`);
+    }
 
     const attResponse = credential.response as AuthenticatorAttestationResponse;
 
-    // 3. Send real credential to backend for verification + storage
+    // 3. Send credential to backend for verification + storage
     const finishRes = await fetch(
         `${API_BASE_URL}/api/auth/biometric/register/finish?username=${encodeURIComponent(username)}`,
         {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Rakshak-Token': 'rakshak-core-v1'
-            },
+            headers: { 'Content-Type': 'application/json', 'X-Rakshak-Token': 'rakshak-core-v1' },
             body: JSON.stringify({
                 id: credential.id,
                 rawId: bufferToBase64url(credential.rawId),
@@ -92,7 +112,10 @@ async function enrollBiometrics(username: string): Promise<void> {
             }),
         }
     );
-    if (!finishRes.ok) throw new Error(await finishRes.text());
+    if (!finishRes.ok) {
+        const txt = await finishRes.text().catch(() => finishRes.status.toString());
+        throw new Error(`[Step 4 - Finish ${finishRes.status}] ${txt}`);
+    }
 }
 // â”€â”€ Matrix Digital Rain Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MatrixRain: React.FC = () => {
