@@ -4,6 +4,7 @@ import { SafetyGuard } from './Safety';
 import { BaitGenerator } from './BaitGenerator';
 import { ScamAnalyzer } from './ScamAnalyzer';
 import { CyberCellService } from './CyberCellService';
+import { API_BASE_URL } from './config';
 import type { Classification, Message, IncidentReport, IOCs, ScamType } from './types';
 
 export class RakshakAgent {
@@ -291,7 +292,8 @@ export class RakshakAgent {
         return "GENERAL";
     }
 
-    generateResponse(classification: Classification, incomingText?: string): string | null {
+    // ── LLM-powered response via backend ──────────────────────────────────────
+    async generateResponse(classification: Classification, incomingText?: string): Promise<string | null> {
         if (classification === 'benign') {
             const neutralResponses = [
                 "Who is this?",
@@ -301,37 +303,81 @@ export class RakshakAgent {
             return neutralResponses[Math.floor(Math.random() * neutralResponses.length)];
         }
 
-        let category = "GENERAL";
+        // Map TS persona names → backend persona names
+        const personaMap: Record<PersonaType, string> = {
+            'ELDERLY': 'naive',
+            'SKEPTICAL': 'skeptical',
+            'INVESTOR': 'default',
+            'CITIZEN': 'default',
+        };
+        const backendPersona = personaMap[this.currentPersona] ?? 'default';
 
+        // Build conversation history for LLM context (last 10 turns)
+        const historyForLLM = this.conversationHistory.slice(-10).map(m => ({
+            role: m.sender === 'scammer' ? 'scammer' : 'agent',
+            content: m.content
+        }));
+
+        // ── Try LLM endpoint ─────────────────────────────────────────────────
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000); // 5s hard timeout
+
+            const res = await fetch(`${API_BASE_URL}/api/generate-response`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Rakshak-Token': 'rakshak-core-v1'
+                },
+                body: JSON.stringify({
+                    message: incomingText ?? '',
+                    persona: backendPersona,
+                    conversation_history: historyForLLM,
+                    classification
+                }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeout);
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.response) {
+                    console.log(`✨ [Groq LLM] Response received (persona: ${backendPersona})`);
+                    this.lastResponse = data.response;
+                    this.conversationHistory.push({
+                        id: Date.now().toString(),
+                        sender: 'agent',
+                        content: data.response,
+                        timestamp: Date.now()
+                    });
+                    return data.response;
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [Groq LLM] API call failed or timed out, using static fallback.', e);
+        }
+
+        // ── Static fallback (existing logic) ─────────────────────────────────
+        let category = "GENERAL";
         if (incomingText) {
             const intent = this.detectIntent(incomingText);
             if (intent) category = intent;
         }
 
-        // Get templates for current persona
-        // Cast to any to access dynamic property matching
         const personaTemplates = RESPONSE_TEMPLATES[this.currentPersona] as Record<string, string[]>;
         const templates = personaTemplates[category] || personaTemplates["GENERAL"];
 
-        // Simple deduplication: Try to pick a response different from the last one
         let response = templates[Math.floor(Math.random() * templates.length)];
         if (response === this.lastResponse && templates.length > 1) {
-            // Retry once
             response = templates[Math.floor(Math.random() * templates.length)];
         }
-
         this.lastResponse = response;
 
         // Inject Bait
-        if (response.includes("{credit_card}")) {
-            response = response.replace("{credit_card}", BaitGenerator.generateFakeCard());
-        }
-        if (response.includes("{password}")) {
-            response = response.replace("{password}", BaitGenerator.generateFakePassword());
-        }
-        if (response.includes("{otp}")) {
-            response = response.replace("{otp}", BaitGenerator.generateFakeOTP());
-        }
+        if (response.includes("{credit_card}")) response = response.replace("{credit_card}", BaitGenerator.generateFakeCard());
+        if (response.includes("{password}")) response = response.replace("{password}", BaitGenerator.generateFakePassword());
+        if (response.includes("{otp}")) response = response.replace("{otp}", BaitGenerator.generateFakeOTP());
 
         return response;
     }

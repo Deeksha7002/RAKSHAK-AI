@@ -212,6 +212,48 @@ class LoginRequest(BaseModel):
 def read_root():
     return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.0 (Fortified)"}
 
+# --- LLM Response Generation Request Model ---
+class GenerateResponseRequest(BaseModel):
+    message: str                                  # Latest scammer message
+    persona: Optional[str] = "default"            # "naive", "skeptical", "default"
+    conversation_history: Optional[List[Dict[str, str]]] = []  # [{role, content}, ...]
+    classification: Optional[str] = "scam"
+
+@app.post("/api/generate-response")
+@limiter.limit("60/minute")
+def generate_llm_response(payload: GenerateResponseRequest, request: Request):
+    """
+    Called by the frontend demo to generate a Groq LLM-powered agent response.
+    Uses the RakshakAgent's LLM logic and falls back gracefully if Groq is unavailable.
+    """
+    try:
+        # Build a thin agent with the provided conversation history & persona
+        state = {
+            "conversation_history": payload.conversation_history,
+            "classification_cache": payload.classification,
+            "threat_score": 0.8 if payload.persona == "skeptical" else (0.3 if payload.persona == "naive" else 0.55),
+            "intent": "UNKNOWN",
+            "current_persona": payload.persona,
+            "is_compromised": False,
+            "auto_reported": False,
+            "iocs": {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
+        }
+        agent = RakshakAgent(state)
+
+        # Try LLM response
+        response = agent._generate_llm_response(payload.message)
+
+        if response:
+            logging.info(f"✨ [/api/generate-response] LLM response generated for persona '{payload.persona}'")
+            return {"response": response, "source": "llm", "persona": payload.persona}
+        else:
+            # LLM unavailable — signal frontend to use its static fallback
+            return {"response": None, "source": "fallback", "persona": payload.persona}
+
+    except Exception as e:
+        logging.error(f"❌ [/api/generate-response] Error: {e}")
+        return {"response": None, "source": "error", "persona": payload.persona}
+
 @app.post("/api/analyze")
 @limiter.limit("20/minute")
 def analyze_text(payload: AnalysisRequest, request: Request):

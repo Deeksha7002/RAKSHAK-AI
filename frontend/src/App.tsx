@@ -442,7 +442,7 @@ function App() {
 
       if (shouldReply) {
         const effectiveClassification = (classification === 'benign') ? 'scam' : classification;
-        const response = agent.generateResponse(effectiveClassification, content);
+        const response = await agent.generateResponse(effectiveClassification, content);
         if (response) {
           await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
           handleIncomingMessage(threadId, response, 'agent', undefined, scenarioId, undefined, silent);
