@@ -75,27 +75,33 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logging.error(f"❌ CRITICAL SERVER ERROR: {exc}", exc_info=True)
-    return {"status": "error", "detail": "Internal Server Error", "msg": str(exc)}
+    import traceback
+    error_trace = traceback.format_exc()
+    logging.error(f"❌ CRITICAL SERVER ERROR: {exc}\n{error_trace}")
+    from fastapi.responses import JSONResponse
+    content = {
+        "status": "error",
+        "detail": "Internal Server Error",
+        "error_type": type(exc).__name__,
+        "msg": str(exc)
+    }
+    # Add traceback ONLY in development or if diagnostic flag is set
+    if os.environ.get("DEBUG_MODE") == "1":
+        content["traceback"] = error_trace
+        
+    return JSONResponse(status_code=500, content=content)
 
 # ── Security Middleware ──────────────────────────────────────────────────────
 @app.middleware("http")
 async def secure_headers_and_obfuscation(request: Request, call_next):
-    try:
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Server"] = "Rakshak-Core/2.0"  # Obfuscation
-        return response
-    except Exception as e:
-        import traceback
-        logging.error(f"❌ MIDDLEWARE CRASH: {e}\n{traceback.format_exc()}")
-        from fastapi.responses import JSONResponse
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "error_type": type(e).__name__, "msg": str(e), "traceback": traceback.format_exc()}
-        )
+    # This middleware should NOT catch exceptions; let the global_exception_handler do it
+    # to ensure CORS and other internal middlewares are respected on the response path.
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Server"] = "Rakshak-Core/2.0"
+    return response
 
 # ── Route Registration ───────────────────────────────────────────────────────
 app.include_router(auth.router)
