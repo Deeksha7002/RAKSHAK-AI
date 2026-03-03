@@ -6,6 +6,10 @@ import re
 from config import PERSONA, SENSITIVE_PATTERNS
 from safety import SafetyGuard
 from analyzer import ScamAnalyzer
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import Session
+from dependencies import analyzer, load_agent, save_agent, get_current_user, manager, get_db
+from schemas import GenerateResponseRequest, AnalysisRequest
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [AGENT] - %(message)s')
 
@@ -44,6 +48,8 @@ NEVER provide any real personal information, bank details, OTPs, or passwords.
 Example style: "Hmm, I'm not sure I understand. Can you explain a little more about what exactly you need?"
 """
 }
+
+router = APIRouter(tags=["agent"])
 
 
 class RakshakAgent:
@@ -281,9 +287,35 @@ Your verdict:"""
             return "likely_scam"
         return "benign"
 
-    def _extract_iocs(self, text):
-        urls = re.findall(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', text)
-        for url in urls:
-            if url not in self.iocs["urls"]:
-                self.iocs["urls"].append(url)
                 logging.info(f"Captured IOC [URL]: {url}")
+
+
+# ── API Endpoints ─────────────────────────────────────────────────────────────
+
+@router.post("/api/agent/response")
+async def generate_llm_response(payload: GenerateResponseRequest, user: dict = Depends(get_current_user)):
+    """Generates an automated response based on the detected persona."""
+    agent = load_agent(payload.threadId, user["sub"])
+    response = agent.generateResponse(payload.classification, payload.text)
+    save_agent(payload.threadId, agent, user["sub"])
+    return {"response": response, "persona": agent.current_persona}
+
+@router.post("/api/analyze")
+async def analyze_text(payload: AnalysisRequest, request: Request):
+    """Performs deep NLP analysis on a text snippet with heuristic fallback."""
+    result = analyzer.analyze(payload.text, context=payload.context)
+    return result
+
+@router.websocket("/ws/intercept")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time scam interception alerts."""
+    await manager.connect(websocket)
+    try:
+        while True:
+            # We mostly broadcast *to* clients, but keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logging.error(f"WebSocket Error: {e}")
+        manager.disconnect(websocket)
