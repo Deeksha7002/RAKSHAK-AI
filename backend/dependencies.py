@@ -126,7 +126,7 @@ def load_agent(thread_id: str, username: Optional[str] = None) -> Any:
         state = redis_client.get(_redis_agent_key(username, thread_id))
         if state:
             return RakshakAgent.deserialize(state)
-    return RakshakAgent(thread_id=thread_id)
+    return RakshakAgent(thread_id)
 
 def save_agent(thread_id: str, agent: Any, username: Optional[str] = None):
     if redis_client:
