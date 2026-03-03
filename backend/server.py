@@ -50,6 +50,10 @@ async def lifespan(app: FastAPI):
     sync_task.cancel()
     logging.info("👋 Rakshak AI Core Shutting Down")
 
+# ── GLOBAL DEBUG TOGGLE ───────────────────────────────────────────────────────
+# Set to "1" to see full tracebacks in JSON responses during production debugging.
+os.environ["DEBUG_MODE"] = "1"
+
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
