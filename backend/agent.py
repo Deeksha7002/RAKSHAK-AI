@@ -3,6 +3,7 @@ import logging
 import json
 import os
 import re
+import hashlib
 from config import PERSONA, SENSITIVE_PATTERNS
 from safety import SafetyGuard
 from analyzer import ScamAnalyzer
@@ -54,7 +55,7 @@ router = APIRouter(tags=["agent"])
 
 class RakshakAgent:
     def __init__(self, state_dict=None):
-        if state_dict:
+        if state_dict and isinstance(state_dict, dict):
             self.conversation_history = state_dict.get("conversation_history", [])
             self.classification_cache = state_dict.get("classification_cache", "benign")
             self.threat_score = state_dict.get("threat_score", 0.1)
@@ -63,6 +64,17 @@ class RakshakAgent:
             self.is_compromised = state_dict.get("is_compromised", False)
             self.auto_reported = state_dict.get("auto_reported", False)
             self.iocs = state_dict.get("iocs", {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0})
+            self.thread_id = state_dict.get("thread_id", "default_thread")
+        elif isinstance(state_dict, str): # Handle thread_id being passed alone
+            self.conversation_history = []
+            self.classification_cache = "benign"
+            self.threat_score = 0.1
+            self.intent = "UNKNOWN"
+            self.current_persona = "default"
+            self.is_compromised = False
+            self.auto_reported = False
+            self.iocs = {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
+            self.thread_id = state_dict
         else:
             self.conversation_history = []
             self.classification_cache = "benign"
@@ -72,6 +84,7 @@ class RakshakAgent:
             self.is_compromised = False
             self.auto_reported = False
             self.iocs = {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
+            self.thread_id = "default_thread"
 
         self.analyzer = ScamAnalyzer()
 
@@ -84,7 +97,8 @@ class RakshakAgent:
             "current_persona": self.current_persona,
             "is_compromised": self.is_compromised,
             "auto_reported": self.auto_reported,
-            "iocs": self.iocs
+            "iocs": self.iocs,
+            "thread_id": self.thread_id
         }
 
     def ingest(self, text, thread_id):
@@ -103,14 +117,15 @@ class RakshakAgent:
         score, category, neuro_matrix, llm_verification_required = self.analyzer.analyze_behavior(self.conversation_history)
         self.threat_score = score
 
-        # Determine intent
+        # Determine intent (Heuristic backup)
         intent = "UNKNOWN"
         if score > 0.6:
-            if any(k in text.lower() for k in ["bank", "card", "crypto", "wallet", "pay", "upi", "transfer"]):
+            text_lower = safe_text.lower()
+            if any(k in text_lower for k in ["bank", "card", "crypto", "wallet", "pay", "upi", "transfer"]):
                 intent = "MONEY"
-            elif any(k in text.lower() for k in ["code", "otp", "pin", "verify", "token"]):
+            elif any(k in text_lower for k in ["code", "otp", "pin", "verify", "token"]):
                 intent = "CODES"
-            elif any(k in text.lower() for k in ["hurry", "fast", "immediately", "urgent", "now"]):
+            elif any(k in text_lower for k in ["hurry", "fast", "immediately", "urgent", "now"]):
                 intent = "URGENCY"
             else:
                 intent = "COLLECTING_PII"
@@ -287,17 +302,22 @@ Your verdict:"""
             return "likely_scam"
         return "benign"
 
-                logging.info(f"Captured IOC [URL]: {url}")
-
 
 # ── API Endpoints ─────────────────────────────────────────────────────────────
 
-@router.post("/api/agent/response")
+@router.post("/api/generate-response")
 async def generate_llm_response(payload: GenerateResponseRequest, user: dict = Depends(get_current_user)):
     """Generates an automated response based on the detected persona."""
-    agent = load_agent(payload.threadId, user["sub"])
-    response = agent.generateResponse(payload.classification, payload.text)
-    save_agent(payload.threadId, agent, user["sub"])
+    # Use a hash of the first message or some unique ID if threadId isn't provided
+    thread_id = hashlib.sha256(payload.message.encode()).hexdigest()[:12]
+    agent = load_agent(thread_id, user["sub"])
+    
+    # Sync history from frontend if provided
+    if payload.conversation_history:
+        agent.conversation_history = payload.conversation_history
+        
+    response = agent.generateResponse(payload.classification, payload.message)
+    save_agent(thread_id, agent, user["sub"])
     return {"response": response, "persona": agent.current_persona}
 
 @router.post("/api/analyze")
