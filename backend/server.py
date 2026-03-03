@@ -16,32 +16,33 @@ from routers import auth, agent, stats, webhooks
 # ── Lifespan & Initialization ────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 🛠️ Database Auto-Migration Logic ─────────────────────────────────────────
-    # Since SQLAlchemy metadata.create_all() doesn't add missing columns,
-    # we manually execute ALTER TABLE commands for our latest schema update.
+    # 🛠️ Database Reset & Sync (One-time schema reconciliation)
     try:
-        from database import engine
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            logging.info("🛠️ Running schema migration checks...")
-            # 'cases' table updates
-            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"))
-            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS classification VARCHAR"))
-            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS scam_type VARCHAR"))
-            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS confidence_score FLOAT"))
-            conn.execute(text("ALTER TABLE cases ADD COLUMN IF NOT EXISTS conversation_id VARCHAR"))
-            # 'stats' table updates
-            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS total_intercepted INTEGER DEFAULT 0"))
-            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS scams_prevented INTEGER DEFAULT 0"))
-            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS safe_conversations INTEGER DEFAULT 0"))
-            conn.execute(text("ALTER TABLE stats ADD COLUMN IF NOT EXISTS current_threat_level FLOAT DEFAULT 0.1"))
-            conn.commit()
-            logging.info("✅ Database schema synchronized.")
+        from database import engine, Base, User, init_db
+        from sqlalchemy.orm import Session
+        import security
+        
+        logging.warning("🛠️ Reconciling database schema...")
+        # WARNING: This deletes data, but fixes the 500 errors on Render!
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        
+        # Seed Admin User
+        with Session(engine) as session:
+            admin = User(
+                username="admin", 
+                hashed_password=security.get_password_hash("admin123"),
+                role="admin"
+            )
+            session.add(admin)
+            session.commit()
+            logging.info("👨‍💻 Admin user seeded.")
+        logging.info("✅ Database optimized and synced.")
     except Exception as e:
-        logging.warning(f"⚠️ Migration warning (may already exist): {e}")
+        logging.error(f"❌ DB INITIALIZATION ERROR: {e}")
 
     # Startup logic
-    init_db()
+    # init_db() # Metadata created above
     logging.info("🚀 Rakshak AI Core Initialized")
     
     # Optional: Start background task for challenge pruning
