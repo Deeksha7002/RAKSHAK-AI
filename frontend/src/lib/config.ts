@@ -239,12 +239,5 @@ export const UNSAFE_KEYWORDS = [
     "send money", "transfer", "bank account", "password", "login", "otp", "pin", "cvv"
 ];
 
-// Dynamically resolve the backend URL — relative requests are proxied via Vite/Nginx
-// @ts-ignore
-const rawUrl = (import.meta as any).env?.VITE_API_URL || '';
-if (!rawUrl && !import.meta.env.DEV) {
-    console.warn("[RAKSHAK] VITE_API_URL missing. Using absolute Render fallback to ensure connectivity.");
-}
-
-// Reverted to relative URL to use Vercel's rewrite proxy (defined in vercel.json)
-export const API_BASE_URL = rawUrl;
+// FORCE RELATIVE: Always use the Vercel proxy (/api/...) to avoid CORS issues.
+export const API_BASE_URL = '';

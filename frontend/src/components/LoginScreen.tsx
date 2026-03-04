@@ -161,11 +161,12 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('SCANNING BIOMETRICS...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout for Render cold starts
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-        const fetchUrl = `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}`;
+        // FIX: Added 'cb' (cache buster) to bypass stubborn browser/PWA caches.
+        const fetchUrl = `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}&cb=${Date.now()}`;
         try {
-            console.log(`[RAKSHAK] Login Start | URL: ${fetchUrl} | Base: ${API_BASE_URL}`);
+            console.log(`[RAKSHAK] Login Start | URL: ${fetchUrl} | Base: ${API_BASE_URL || 'RELATIVE'}`);
             const startRes = await fetch(fetchUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -447,6 +448,9 @@ export const LoginScreen: React.FC<any> = () => {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, color: '#fff' }}>
                 RAKSHAK<span style={{ color: '#10b981' }}>-AI</span>
             </h1>
+            <p style={{ fontSize: '0.6rem', color: '#475569', marginTop: '4px', letterSpacing: '2px' }}>
+                VER. 2.1.0-STABLE | BUILD SIG: RELATIVE_PROXY_V1
+            </p>
             <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', letterSpacing: '1px' }}>
                 {subtitle}
             </p>
