@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Cpu, Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../lib/config';
@@ -144,20 +144,29 @@ export const LoginScreen: React.FC<any> = () => {
     const [regPassword, setRegPassword] = useState('');
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
+    const hasTriggeredOnMount = useRef(false);
+
     useEffect(() => {
         const attemptTrigger = () => {
             if (mode === 'returning' && username && window.PublicKeyCredential && !isLoading) {
-                // Short delay to allow UI/Session to settle
-                setTimeout(() => triggerBiometric(username), 800);
+                console.log("[RAKSHAK] Auto-Trigger Attempting for:", username);
+                triggerBiometric(username);
             }
         };
 
-        // Initial trigger
-        attemptTrigger();
+        // Trigger on mount or when username/mode becomes valid
+        if (mode === 'returning' && username && !hasTriggeredOnMount.current) {
+            hasTriggeredOnMount.current = true;
+            // Short delay to allow UI to settle
+            setTimeout(attemptTrigger, 1000);
+        }
 
         // Re-trigger if the user leaves and comes back to the tab
         const handleVisibility = () => {
-            if (document.visibilityState === 'visible') attemptTrigger();
+            if (document.visibilityState === 'visible') {
+                console.log("[RAKSHAK] Tab Focused - Re-trying Biometric Handshake");
+                attemptTrigger();
+            }
         };
         window.addEventListener('visibilitychange', handleVisibility);
 
@@ -230,13 +239,21 @@ export const LoginScreen: React.FC<any> = () => {
             }
         } catch (e: any) {
             clearTimeout(timeoutId);
-            // FAIL SILENTLY: For a PhonePe experience, we don't show loud error boxes 
-            // if the user cancels or the device is busy. We just reset to ready state.
-            console.log("[RAKSHAK] Biometric Flow Interrupted/Cancelled:", e.message);
             setStatusMsg(null);
-            // If it's a real network error, we can log it but keep the UI clean for the Access Code fallback.
-            if (e.message.toLowerCase().includes('fetch')) {
+
+            const msg = e.message.toLowerCase();
+            // SHOW FEEDBACK for data issues: If setup is missing, tell them!
+            // This prevents the "it's not even asking" confusion.
+            if (msg.includes('no biometric credentials')) {
+                setError('BIOMETRIC NOT ENROLLED FOR THIS ACCOUNT. USE ACCESS CODE.');
+            } else if (msg.includes('fetch') || msg.includes('network')) {
                 console.error("[RAKSHAK] CORE UNREACHABLE:", fetchUrl);
+                setError('CORE OFFLINE - CHECK NETWORK OR USE ACCESS CODE');
+            } else if (msg.includes('no_assertion') || msg.includes('cancel')) {
+                // User probably cancelled the native prompt
+                console.log("[RAKSHAK] Biometric Prompt Cancelled/Interrupted");
+            } else {
+                console.error("[RAKSHAK] Misc Auth Error:", e.message);
             }
         }
         finally {
