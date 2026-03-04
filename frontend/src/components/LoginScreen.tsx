@@ -480,20 +480,72 @@ export const LoginScreen: React.FC<any> = () => {
         </div>
     );
 
-    const StatusBar = () => (
-        <>
-            {statusMsg && (
-                <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <ShieldCheck size={16} /> {statusMsg}
-                </div>
-            )}
-            {error && (
-                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <AlertTriangle size={16} /> {error}
-                </div>
-            )}
-        </>
-    );
+    const StatusBar = () => {
+        const isNotEnrolled = error && error.includes('NOT ENROLLED');
+
+        return (
+            <>
+                {statusMsg && (
+                    <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <ShieldCheck size={16} /> {statusMsg}
+                    </div>
+                )}
+                {error && !isNotEnrolled && (
+                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <AlertTriangle size={16} /> {error}
+                    </div>
+                )}
+
+                {/* ── PREMIUM ONBOARDING ────────────────────────────────────────── */}
+                {isNotEnrolled && (
+                    <div style={{
+                        background: 'rgba(6,182,212,0.08)',
+                        border: '1px solid rgba(6,182,212,0.3)',
+                        padding: '1.25rem',
+                        borderRadius: '12px',
+                        marginBottom: '1.5rem',
+                        textAlign: 'left',
+                        animation: 'glow 2s infinite alternate'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                            <div style={{ width: '32px', height: '32px', background: 'rgba(6,182,212,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Fingerprint size={18} color="#22d3ee" />
+                            </div>
+                            <span style={{ color: '#22d3ee', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px' }}>SECURE PROTOCOL SETUP</span>
+                        </div>
+                        <p style={{ color: '#94a3b8', fontSize: '0.7rem', lineHeight: 1.4, marginBottom: '1rem' }}>
+                            Hardware sync required for <span style={{ color: '#fff', fontWeight: 700 }}>{username}</span>. Enable biometric recognition to unlock seamless passwordless access.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => enrollBiometrics(username)}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem',
+                                background: 'rgba(6,182,212,0.2)',
+                                border: '1px solid rgba(6,182,212,0.5)',
+                                color: '#fff',
+                                borderRadius: '6px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                letterSpacing: '1px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(6,182,212,0.4)')}
+                            onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(6,182,212,0.2)')}
+                        >
+                            <ShieldCheck size={14} /> ACTIVATE BIOMETRICS
+                        </button>
+                    </div>
+                )}
+            </>
+        );
+    };
 
     return (
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', color: '#e0e0e0', fontFamily: 'monospace', position: 'relative', overflowY: 'auto', paddingTop: '2rem', paddingBottom: '2rem' }}>
