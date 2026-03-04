@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Shield, Cpu, Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../lib/config';
@@ -142,18 +142,28 @@ export const LoginScreen: React.FC<any> = () => {
     const [regPhase, setRegPhase] = useState<'form' | 'biometric'>(hasRegistered ? 'biometric' : 'form');
     const [regUsername, setRegUsername] = useState(lastUser || '');
     const [regPassword, setRegPassword] = useState('');
-    const bioAttempted = useRef(false);
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
     useEffect(() => {
-        if (mode === 'returning' && lastUser && window.PublicKeyCredential && !bioAttempted.current) {
-            bioAttempted.current = true;
-            // Short delay to allow UI to settle before the browser native prompt pops up
-            const timer = setTimeout(() => triggerBiometric(lastUser), 800);
-            return () => clearTimeout(timer);
-        }
+        const attemptTrigger = () => {
+            if (mode === 'returning' && username && window.PublicKeyCredential && !isLoading) {
+                // Short delay to allow UI/Session to settle
+                setTimeout(() => triggerBiometric(username), 800);
+            }
+        };
+
+        // Initial trigger
+        attemptTrigger();
+
+        // Re-trigger if the user leaves and comes back to the tab
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') attemptTrigger();
+        };
+        window.addEventListener('visibilitychange', handleVisibility);
+
+        return () => window.removeEventListener('visibilitychange', handleVisibility);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode]);
+    }, [mode, username]);
 
     const triggerBiometric = async (user: string) => {
         setIsLoading(true);
