@@ -246,5 +246,5 @@ if (!rawUrl && !import.meta.env.DEV) {
     console.warn("[RAKSHAK] VITE_API_URL missing. Using absolute Render fallback to ensure connectivity.");
 }
 
-// FIX: Hardcoded fallback to the production Render URL as a safety layer for Vercel
-export const API_BASE_URL = rawUrl || 'https://scam-defender-honeypot-1.onrender.com';
+// Reverted to relative URL to use Vercel's rewrite proxy (defined in vercel.json)
+export const API_BASE_URL = rawUrl;

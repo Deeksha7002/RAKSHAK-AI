@@ -589,7 +589,7 @@ export const LoginScreen: React.FC<any> = () => {
                         {!isLoading && (
                             <button
                                 type="button"
-                                onClick={() => triggerBiometric(regUsername)}
+                                onClick={() => enrollBiometrics(regUsername)}
                                 style={btnGhost}
                             >
                                 <Fingerprint size={16} /> RE-SCAN BIOMETRICS

@@ -54,20 +54,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
-ALLOWED_ORIGINS = [
-    os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.app"),
-    "https://rakshak-ai-drab.vercel.app",
-    # FIX #6: New Vercel deployment URL added to CORS whitelist
-    "https://rakshak-ai-git-main-deeksha-bansals-projects.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-]
-
+# FIX: Use regex to allow all Vercel domains and local development
+# This prevents CORS blocks on dynamic Vercel preview URLs.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|.*\.vercel\.app)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
