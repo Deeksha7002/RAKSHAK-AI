@@ -220,20 +220,14 @@ export const LoginScreen: React.FC<any> = () => {
             }
         } catch (e: any) {
             clearTimeout(timeoutId);
-            console.error("[RAKSHAK] Biometric Login Critical Failure:", {
-                message: e.message,
-                name: e.name,
-                url: fetchUrl,
-                stack: e.stack
-            });
-            if (e.name === 'AbortError') {
-                setError('TIMEOUT: Secure core is non-responsive (45s). Use Access Code.');
-            } else if (e.message.toLowerCase().includes('fetch')) {
-                setError(`NETWORK ERROR: Secure Core unreachable. Check console for URL: ${fetchUrl}`);
-            } else {
-                setError(`BIOMETRIC FAILED: ${e.message || 'unknown error'} â€” USE ACCESS CODE`);
-            }
+            // FAIL SILENTLY: For a PhonePe experience, we don't show loud error boxes 
+            // if the user cancels or the device is busy. We just reset to ready state.
+            console.log("[RAKSHAK] Biometric Flow Interrupted/Cancelled:", e.message);
             setStatusMsg(null);
+            // If it's a real network error, we can log it but keep the UI clean for the Access Code fallback.
+            if (e.message.toLowerCase().includes('fetch')) {
+                console.error("[RAKSHAK] CORE UNREACHABLE:", fetchUrl);
+            }
         }
         finally {
             setIsLoading(false);
@@ -651,16 +645,17 @@ export const LoginScreen: React.FC<any> = () => {
                                 disabled={isLoading}
                                 style={btnPrimary}
                             >
-                                {isLoading ? <div className="spinner" /> : <><ShieldCheck size={18} /> VERIFY & ACCESS</>}
+                                {isLoading ? <span>AUTHORIZING...</span> : <><ShieldCheck size={18} /> VERIFY & ACCESS</>}
                             </button>
 
+                            {/* SEAMLESS FALLBACK: Only show a subtle retry link if biometric was cancelled */}
                             {!isLoading && lastUser && (
                                 <button
                                     type="button"
                                     onClick={() => triggerBiometric(lastUser)}
-                                    style={btnGhost}
+                                    style={{ ...btnGhost, border: 'none', marginTop: '0.25rem', opacity: 0.6, fontSize: '0.7rem' }}
                                 >
-                                    <Fingerprint size={16} /> RE-SCAN BIOMETRICS
+                                    <Fingerprint size={14} /> USE BIOMETRIC AGAIN
                                 </button>
                             )}
                         </div>
