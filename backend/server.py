@@ -27,9 +27,13 @@ async def lifespan(app: FastAPI):
     async def prune_loop():
         while not stop_event.is_set():
             try:
-                db_gen = get_db()
-                db = next(db_gen)
-                _prune_stale_challenges(db)
+                # Use context manager style to ensure closing
+                from database import SessionLocal
+                db = SessionLocal()
+                try:
+                    _prune_stale_challenges(db)
+                finally:
+                    db.close()
             except Exception as e:
                 logging.error(f"Challenge pruning failed: {e}")
             await asyncio.sleep(60)

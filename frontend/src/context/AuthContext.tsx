@@ -135,12 +135,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // ── Login ────────────────────────────────────────────────────────────────
     const login = async (username: string, password: string): Promise<boolean> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
         try {
             const res = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username.trim(), password: password.trim() })
+                body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (res.ok) {
                 const data = await res.json();
@@ -156,20 +161,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 scheduleRefresh(data.token);
                 return true;
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Login failed', e);
+        } finally {
+            clearTimeout(timeoutId);
         }
         return false;
     };
 
     // ── Register ─────────────────────────────────────────────────────────────
     const register = async (username: string, password: string): Promise<boolean> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout for cold starts
+
         try {
             const res = await fetch(`${API_BASE_URL}/api/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username.trim(), password: password.trim() })
+                body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (res.ok) {
                 const data = await res.json();
@@ -192,8 +204,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error(errorMsg);
             }
         } catch (e: any) {
+            clearTimeout(timeoutId);
+            if (e.name === 'AbortError') {
+                throw new Error('Connection Timed Out - Is the server sleeping?');
+            }
             const finalMsg = e instanceof Error ? e.message : String(e);
             throw new Error(finalMsg || 'Connection Failed - Check Network');
+        } finally {
+            clearTimeout(timeoutId);
         }
     };
 
