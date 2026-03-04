@@ -26,6 +26,9 @@ engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False} if _is_sqlite else {},
     pool_pre_ping=not _is_sqlite,   # no-op for SQLite; keeps PG connections alive
+    pool_size=10 if not _is_sqlite else 5,
+    max_overflow=20 if not _is_sqlite else 10,
+    pool_timeout=30 if not _is_sqlite else 30,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

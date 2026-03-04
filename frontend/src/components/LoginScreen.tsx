@@ -139,8 +139,8 @@ export const LoginScreen: React.FC<any> = () => {
     const [error, setError] = useState<string | null>(null);
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
     // Phase tracking for registration: 'form' → account created → 'biometric'
-    const [regPhase, setRegPhase] = useState<'form' | 'biometric'>('form');
-    const [regUsername, setRegUsername] = useState('');
+    const [regPhase, setRegPhase] = useState<'form' | 'biometric'>(hasRegistered ? 'biometric' : 'form');
+    const [regUsername, setRegUsername] = useState(lastUser || '');
     const [regPassword, setRegPassword] = useState('');
     const bioAttempted = useRef(false);
 
@@ -260,17 +260,23 @@ export const LoginScreen: React.FC<any> = () => {
         setIsLoading(true);
         setError(null);
         setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
         try {
+            console.log(`[RAKSHAK] Starting biometric enrollment fetch for: ${user}`);
             const startRes = await fetch(
                 `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`,
                 {
                     method: 'POST',
-                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' }
+                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' },
+                    signal: controller.signal
                 }
             );
             if (!startRes.ok) {
                 const errData = await startRes.json().catch(() => ({}));
-                throw new Error(errData.detail || `register/start failed (${startRes.status})`);
+                throw new Error(errData.detail || `Server rejected request (${startRes.status})`);
             }
             const options = await startRes.json();
 
@@ -292,6 +298,8 @@ export const LoginScreen: React.FC<any> = () => {
             if (!credential) throw new Error('no_credential');
 
             const attResponse = credential.response as AuthenticatorAttestationResponse;
+            setStatusMsg('VERIFYING BIOMETRIC PAYLOAD...');
+
             const finishRes = await fetch(
                 `${API_BASE_URL}/api/auth/biometric/register/finish?username=${encodeURIComponent(user)}`,
                 {
@@ -309,20 +317,35 @@ export const LoginScreen: React.FC<any> = () => {
                             attestationObject: bufferToBase64url(attResponse.attestationObject),
                         },
                     }),
+                    signal: controller.signal
                 }
             );
+            clearTimeout(timeoutId);
 
             if (finishRes.ok) {
-                setStatusMsg('✓ BIOMETRICS ENROLLED! Logging you in...');
-                const success = await login(regUsername, regPassword);
-                if (!success) setError('Biometrics saved, but auto-login failed. Please use manual login.');
+                setStatusMsg('âœ“ BIOMETRICS ENROLLED!');
+                if (regPassword) {
+                    setStatusMsg('âœ“ ENROLLED! Auto-logging you in...');
+                    const success = await login(user, regPassword);
+                    if (!success) setError('AUTO-LOGIN FAILED. PLEASE USE PASSWORD.');
+                } else {
+                    setError('ENROLLED! Please log in manually using your password once.');
+                    setTimeout(() => setMode('returning'), 3000);
+                }
             } else {
-                const data = await finishRes.json();
+                const data = await finishRes.json().catch(() => ({ detail: 'verification failed' }));
                 throw new Error(data.detail || 'biometric verification failed');
             }
         } catch (e: any) {
+            clearTimeout(timeoutId);
             console.error("Biometric enrollment failed:", e);
-            setError(`SETUP FAILED: ${e.message || 'unknown error'} — USE MANUAL LOGIN`);
+            if (e.name === 'AbortError') {
+                setError('CONNECTION TIMEOUT: Backend is slow or unreachable. Please try again.');
+            } else if (e.message.includes('fetch')) {
+                setError('NETWORK ERROR: Could not connect to Rakshak AI Core. Check your internet or try later.');
+            } else {
+                setError(`SETUP FAILED: ${e.message || 'unknown error'} â€” USE MANUAL LOGIN`);
+            }
             setStatusMsg(null);
         } finally {
             setIsLoading(false);
