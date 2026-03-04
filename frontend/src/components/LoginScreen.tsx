@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Shield, Cpu, Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../lib/config';
@@ -144,22 +144,18 @@ export const LoginScreen: React.FC<any> = () => {
     const [regPassword, setRegPassword] = useState('');
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
-    const hasTriggeredOnMount = useRef(false);
-
     useEffect(() => {
         const attemptTrigger = () => {
             if (mode === 'returning' && username && window.PublicKeyCredential && !isLoading) {
-                console.log("[RAKSHAK] Auto-Trigger Attempting for:", username);
-                triggerBiometric(username);
+                // Ensure we use the trimmed version for the handshake
+                const userToScan = username.trim();
+                console.log("[RAKSHAK] Auto-Trigger Attempting for:", userToScan);
+                triggerBiometric(userToScan);
             }
         };
 
-        // Trigger on mount or when username/mode becomes valid
-        if (mode === 'returning' && username && !hasTriggeredOnMount.current) {
-            hasTriggeredOnMount.current = true;
-            // Short delay to allow UI to settle
-            setTimeout(attemptTrigger, 1000);
-        }
+        // Try on mount
+        const timer = setTimeout(attemptTrigger, 1000);
 
         // Re-trigger if the user leaves and comes back to the tab
         const handleVisibility = () => {
@@ -170,7 +166,10 @@ export const LoginScreen: React.FC<any> = () => {
         };
         window.addEventListener('visibilitychange', handleVisibility);
 
-        return () => window.removeEventListener('visibilitychange', handleVisibility);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('visibilitychange', handleVisibility);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, username]);
 
@@ -241,19 +240,22 @@ export const LoginScreen: React.FC<any> = () => {
             clearTimeout(timeoutId);
             setStatusMsg(null);
 
-            const msg = e.message.toLowerCase();
-            // SHOW FEEDBACK for data issues: If setup is missing, tell them!
-            // This prevents the "it's not even asking" confusion.
-            if (msg.includes('no biometric credentials')) {
+            const msg = e.message || "Unknown error";
+            const lowMsg = msg.toLowerCase();
+
+            // DEFINITIVE ERROR VISIBILITY: Always show the detail if it's a server rejection
+            if (lowMsg.includes('no biometric credentials') || lowMsg.includes('not enrolled')) {
                 setError('BIOMETRIC NOT ENROLLED FOR THIS ACCOUNT. USE ACCESS CODE.');
-            } else if (msg.includes('fetch') || msg.includes('network')) {
+            } else if (lowMsg.includes('user not found')) {
+                setError(`OPERATOR ID "${user}" NOT FOUND. CHECK SPELLING.`);
+            } else if (lowMsg.includes('fetch') || lowMsg.includes('network') || lowMsg.includes('failed to fetch')) {
                 console.error("[RAKSHAK] CORE UNREACHABLE:", fetchUrl);
                 setError('CORE OFFLINE - CHECK NETWORK OR USE ACCESS CODE');
-            } else if (msg.includes('no_assertion') || msg.includes('cancel')) {
-                // User probably cancelled the native prompt
-                console.log("[RAKSHAK] Biometric Prompt Cancelled/Interrupted");
+            } else if (lowMsg.includes('no_assertion') || lowMsg.includes('cancel')) {
+                console.log("[RAKSHAK] Biometric Prompt Cancelled by User");
             } else {
-                console.error("[RAKSHAK] Misc Auth Error:", e.message);
+                console.error("[RAKSHAK] Auth Critical Failure:", msg);
+                setError(`SECURE CORE REJECTION: ${msg.toUpperCase()}`);
             }
         }
         finally {
