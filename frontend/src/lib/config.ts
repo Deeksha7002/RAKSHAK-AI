@@ -243,7 +243,8 @@ export const UNSAFE_KEYWORDS = [
 // @ts-ignore
 const rawUrl = (import.meta as any).env?.VITE_API_URL || '';
 if (!rawUrl && !import.meta.env.DEV) {
-    console.error("🚨 CRITICAL: VITE_API_URL is not set in production. Frontend will attempt relative calls, which may fail.");
+    console.warn("[RAKSHAK] VITE_API_URL missing. Using absolute Render fallback to ensure connectivity.");
 }
 
-export const API_BASE_URL = rawUrl;
+// FIX: Hardcoded fallback to the production Render URL as a safety layer for Vercel
+export const API_BASE_URL = rawUrl || 'https://scam-defender-honeypot-1.onrender.com';

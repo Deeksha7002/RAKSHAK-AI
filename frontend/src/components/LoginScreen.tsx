@@ -161,10 +161,10 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('SCANNING BIOMETRICS...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout for Render wake-up
 
         try {
-            console.log(`[RAKSHAK] Starting biometric login for recognized operator: ${user}`);
+            console.log(`[RAKSHAK] Biometric login for: ${user} | endpoint: ${API_BASE_URL}`);
             const startRes = await fetch(
                 `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}`,
                 {
@@ -283,10 +283,10 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout
 
         try {
-            console.log(`[RAKSHAK] Starting biometric enrollment fetch for: ${user}`);
+            console.log(`[RAKSHAK] Biometric enroll for: ${user} | endpoint: ${API_BASE_URL}`);
             const startRes = await fetch(
                 `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`,
                 {
@@ -570,21 +570,32 @@ export const LoginScreen: React.FC<any> = () => {
 
                     <StatusBar />
 
-                    <button
-                        type="button"
-                        onClick={handleEnrollBiometrics}
-                        disabled={isLoading}
-                        style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000' }}
-                    >
-                        {isLoading ? (
-                            <span>ENROLLING...</span>
-                        ) : (
-                            <>
-                                <Fingerprint size={18} />
-                                <span>INITIALIZE BIOMETRIC ENROLLMENT</span>
-                            </>
+                    <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <button
+                            type="button"
+                            onClick={handleEnrollBiometrics}
+                            disabled={isLoading}
+                            style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000' }}
+                        >
+                            {isLoading ? (
+                                <span>ENROLLING...</span>
+                            ) : (
+                                <>
+                                    <Fingerprint size={18} />
+                                    <span>INITIALIZE BIOMETRIC ENROLLMENT</span>
+                                </>
+                            )}
+                        </button>
+                        {!isLoading && (
+                            <button
+                                type="button"
+                                onClick={() => triggerBiometric(regUsername)}
+                                style={btnGhost}
+                            >
+                                <Fingerprint size={16} /> RE-SCAN BIOMETRICS
+                            </button>
                         )}
-                    </button>
+                    </div>
 
                     <p style={{ textAlign: 'center', marginTop: '1.2rem', color: '#475569', fontSize: '0.65rem', letterSpacing: '1px' }}>
                         PRE-ENCRYPTED AUTHENTICATOR HANDSHAKE REQUIRED
@@ -629,10 +640,28 @@ export const LoginScreen: React.FC<any> = () => {
                                 </button>
                             </div>
                         </div>
+
                         <StatusBar />
-                        <button type="submit" disabled={isLoading} style={{ ...btnPrimary }}>
-                            {isLoading ? <span>AUTHENTICATING...</span> : <><ShieldCheck size={18} /><span>VERIFY & ACCESS</span></>}
-                        </button>
+
+                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                style={btnPrimary}
+                            >
+                                {isLoading ? <div className="spinner" /> : <><ShieldCheck size={18} /> VERIFY & ACCESS</>}
+                            </button>
+
+                            {!isLoading && lastUser && (
+                                <button
+                                    type="button"
+                                    onClick={() => triggerBiometric(lastUser)}
+                                    style={btnGhost}
+                                >
+                                    <Fingerprint size={16} /> RE-SCAN BIOMETRICS
+                                </button>
+                            )}
+                        </div>
                     </form>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
