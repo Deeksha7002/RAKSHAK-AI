@@ -159,25 +159,34 @@ export const LoginScreen: React.FC<any> = () => {
         setIsLoading(true);
         setError(null);
         setStatusMsg('SCANNING BIOMETRICS...');
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
         try {
+            console.log(`[RAKSHAK] Starting biometric login for recognized operator: ${user}`);
             const startRes = await fetch(
                 `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}`,
                 {
                     method: 'POST',
-                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' }
+                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' },
+                    signal: controller.signal
                 }
             );
             if (!startRes.ok) {
                 const errData = await startRes.json().catch(() => ({}));
-                throw new Error(errData.detail || `login/start failed (${startRes.status})`);
+                throw new Error(errData.detail || `Server rejected request (${startRes.status})`);
             }
             const rawOptions = await startRes.json();
             const requestOptions = prepareAuthenticationOptions(rawOptions);
 
+            setStatusMsg('VERIFY IDENTITY...');
             const assertion = await navigator.credentials.get({ publicKey: requestOptions }) as PublicKeyCredential;
             if (!assertion) throw new Error('no_assertion');
 
             const assResponse = assertion.response as AuthenticatorAssertionResponse;
+            setStatusMsg('AUTHORIZING ACCESS...');
+
             const finishRes = await fetch(
                 `${API_BASE_URL}/api/auth/biometric/login/finish?username=${encodeURIComponent(user)}`,
                 {
@@ -197,10 +206,15 @@ export const LoginScreen: React.FC<any> = () => {
                             userHandle: assResponse.userHandle ? bufferToBase64url(assResponse.userHandle) : null,
                         },
                     }),
+                    signal: controller.signal
                 }
             );
+
+            clearTimeout(timeoutId);
             const data = await finishRes.json();
+
             if (finishRes.ok && data.token) {
+                setStatusMsg('âœ“ ACCESS GRANTED');
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('scam_last_user', user);
                 // Set session BEFORE reload so AuthProvider knows user is authenticated
@@ -210,9 +224,16 @@ export const LoginScreen: React.FC<any> = () => {
                 throw new Error(data.detail || 'verification_failed');
             }
         } catch (e: any) {
-            console.log("Biometric login failed:", e);
+            clearTimeout(timeoutId);
+            console.error("Biometric login failed:", e);
+            if (e.name === 'AbortError') {
+                setError('TIMEOUT: Secure core is non-responsive. Use Access Code.');
+            } else if (e.message.includes('fetch')) {
+                setError('NETWORK ERROR: Could not reach secure core. Use Access Code.');
+            } else {
+                setError(`BIOMETRIC FAILED: ${e.message || 'unknown error'} â€” USE ACCESS CODE`);
+            }
             setStatusMsg(null);
-            setError(`BIOMETRIC FAILED: ${e.message || 'unknown error'} — USE ACCESS CODE`);
         } finally {
             setIsLoading(false);
         }
