@@ -140,7 +140,8 @@ export const LoginScreen: React.FC<any> = () => {
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
     // Phase tracking for registration: 'form' → account created → 'biometric'
     const [regPhase, setRegPhase] = useState<'form' | 'biometric'>('form');
-    const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+    const [regUsername, setRegUsername] = useState('');
+    const [regPassword, setRegPassword] = useState('');
     const bioAttempted = useRef(false);
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
@@ -223,25 +224,31 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg(null);
         setError(null);
         if (!username.trim() || !password.trim()) { setError('ALL FIELDS REQUIRED'); return; }
-        console.log(`[Registration] Attempting for: "${username.trim()}"`);
+
+        console.log(`[RAKSHAK] Registration Start: "${username.trim()}"`);
         if (password !== confirmPassword) { setError('PASSWORDS DO NOT MATCH'); return; }
+
         setIsLoading(true);
         try {
-            // Step 1: Create account only — do NOT chain biometrics here.
-            // Render free tier takes 50+ seconds to wake up. If we chain biometric
-            // enrollment immediately after, Chrome's user-gesture timer expires and
-            // silently kills the fingerprint prompt.
-            await register(username, password);
+            // Step 1: Create account on backend
+            const success = await register(username, password);
+            if (!success) throw new Error('BACKEND REJECTED REGISTRATION');
+
+            console.log(`[RAKSHAK] Account Created. Transitioning to Biometric Phase.`);
+
+            // Critical State Persistence for the Biometric Handshake
             localStorage.setItem('scam_registered', 'true');
             localStorage.setItem('scam_last_user', username);
-            // setRegUsername(username);
-            // setRegPassword(password);
-            setStatusMsg('✓ ACCOUNT CREATED — Now tap the button below to set up biometrics');
-            setError(null);
+
+            setRegUsername(username);
+            setRegPassword(password);
+
+            // Switch Phase IMMEDIATELY
             setRegPhase('biometric');
-            // Log success to console for diagnostic monitoring
-            console.log(`[Registration] Success for: "${username.trim()}" - switching to biometric phase`);
+            setStatusMsg('✓ ACCOUNT ESTABLISHED — PLEASE INITIALIZE BIOMETRIC ENROLLMENT');
+
         } catch (e: any) {
+            console.error(`[RAKSHAK] Registration Error:`, e);
             setError(e.message || 'REGISTRATION FAILED — TRY AGAIN');
         } finally {
             setIsLoading(false);
@@ -249,26 +256,86 @@ export const LoginScreen: React.FC<any> = () => {
     };
 
     // ── Biometric enroll (separate user gesture after account creation) ──────
-    /*
-    const handleEnrollBiometrics = async () => {
-        setError(null);
+    const enrollBiometrics = async (user: string) => {
         setIsLoading(true);
+        setError(null);
+        setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
         try {
-            setStatusMsg('FOLLOW DEVICE PROMPT...');
-            await enrollBiometrics(regUsername);
-            setStatusMsg('✓ BIOMETRICS ENROLLED! Logging you in...');
-            // Only login automatically if biometric succeeded
-            const success = await login(regUsername, regPassword);
-            if (!success) setError('Login failed — try logging in manually');
-        } catch (bioErr: any) {
-            // Leave error on screen. Do NOT auto-login, otherwise the page reloads
-            // and the user never gets to read what went wrong.
-            setError(`BIOMETRIC SETUP FAILED: ${bioErr?.message || 'dismissed'} — Please use manual login.`);
+            const startRes = await fetch(
+                `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`,
+                {
+                    method: 'POST',
+                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' }
+                }
+            );
+            if (!startRes.ok) {
+                const errData = await startRes.json().catch(() => ({}));
+                throw new Error(errData.detail || `register/start failed (${startRes.status})`);
+            }
+            const options = await startRes.json();
+
+            // Convert challenge and user.id from base64url strings -> ArrayBuffers
+            const creationOptions: PublicKeyCredentialCreationOptions = {
+                ...options,
+                challenge: base64urlToBuffer(options.challenge),
+                user: {
+                    ...options.user,
+                    id: base64urlToBuffer(options.user.id)
+                },
+                excludeCredentials: (options.excludeCredentials || []).map((c: any) => ({
+                    ...c,
+                    id: base64urlToBuffer(c.id)
+                }))
+            };
+
+            const credential = await navigator.credentials.create({ publicKey: creationOptions }) as PublicKeyCredential;
+            if (!credential) throw new Error('no_credential');
+
+            const attResponse = credential.response as AuthenticatorAttestationResponse;
+            const finishRes = await fetch(
+                `${API_BASE_URL}/api/auth/biometric/register/finish?username=${encodeURIComponent(user)}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Rakshak-Token': 'rakshak-core-v1'
+                    },
+                    body: JSON.stringify({
+                        id: credential.id,
+                        rawId: bufferToBase64url(credential.rawId),
+                        type: credential.type,
+                        response: {
+                            clientDataJSON: bufferToBase64url(attResponse.clientDataJSON),
+                            attestationObject: bufferToBase64url(attResponse.attestationObject),
+                        },
+                    }),
+                }
+            );
+
+            if (finishRes.ok) {
+                setStatusMsg('✓ BIOMETRICS ENROLLED! Logging you in...');
+                const success = await login(regUsername, regPassword);
+                if (!success) setError('Biometrics saved, but auto-login failed. Please use manual login.');
+            } else {
+                const data = await finishRes.json();
+                throw new Error(data.detail || 'biometric verification failed');
+            }
+        } catch (e: any) {
+            console.error("Biometric enrollment failed:", e);
+            setError(`SETUP FAILED: ${e.message || 'unknown error'} — USE MANUAL LOGIN`);
             setStatusMsg(null);
+        } finally {
             setIsLoading(false);
         }
     };
-    */
+
+    const handleEnrollBiometrics = async () => {
+        if (!regUsername) {
+            setError('SESSION EXPIRED — PLEASE LOG IN MANUALLY');
+            return;
+        }
+        await enrollBiometrics(regUsername);
+    };
 
     // ── Password login submit ───────────────────────────────────────────────
     const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -363,106 +430,125 @@ export const LoginScreen: React.FC<any> = () => {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', color: '#e0e0e0', fontFamily: 'monospace', position: 'relative', overflowY: 'auto', paddingTop: '2rem', paddingBottom: '2rem' }}>
             <MatrixRain />
 
-            {/* ── MODE: REGISTER ── */}
-            {mode === 'register' && (
-                <div style={cardStyle}>
-                    <Header subtitle={regPhase === 'form' ? "NEW OPERATOR ENROLLMENT" : "ENROLLED SUCCESSFUL"} />
+            {/* ── MODE: REGISTER (PHASE: FORM) ── */}
+            {mode === 'register' && regPhase === 'form' && (
+                <div key="reg-form" style={cardStyle}>
+                    <Header subtitle="NEW OPERATOR ENROLLMENT" />
 
-                    {regPhase === 'form' ? (
-                        <form onSubmit={handleRegister}>
-                            <div style={{ marginBottom: '1.2rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE OPERATOR ID</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input
-                                        type="text"
-                                        value={username}
-                                        onChange={e => { setUsername(e.target.value); setError(null); setStatusMsg(null); }}
-                                        style={inputStyle}
-                                        placeholder="Choose a username..."
-                                    />
-                                    <Fingerprint size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
-                                </div>
+                    <form onSubmit={handleRegister}>
+                        <div style={{ marginBottom: '1.2rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE OPERATOR ID</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={e => { setUsername(e.target.value); setError(null); setStatusMsg(null); }}
+                                    style={inputStyle}
+                                    placeholder="Choose a username..."
+                                />
+                                <Fingerprint size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
                             </div>
-
-                            <div style={{ marginBottom: '1.2rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE ACCESS CODE</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={e => { setPassword(e.target.value); setError(null); setStatusMsg(null); }}
-                                        style={{ ...inputStyle, paddingRight: 40 }}
-                                        placeholder="••••••••"
-                                    />
-                                    <Lock size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}>
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CONFIRM ACCESS CODE</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={e => { setConfirmPassword(e.target.value); setError(null); setStatusMsg(null); }}
-                                        style={inputStyle}
-                                        placeholder="••••••••"
-                                    />
-                                    <ShieldCheck size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
-                                </div>
-                            </div>
-
-                            <StatusBar />
-
-                            <button type="submit" disabled={isLoading} style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                                {isLoading ? <span>CREATING ACCOUNT...</span> : <><UserPlus size={18} /><span>CREATE ACCOUNT & SETUP BIOMETRICS</span></>}
-                            </button>
-                        </form>
-                    ) : (
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{
-                                background: 'rgba(16,185,129,0.05)',
-                                border: '1px solid rgba(16,185,129,0.2)',
-                                padding: '1.5rem',
-                                borderRadius: '12px',
-                                marginBottom: '1.5rem'
-                            }}>
-                                <div style={{
-                                    width: '48px', height: '48px',
-                                    background: 'rgba(16,185,129,0.1)',
-                                    borderRadius: '50%',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    margin: '0 auto 1rem'
-                                }}>
-                                    <ShieldCheck size={24} color="#10b981" />
-                                </div>
-                                <h3 style={{ color: '#fff', fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 1 COMPLETE</h3>
-                                <p style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.5 }}>
-                                    Account established. Now initialize biometric security for passwordless access.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }}
-                                style={{ ...btnPrimary, background: '#10b981' }}
-                            >
-                                <Fingerprint size={18} />
-                                <span>FINISH BIOMETRIC ENROLLMENT</span>
-                            </button>
-
-                            <p style={{ marginTop: '1.2rem', color: '#475569', fontSize: '0.65rem' }}>
-                                PRE-ENCRYPTED AUTHENTICATOR HANDSHAKE REQUIRED
-                            </p>
                         </div>
-                    )}
+
+                        <div style={{ marginBottom: '1.2rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE ACCESS CODE</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={e => { setPassword(e.target.value); setError(null); setStatusMsg(null); }}
+                                    style={{ ...inputStyle, paddingRight: 40 }}
+                                    placeholder="••••••••"
+                                />
+                                <Lock size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}>
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CONFIRM ACCESS CODE</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={e => { setConfirmPassword(e.target.value); setError(null); setStatusMsg(null); }}
+                                    style={inputStyle}
+                                    placeholder="••••••••"
+                                />
+                                <ShieldCheck size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                            </div>
+                        </div>
+
+                        <StatusBar />
+
+                        <button type="submit" disabled={isLoading} style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                            {isLoading ? <span>CREATING ACCOUNT...</span> : <><UserPlus size={18} /><span>CREATE ACCOUNT</span></>}
+                        </button>
+                    </form>
 
                     {!isLoading && (
                         <button type="button" onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.25)', marginTop: '0.75rem', fontSize: '0.75rem' }}>
                             ALREADY REGISTERED? SWITCH TO LOGIN
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* ── MODE: REGISTER (PHASE: BIOMETRIC) ── */}
+            {mode === 'register' && regPhase === 'biometric' && (
+                <div key="reg-bio" style={cardStyle}>
+                    <Header subtitle="ENROLLMENT SUCCESSFUL" />
+
+                    <div style={{
+                        background: 'rgba(16,185,129,0.05)',
+                        border: '1px solid rgba(16,185,129,0.2)',
+                        padding: '1.5rem',
+                        borderRadius: '12px',
+                        marginBottom: '1.5rem',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{
+                            width: '48px', height: '48px',
+                            background: 'rgba(16,185,129,0.1)',
+                            borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 1rem'
+                        }}>
+                            <ShieldCheck size={24} color="#10b981" />
+                        </div>
+                        <h3 style={{ color: '#fff', fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 1 COMPLETE</h3>
+                        <p style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.5 }}>
+                            Account established for <span style={{ color: '#10b981', fontWeight: 700 }}>{regUsername}</span>. Now initialize biometric security for passwordless access.
+                        </p>
+                    </div>
+
+                    <StatusBar />
+
+                    <button
+                        type="button"
+                        onClick={handleEnrollBiometrics}
+                        disabled={isLoading}
+                        style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000' }}
+                    >
+                        {isLoading ? (
+                            <span>ENROLLING...</span>
+                        ) : (
+                            <>
+                                <Fingerprint size={18} />
+                                <span>INITIALIZE BIOMETRIC ENROLLMENT</span>
+                            </>
+                        )}
+                    </button>
+
+                    <p style={{ textAlign: 'center', marginTop: '1.2rem', color: '#475569', fontSize: '0.65rem', letterSpacing: '1px' }}>
+                        PRE-ENCRYPTED AUTHENTICATOR HANDSHAKE REQUIRED
+                    </p>
+
+                    {!isLoading && (
+                        <button type="button" onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.25)', marginTop: '0.75rem', fontSize: '0.75rem' }}>
+                            SKIP BIOMETRICS & GO TO LOGIN
                         </button>
                     )}
                 </div>
@@ -501,7 +587,7 @@ export const LoginScreen: React.FC<any> = () => {
                         </div>
                         <StatusBar />
                         <button type="submit" disabled={isLoading} style={{ ...btnPrimary }}>
-                            {isLoading ? <span>AUTHENTICATING...</span> : <><ShieldCheck size={18} /><span>VERIFY &amp; ACCESS</span></>}
+                            {isLoading ? <span>AUTHENTICATING...</span> : <><ShieldCheck size={18} /><span>VERIFY & ACCESS</span></>}
                         </button>
                     </form>
 
@@ -518,4 +604,3 @@ export const LoginScreen: React.FC<any> = () => {
         </div>
     );
 };
-
