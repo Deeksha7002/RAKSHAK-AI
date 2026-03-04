@@ -95,3 +95,27 @@ class RefreshToken(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+    # ── Safe Auto-Migration ───────────────────────────────────────────────────
+    # Since Base.metadata.create_all doesn't add new columns to existing tables,
+    # we manually ensure the 'webauthn_credentials' column exists.
+    # This prevents 'INTERNAL SERVER ERROR' (UndefinedColumn) on live deployments.
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    try:
+        columns = [c["name"] for c in inspector.get_columns("users")]
+        if "webauthn_credentials" not in columns:
+            import logging
+            logging.warning("🚨 [MIGRATION] 'webauthn_credentials' missing from 'users' table. Attempting to add...")
+            with engine.connect() as conn:
+                # Use a dialect-aware default (JSON for Postgre, Text for SQLite)
+                if _is_sqlite:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSON DEFAULT '[]'"))
+                else:
+                    # PostgreSQL requires valid JSON or text
+                    conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSONB DEFAULT '[]'::jsonb"))
+                conn.commit()
+            logging.info("✅ [MIGRATION] 'webauthn_credentials' column added successfully.")
+    except Exception as e:
+        import logging
+        logging.error(f"❌ [MIGRATION] Failed to ensure schema consistency: {e}")
