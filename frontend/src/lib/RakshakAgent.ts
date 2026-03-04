@@ -208,6 +208,10 @@ export class RakshakAgent {
             // Lottery / advance-fee
             "claim your prize", "you have won", "lottery winner", "claim reward",
             "release fee", "processing fee", "advance fee",
+            // Work from home / recruitment scams
+            "work from home", "earn money", "daily income", "part time job",
+            "weekly salary", "earn extra", "online task", "telegram task",
+            "earn $", "earn rs", "salary of", "job offer",
         ];
 
         if (scamPhrases.some(phrase => lower.includes(phrase))) return 'scam';

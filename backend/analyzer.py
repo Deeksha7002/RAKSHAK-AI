@@ -25,11 +25,11 @@ class ScamAnalyzer:
         
         # Vectorized Topic Lexicons (instead of binary triggers)
         self.lexicons = {
-            "financial_assets": ["money", "card", "bank", "transfer", "wire", "deposit", "payment", "fee", "charge", "cost", "dollar", "rupee", "usd", "cash", "crypto", "btc", "wallet", "usdt", "eth", "coin"],
+            "financial_assets": ["money", "card", "bank", "transfer", "wire", "deposit", "payment", "fee", "charge", "cost", "dollar", "rupee", "usd", "cash", "crypto", "btc", "wallet", "usdt", "eth", "coin", "salary", "income", "profit", "earnings", "commission", "payout", "bonus"],
             "identity_assets": ["password", "pin", "otp", "code", "credential", "login", "ssn", "identity", "account", "social", "verification", "phrase", "seed"],
             "coercion_vectors": ["police", "lawsuit", "jail", "arrest", "warrant", "legal", "court", "suspended", "blocked", "banned", "fbi", "interpol", "frozen", "investigate", "seized"],
-            "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon"],
-            "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide"]
+            "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon", "daily", "instantly"],
+            "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide", "earn", "receive", "withdraw", "claim", "apply"]
         }
 
     def analyze(self, text, context="general"):
@@ -94,7 +94,8 @@ class ScamAnalyzer:
             "GENERAL_PHISHING": (tf_identity * 1.8) + (tf_action * 1.0),
             "AUTHORITY_IMPERSONATION": (tf_coercion * 2.0) + (tf_finance * 0.5),
             "CRYPTO_SCAM": (tf_finance * 1.2) + (full_text.count("crypto") + full_text.count("btc") + full_text.count("wallet")) / total_words * 3.0,
-            "LOTTERY_SCAM": (tf_finance * 0.8) + (full_text.count("won") + full_text.count("prize") + full_text.count("lottery")) / total_words * 2.5
+            "LOTTERY_SCAM": (tf_finance * 0.8) + (full_text.count("won") + full_text.count("prize") + full_text.count("lottery")) / total_words * 2.5,
+            "JOB_SCAM": (tf_finance * 1.0) + (full_text.count("work") + full_text.count("earn") + full_text.count("home") + full_text.count("job") + full_text.count("salary")) / total_words * 4.0
         }
 
         # Find the dominant intent vector
