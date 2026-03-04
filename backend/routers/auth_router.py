@@ -32,6 +32,7 @@ from webauthn.helpers.structs import (
     AuthenticationCredential,
     AuthenticatorAttestationResponse,
     AuthenticatorAssertionResponse,
+    PublicKeyCredentialDescriptor,
 )
 
 router = APIRouter(prefix="/api", tags=["authentication"])
@@ -235,7 +236,7 @@ def login_bio_start(username: str, request: Request, db: Session = Depends(get_d
     options = generate_authentication_options(
         rp_id=config["rp_id"],
         allow_credentials=[
-            AuthenticationCredential(id=base64url_to_bytes(c["credential_id"]))
+            PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"]))
             for c in user.webauthn_credentials
         ],
         user_verification=UserVerificationRequirement.PREFERRED,
