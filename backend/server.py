@@ -53,13 +53,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 
-# ── CORS ─────────────────────────────────────────────────────────────────────
-# FIX: Use regex to allow all Vercel domains and local development
-# This prevents CORS blocks on dynamic Vercel preview URLs.
+# FIX: Absolute permissive CORS for Render/Vercel handshake
+# Since we use user-id strings and not session cookies for biometric starts, 
+# we can safely use "*" to ensure connectivity across dynamic Vercel URLs.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|.*\.vercel\.app)(:\d+)?",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

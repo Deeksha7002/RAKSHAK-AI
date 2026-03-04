@@ -161,18 +161,16 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('SCANNING BIOMETRICS...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout for Render wake-up
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout for Render cold starts
 
+        const fetchUrl = `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}`;
         try {
-            console.log(`[RAKSHAK] Biometric login for: ${user} | endpoint: ${API_BASE_URL}`);
-            const startRes = await fetch(
-                `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}`,
-                {
-                    method: 'POST',
-                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' },
-                    signal: controller.signal
-                }
-            );
+            console.log(`[RAKSHAK] Login Start | URL: ${fetchUrl} | Base: ${API_BASE_URL}`);
+            const startRes = await fetch(fetchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal
+            });
             if (!startRes.ok) {
                 const errData = await startRes.json().catch(() => ({}));
                 throw new Error(errData.detail || `Server rejected request (${startRes.status})`);
@@ -187,28 +185,24 @@ export const LoginScreen: React.FC<any> = () => {
             const assResponse = assertion.response as AuthenticatorAssertionResponse;
             setStatusMsg('AUTHORIZING ACCESS...');
 
-            const finishRes = await fetch(
-                `${API_BASE_URL}/api/auth/biometric/login/finish?username=${encodeURIComponent(user)}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Rakshak-Token': 'rakshak-core-v1'
+            const finishUrl = `${API_BASE_URL}/api/auth/biometric/login/finish?username=${encodeURIComponent(user)}`;
+            console.log(`[RAKSHAK] Login Finish | URL: ${finishUrl}`);
+            const finishRes = await fetch(finishUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: assertion.id,
+                    rawId: bufferToBase64url(assertion.rawId),
+                    type: assertion.type,
+                    response: {
+                        clientDataJSON: bufferToBase64url(assResponse.clientDataJSON),
+                        authenticatorData: bufferToBase64url(assResponse.authenticatorData),
+                        signature: bufferToBase64url(assResponse.signature),
+                        userHandle: assResponse.userHandle ? bufferToBase64url(assResponse.userHandle) : null,
                     },
-                    body: JSON.stringify({
-                        id: assertion.id,
-                        rawId: bufferToBase64url(assertion.rawId),
-                        type: assertion.type,
-                        response: {
-                            clientDataJSON: bufferToBase64url(assResponse.clientDataJSON),
-                            authenticatorData: bufferToBase64url(assResponse.authenticatorData),
-                            signature: bufferToBase64url(assResponse.signature),
-                            userHandle: assResponse.userHandle ? bufferToBase64url(assResponse.userHandle) : null,
-                        },
-                    }),
-                    signal: controller.signal
-                }
-            );
+                }),
+                signal: controller.signal
+            });
 
             clearTimeout(timeoutId);
             const data = await finishRes.json();
@@ -225,16 +219,22 @@ export const LoginScreen: React.FC<any> = () => {
             }
         } catch (e: any) {
             clearTimeout(timeoutId);
-            console.error("Biometric login failed:", e);
+            console.error("[RAKSHAK] Biometric Login Critical Failure:", {
+                message: e.message,
+                name: e.name,
+                url: fetchUrl,
+                stack: e.stack
+            });
             if (e.name === 'AbortError') {
-                setError('TIMEOUT: Secure core is non-responsive. Use Access Code.');
-            } else if (e.message.includes('fetch')) {
-                setError('NETWORK ERROR: Could not reach secure core. Use Access Code.');
+                setError('TIMEOUT: Secure core is non-responsive (45s). Use Access Code.');
+            } else if (e.message.toLowerCase().includes('fetch')) {
+                setError(`NETWORK ERROR: Secure Core unreachable. Check console for URL: ${fetchUrl}`);
             } else {
                 setError(`BIOMETRIC FAILED: ${e.message || 'unknown error'} â€” USE ACCESS CODE`);
             }
             setStatusMsg(null);
-        } finally {
+        }
+        finally {
             setIsLoading(false);
         }
     };
@@ -283,18 +283,16 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
+        const fetchUrl = `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`;
         try {
-            console.log(`[RAKSHAK] Biometric enroll for: ${user} | endpoint: ${API_BASE_URL}`);
-            const startRes = await fetch(
-                `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`,
-                {
-                    method: 'POST',
-                    headers: { 'X-Rakshak-Token': 'rakshak-core-v1' },
-                    signal: controller.signal
-                }
-            );
+            console.log(`[RAKSHAK] Enroll Start | URL: ${fetchUrl}`);
+            const startRes = await fetch(fetchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal
+            });
             if (!startRes.ok) {
                 const errData = await startRes.json().catch(() => ({}));
                 throw new Error(errData.detail || `Server rejected request (${startRes.status})`);
