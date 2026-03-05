@@ -44,21 +44,40 @@ class ScamAnalyzer:
             r"(detected|found|identified).{0,30}(virus|malware|threat|breach|hack|trojan|infected)",
             r"(virus|malware|threat).{0,30}(detected|found|computer|device|windows|mac|phone)",
             r"your (computer|device|pc|mac|windows|system).{0,30}(infected|hacked|virus|hack|breach|compromise)",
-            r"(microsoft|apple|google|amazon).{0,20}(support|helpdesk|service|team|official)",
+            r"(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|meta|instagram|facebook|whatsapp|uber|bank).{0,20}(support|helpdesk|service|team|official|alert|warning)",
             r"(call|contact).{0,20}(support|helpline|toll.?free|number).{0,20}(immediately|now|urgent|asap)",
-            r"(remote|access|anydesk|teamviewer).{0,20}(computer|device|pc|system)",
+            r"(remote|access|anydesk|teamviewer|ultraviewer).{0,20}(computer|device|pc|system)",
             r"your (subscription|account|membership).{0,20}(expired|suspend|blocked|charged)",
+            # ── Account Compromise / Hacking ──────────────────────────────────
+            r"your account.{0,30}(compromised|hacked|breached|stolen|unauthorized|suspend|blocked|frozen|terminated|banned)",
+            r"account (has been|was|is|have been).{0,20}(compromised|hacked|breached|suspended|blocked|frozen|unauthorized)",
+            r"(unauthorized|suspicious).{0,20}(access|activity|login|transaction|attempt).{0,20}(your|on|detected|found)",
+            r"(suspicious|unusual).{0,20}(activity|login|transaction|access).{0,20}(detected|found|noticed|identified)",
+            r"we.{0,10}(detected|noticed|identified|found).{0,20}(suspicious|unauthorized|unusual|illegal).{0,20}(activity|access|login|attempt)",
+            r"(security|account).{0,20}(alert|warning|notification|breach|issue|problem|compromised)",
+            # ── Brand Impersonation Openers ───────────────────────────────────
+            r"(this is|from|calling from|team from).{0,20}(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|your bank|support team)",
+            r"(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|visa|mastercard).{0,10}(has detected|detected|has identified|is alerting|security team|fraud team)",
             # Prize / Lottery
             r"(won|win|winner|selected|chosen).{0,30}(prize|lottery|award|reward|gift|cash)",
             r"(claim|collect).{0,30}(prize|reward|winning|amount|money)",
             # KYC / Account Suspension  
             r"(kyc|account|service).{0,20}(suspend|block|terminate|close).{0,20}(immedi|now|today|hour)",
             r"update your (kyc|information|details|account).{0,20}(immedi|now|or|else|suspend)",
+            # OTP / Credential Harvesting
+            r"(share|send|provide|give).{0,20}(otp|pin|password|code|credential|cvv|card number)",
+            r"(do not share|never share).{0,20}(otp|pin|code).{0,10}(anyone|team|support|us)",
         ]
 
-    def analyze(self, text, context="general"):
-        """Convenience wrapper for single-message analysis."""
-        score, category, matrix, llm_needed = self.analyze_behavior([{"role": "scammer", "content": text}])
+    def analyze(self, text, context="general", sender_name=""):
+        """
+        Convenience wrapper for single-message analysis.
+        sender_name: pass the scammer's display name or subject line so the analyzer
+        can catch brand-impersonation even when the body alone is short.
+        """
+        # Prepend sender_name so impersonation patterns fire on e.g. "CoinBase Support"
+        enriched = f"{sender_name} {text}".strip() if sender_name else text
+        score, category, matrix, llm_needed = self.analyze_behavior([{"role": "scammer", "content": enriched}])
         return {
             "risk_score": score,
             "classification": category,

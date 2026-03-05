@@ -42,7 +42,7 @@ async def generate_llm_response(
 @router.post("/api/analyze")
 async def analyze_text(payload: AnalysisRequest, request: Request):
     """Performs deep NLP analysis on a text snippet."""
-    result = analyzer.analyze(payload.text, context=payload.context)
+    result = analyzer.analyze(payload.text, context=payload.context, sender_name=payload.sender_name or "")
     return result
 
 # FIX #1: WebSocket path changed to /api/ws to match what the frontend expects

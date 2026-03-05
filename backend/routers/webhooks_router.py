@@ -31,8 +31,8 @@ async def twilio_webhook(
     """
     logging.info(f"📲 Incoming SMS from {From}: {Body}")
     
-    # 1. Analyze for risk
-    analysis = analyzer.analyze(Body, context="sms")
+    # 1. Analyze for risk — pass From number as sender_name so impersonation patterns fire
+    analysis = analyzer.analyze(Body, context="sms", sender_name=From)
     risk_score = analysis.get("risk_score", 0)
     
     # 2. Broadcast to frontend
@@ -87,8 +87,10 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
         
         logging.info(f"📧 Incoming Email from {sender}: {subject}")
 
-        # Analyze
-        analysis = analyzer.analyze(body, context="email")
+        # Analyze — combine sender display name + subject as context so
+        # brand impersonation (e.g. "CoinBase Support") triggers instantly
+        sender_name_ctx = f"{sender} {subject}".strip()
+        analysis = analyzer.analyze(body, context="email", sender_name=sender_name_ctx)
         risk_score = analysis.get("risk_score", 0)
 
         # Broadcast

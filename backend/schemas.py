@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 class AnalysisRequest(BaseModel):
     text: str
     context: Optional[str] = "general"
+    sender_name: Optional[str] = ""
 
 class ReportRequest(BaseModel):
     conversationId: str
