@@ -227,7 +227,7 @@ export const LoginScreen: React.FC<any> = () => {
             const data = await finishRes.json();
 
             if (finishRes.ok && data.token) {
-                setStatusMsg('âœ“ ACCESS GRANTED');
+                setStatusMsg('ACCESS GRANTED');
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('scam_last_user', user);
                 // Set session BEFORE reload so AuthProvider knows user is authenticated
@@ -366,13 +366,13 @@ export const LoginScreen: React.FC<any> = () => {
             clearTimeout(timeoutId);
 
             if (finishRes.ok) {
-                setStatusMsg('âœ“ BIOMETRICS ENROLLED!');
+                setStatusMsg('BIOMETRICS ENROLLED!');
                 if (regPassword) {
-                    setStatusMsg('âœ“ ENROLLED! Auto-logging you in...');
+                    setStatusMsg('ENROLLED! Auto-logging you in...');
                     const success = await login(user, regPassword);
-                    if (!success) setError('AUTO-LOGIN FAILED. PLEASE USE PASSWORD.');
+                    if (!success) setStatusMsg('ENROLLED! Please log in manually with your access code.');
                 } else {
-                    setError('ENROLLED! Please log in manually using your password once.');
+                    setStatusMsg('ENROLLED! Please log in manually using your access code.');
                     setTimeout(() => setMode('returning'), 3000);
                 }
             } else {
@@ -387,9 +387,9 @@ export const LoginScreen: React.FC<any> = () => {
             } else if (e.message.includes('fetch')) {
                 setError('NETWORK ERROR: Could not connect to Rakshak AI Core. Check your internet or try later.');
             } else {
-                setError(`SETUP FAILED: ${e.message || 'unknown error'} â€” USE MANUAL LOGIN`);
+                setStatusMsg(null);
+                setError(`SETUP FAILED: ${e.message || 'unknown error'} - USE MANUAL LOGIN`);
             }
-            setStatusMsg(null);
         } finally {
             setIsLoading(false);
         }
