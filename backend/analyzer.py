@@ -26,10 +26,10 @@ class ScamAnalyzer:
         
         # Vectorized Topic Lexicons (instead of binary triggers)
         self.lexicons = {
-            "financial_assets": ["money", "card", "bank", "transfer", "wire", "deposit", "payment", "fee", "charge", "cost", "dollar", "rupee", "usd", "cash", "crypto", "btc", "wallet", "usdt", "eth", "coin", "salary", "income", "profit", "earnings", "commission", "payout", "bonus"],
+            "financial_assets": ["money", "card", "bank", "transfer", "wire", "deposit", "payment", "fee", "charge", "cost", "dollar", "rupee", "usd", "cash", "crypto", "btc", "wallet", "usdt", "eth", "coin", "salary", "income", "profit", "earnings", "commission", "payout", "bonus", "earn", "daily", "monthly"],
             "identity_assets": ["password", "pin", "otp", "code", "credential", "login", "ssn", "identity", "account", "social", "verification", "phrase", "seed"],
             "coercion_vectors": ["police", "lawsuit", "jail", "arrest", "warrant", "legal", "court", "suspended", "blocked", "banned", "fbi", "interpol", "frozen", "investigate", "seized"],
-            "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon", "daily", "instantly"],
+            "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon", "daily", "instantly", "part-time"],
             "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide", "earn", "receive", "withdraw", "claim", "apply"],
             # ── NEW: Tech Support Scam Vectors ──────────────────────────────────
             "tech_threat": ["virus", "malware", "hacked", "infected", "detected", "breach", "compromised", "trojan", "spyware", "ransomware", "threat", "attack", "warning", "alert", "error", "critical", "dangerous", "suspicious", "unauthorized", "blocked"],
@@ -67,6 +67,9 @@ class ScamAnalyzer:
             # OTP / Credential Harvesting
             r"(share|send|provide|give).{0,20}(otp|pin|password|code|credential|cvv|card number)",
             r"(do not share|never share).{0,20}(otp|pin|code).{0,10}(anyone|team|support|us)",
+            # ── Job / Earning Scams ──────────────────────────────────────────
+            r"(earn|make).{0,20}(\$|rs|income|salary|money).{0,20}(daily|today|day|week|month).{0,20}(job|work|task)",
+            r"(part.time|online|home).{0,10}(job|work|task).{0,20}(earn|salary|income)",
         ]
 
     def analyze(self, text, context="general", sender_name=""):
@@ -82,7 +85,7 @@ class ScamAnalyzer:
         iocs = []
         if "bit.ly" in text or "http" in text:
             iocs.append("Suspicious URL")
-        if re.search(r'\b\d{10}\b', text):
+        if re.search(r'\b(?:\d{1,3}[-.\s]?)?\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', text):
             iocs.append("Phone Number")
         if "@" in text and "." in text:
             iocs.append("Email Address")
@@ -196,6 +199,10 @@ class ScamAnalyzer:
 
         # Base risk is the magnitude of the dominant intent vector, scaled
         base_risk = min(dominant_intent[1] * risk_multiplier, max_base_risk)
+        
+        # Override: If intent signal is exceptionally high, ignore the word-count cap
+        if dominant_intent[1] > 0.8:
+            base_risk = max(base_risk, 0.75)
         
         # Apply Escalation Multiplier (This is where the math gets brutal for scammers)
         mathematical_risk = base_risk * escalation_multiplier
