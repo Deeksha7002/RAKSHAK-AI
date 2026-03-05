@@ -660,7 +660,10 @@ function App() {
                 </div>
                 <div>
                   {selectedThread.isScanning && <span className="status-scanning">Scanning...</span>}
-                  {selectedThread.classification === 'benign' && <span className="status-safe">✓ Verified Safe</span>}
+                  {!selectedThread.isScanning && selectedThread.classification === 'benign' && !selectedThread.isIntercepted && <span className="status-safe">✓ Verified Safe</span>}
+                  {!selectedThread.isScanning && (selectedThread.classification === 'scam' || selectedThread.classification === 'likely_scam') && (
+                    <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>🔴 HIGH RISK</span>
+                  )}
                   {selectedThread.autoReported && (
                     <span className="status-reported">
                       AUTO-REPORTED TO CYBER CELL ✅
