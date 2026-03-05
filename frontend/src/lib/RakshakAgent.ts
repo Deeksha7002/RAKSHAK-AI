@@ -202,9 +202,23 @@ export class RakshakAgent {
             // Authority impersonation
             "arrest warrant", "legal action will", "irs agent", "federal warrant",
             "suspended your account", "account has been frozen",
-            // Tech support
+            // ── Tech Support & Impersonation (ADDED) ──────────────────────────
             "your computer is infected", "call microsoft", "download anydesk",
             "download teamviewer", "remote access",
+            "account has been compromised", "account was compromised",
+            "your account has been hacked", "your device has been compromised",
+            "we have detected a virus", "virus has been detected",
+            "detected a virus on your", "detected on your computer",
+            "detected on your device", "your system is at risk",
+            "microsoft support", "apple support", "coinbase support",
+            "google support", "amazon support", "paypal support",
+            "tech support", "call our helpline",
+            "call our support", "contact our support",
+            "unauthorized access", "suspicious activity detected",
+            "your account will be suspended", "your account will be blocked",
+            "your account will be terminated", "complete your kyc",
+            "update your kyc", "kyc verification required",
+            "your subscription has expired", "your subscription has been suspended",
             // Lottery / advance-fee
             "claim your prize", "you have won", "lottery winner", "claim reward",
             "release fee", "processing fee", "advance fee",
