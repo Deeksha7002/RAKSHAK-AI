@@ -71,7 +71,6 @@ export class ScamAnalyzer {
         // ── PASS 2: Weighted Lexicon Scoring ────────────────────────────────────
         const lowerText = fullText.toLowerCase();
         const words = lowerText.split(/\s+/);
-        const wordSet = new Set(words);
         const total = Math.max(words.length, 1);
 
         let riskScore = 0.0;
