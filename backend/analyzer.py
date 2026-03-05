@@ -78,12 +78,24 @@ class ScamAnalyzer:
         # Prepend sender_name so impersonation patterns fire on e.g. "CoinBase Support"
         enriched = f"{sender_name} {text}".strip() if sender_name else text
         score, category, matrix, llm_needed = self.analyze_behavior([{"role": "scammer", "content": enriched}])
+        # Extra basic IOCs for the frontend Threat Lab
+        iocs = []
+        if "bit.ly" in text or "http" in text:
+            iocs.append("Suspicious URL")
+        if re.search(r'\b\d{10}\b', text):
+            iocs.append("Phone Number")
+        if "@" in text and "." in text:
+            iocs.append("Email Address")
+        if re.search(r'\b(?:bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b', text):
+            iocs.append("Bitcoin Address")
+            
         return {
             "risk_score": score,
             "classification": category,
             "neural_matrix": matrix,
             "llm_verification_required": llm_needed,
-            "intent": self.intent
+            "intent": self.intent,
+            "iocs": iocs
         }
 
     def analyze_behavior(self, history):
