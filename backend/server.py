@@ -70,18 +70,20 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
-    from fastapi.responses import JSONResponse
     error_trace = traceback.format_exc()
     logging.error(f"❌ CRITICAL SERVER ERROR: {exc}\n{error_trace}")
-    
-    return JSONResponse(
-        status_code=500, 
-        content={
-            "status": "error",
-            "detail": f"SERVER CRASH: {exc} | TRACE: {error_trace[-300:]}",
-            "msg": str(exc)
-        }
-    )
+    from fastapi.responses import JSONResponse
+    content = {
+        "status": "error",
+        "detail": "Internal Server Error",
+        "error_type": type(exc).__name__,
+        "msg": str(exc)
+    }
+    # Add traceback ONLY in development or if diagnostic flag is set
+    if os.environ.get("DEBUG_MODE") == "1":
+        content["traceback"] = error_trace
+        
+    return JSONResponse(status_code=500, content=content)
 
 # ── Security Middleware ──────────────────────────────────────────────────────
 @app.middleware("http")
