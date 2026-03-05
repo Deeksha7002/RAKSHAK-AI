@@ -136,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // ── Login ────────────────────────────────────────────────────────────────
     const login = async (username: string, password: string): Promise<boolean> => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/login`, {
@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // ── Register ─────────────────────────────────────────────────────────────
     const register = async (username: string, password: string): Promise<boolean> => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout for cold starts
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/register`, {
@@ -206,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (e: any) {
             clearTimeout(timeoutId);
             if (e.name === 'AbortError') {
-                throw new Error('Connection Timed Out - Is the server sleeping?');
+                throw new Error('SYSTEM WAKING UP: This takes ~30s on first load. Please wait and try again.');
             }
             const finalMsg = e instanceof Error ? e.message : String(e);
             throw new Error(finalMsg || 'Connection Failed - Check Network');

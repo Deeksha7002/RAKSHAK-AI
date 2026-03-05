@@ -179,7 +179,7 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('SCANNING BIOMETRICS...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
 
         // FIX: Added 'cb' (cache buster) to bypass stubborn browser/PWA caches.
         const fetchUrl = `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}&cb=${Date.now()}`;
@@ -307,7 +307,7 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
 
         const fetchUrl = `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`;
         try {
