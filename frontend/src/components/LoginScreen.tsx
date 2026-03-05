@@ -139,8 +139,8 @@ export const LoginScreen: React.FC<any> = () => {
     const [error, setError] = useState<string | null>(null);
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
     // Phase tracking for registration: 'form' → account created → 'biometric'
-    const [regPhase, setRegPhase] = useState<'form' | 'biometric'>(hasRegistered ? 'biometric' : 'form');
-    const [regUsername, setRegUsername] = useState(lastUser || '');
+    const [regPhase, setRegPhase] = useState<'form' | 'biometric'>('form');
+    const [regUsername, setRegUsername] = useState('');
     const [regPassword, setRegPassword] = useState('');
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
@@ -602,13 +602,13 @@ export const LoginScreen: React.FC<any> = () => {
                         <StatusBar />
 
                         <button type="submit" disabled={isLoading} style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                            {isLoading ? <span>CREATING ACCOUNT...</span> : <><UserPlus size={18} /><span>CREATE ACCOUNT</span></>}
+                            {isLoading ? <span>ESTABLISHING ACCOUNT...</span> : <><UserPlus size={18} /><span>CREATE NEW ACCOUNT</span></>}
                         </button>
                     </form>
 
                     {!isLoading && (
                         <button type="button" onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.25)', marginTop: '0.75rem', fontSize: '0.75rem' }}>
-                            ALREADY REGISTERED? SWITCH TO LOGIN
+                            USE EXISTING ACCOUNT
                         </button>
                     )}
                 </div>
@@ -638,7 +638,7 @@ export const LoginScreen: React.FC<any> = () => {
                         </div>
                         <h3 style={{ color: '#fff', fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 1 COMPLETE</h3>
                         <p style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.5 }}>
-                            Account established for <span style={{ color: '#10b981', fontWeight: 700 }}>{regUsername}</span>. Now initialize biometric security for passwordless access.
+                            Account established for <span style={{ color: '#10b981', fontWeight: 700 }}>{regUsername}</span>. Initialize biometric authentication to simplify future access.
                         </p>
                     </div>
 
@@ -652,11 +652,11 @@ export const LoginScreen: React.FC<any> = () => {
                             style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000' }}
                         >
                             {isLoading ? (
-                                <span>ENROLLING...</span>
+                                <span>INITIALIZING...</span>
                             ) : (
                                 <>
                                     <Fingerprint size={18} />
-                                    <span>INITIALIZE BIOMETRIC ENROLLMENT</span>
+                                    <span>ENROLL BIOMETRIC AUTHENTICATION</span>
                                 </>
                             )}
                         </button>
@@ -717,7 +717,7 @@ export const LoginScreen: React.FC<any> = () => {
 
                         <StatusBar />
 
-                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ marginTop: '1.5rem' }}>
                             <button
                                 type="submit"
                                 disabled={isLoading}
@@ -725,17 +725,6 @@ export const LoginScreen: React.FC<any> = () => {
                             >
                                 {isLoading ? <span>AUTHORIZING...</span> : <><ShieldCheck size={18} /> VERIFY & ACCESS</>}
                             </button>
-
-                            {/* SEAMLESS FALLBACK: Only show a subtle retry link if biometric was cancelled */}
-                            {!isLoading && lastUser && (
-                                <button
-                                    type="button"
-                                    onClick={() => triggerBiometric(lastUser)}
-                                    style={{ ...btnGhost, border: 'none', marginTop: '0.25rem', opacity: 0.6, fontSize: '0.7rem' }}
-                                >
-                                    <Fingerprint size={14} /> USE BIOMETRIC AGAIN
-                                </button>
-                            )}
                         </div>
                     </form>
 
