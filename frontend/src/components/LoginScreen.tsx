@@ -471,9 +471,6 @@ export const LoginScreen: React.FC<any> = () => {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, color: '#fff' }}>
                 RAKSHAK<span style={{ color: '#10b981' }}>-AI</span>
             </h1>
-            <p style={{ fontSize: '0.6rem', color: '#475569', marginTop: '4px', letterSpacing: '2px' }}>
-                VER. 2.1.0-STABLE | BUILD SIG: RELATIVE_PROXY_V1
-            </p>
             <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', letterSpacing: '1px' }}>
                 {subtitle}
             </p>
