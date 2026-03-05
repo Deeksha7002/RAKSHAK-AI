@@ -1,6 +1,7 @@
 ﻿import re
 import logging
 import math
+from collections import Counter
 from textblob import TextBlob
 try:
     import nltk
@@ -29,8 +30,31 @@ class ScamAnalyzer:
             "identity_assets": ["password", "pin", "otp", "code", "credential", "login", "ssn", "identity", "account", "social", "verification", "phrase", "seed"],
             "coercion_vectors": ["police", "lawsuit", "jail", "arrest", "warrant", "legal", "court", "suspended", "blocked", "banned", "fbi", "interpol", "frozen", "investigate", "seized"],
             "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon", "daily", "instantly"],
-            "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide", "earn", "receive", "withdraw", "claim", "apply"]
+            "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide", "earn", "receive", "withdraw", "claim", "apply"],
+            # ── NEW: Tech Support Scam Vectors ──────────────────────────────────
+            "tech_threat": ["virus", "malware", "hacked", "infected", "detected", "breach", "compromised", "trojan", "spyware", "ransomware", "threat", "attack", "warning", "alert", "error", "critical", "dangerous", "suspicious", "unauthorized", "blocked"],
+            "tech_action": ["remote", "access", "teamviewer", "anydesk", "support", "technician", "engineer", "helpdesk", "call", "contact", "fix", "repair", "scan", "remove", "protect", "secure", "update", "enable", "disable"],
+            "impersonation": ["microsoft", "apple", "google", "amazon", "paypal", "netflix", "bank", "government", "irs", "tax", "customs", "helpline", "official", "support", "service", "department", "authority", "police"]
         }
+
+        # ── Instant-Flag Patterns (regex): Always flag these regardless of score ─
+        # These are the most common tech support scam openers — single-message kills
+        self.instant_flag_patterns = [
+            # Tech Support / Virus Alert
+            r"(detected|found|identified).{0,30}(virus|malware|threat|breach|hack|trojan|infected)",
+            r"(virus|malware|threat).{0,30}(detected|found|computer|device|windows|mac|phone)",
+            r"your (computer|device|pc|mac|windows|system).{0,30}(infected|hacked|virus|hack|breach|compromise)",
+            r"(microsoft|apple|google|amazon).{0,20}(support|helpdesk|service|team|official)",
+            r"(call|contact).{0,20}(support|helpline|toll.?free|number).{0,20}(immediately|now|urgent|asap)",
+            r"(remote|access|anydesk|teamviewer).{0,20}(computer|device|pc|system)",
+            r"your (subscription|account|membership).{0,20}(expired|suspend|blocked|charged)",
+            # Prize / Lottery
+            r"(won|win|winner|selected|chosen).{0,30}(prize|lottery|award|reward|gift|cash)",
+            r"(claim|collect).{0,30}(prize|reward|winning|amount|money)",
+            # KYC / Account Suspension  
+            r"(kyc|account|service).{0,20}(suspend|block|terminate|close).{0,20}(immedi|now|today|hour)",
+            r"update your (kyc|information|details|account).{0,20}(immedi|now|or|else|suspend)",
+        ]
 
     def analyze(self, text, context="general"):
         """Convenience wrapper for single-message analysis."""
@@ -50,6 +74,20 @@ class ScamAnalyzer:
         scammer_msgs = [m["content"] for m in history if m["role"] == "scammer"]
         if not scammer_msgs:
             return 0.0, "unknown"
+
+        # ── INSTANT FLAG CHECK: Pattern-Match Known Scam Openers ──────────────
+        full_text_check = " ".join(scammer_msgs).lower()
+        for pattern in self.instant_flag_patterns:
+            if re.search(pattern, full_text_check, re.IGNORECASE):
+                logging.warning(f"[NLP Core] ⚠️ INSTANT FLAG: '{pattern}' matched. Auto-classifying as SCAM.")
+                neuro_matrix = {
+                    "financial_risk_node": 0.6,
+                    "coercion_risk_node": 0.9,
+                    "urgency_spike_node": 0.8,
+                    "deception_complexity_node": 0.95
+                }
+                self.intent = "TECH_SUPPORT_SCAM" if any(w in full_text_check for w in ["virus", "microsoft", "computer", "hack", "detected"]) else "SCAM_DETECTED"
+                return 0.95, "scam", neuro_matrix, False
 
         # 1. Psychological Urgency Graphing
         # Analyze the *rate of change* in urgency over the conversation
@@ -88,6 +126,11 @@ class ScamAnalyzer:
         tf_coercion = sum(word_freq[w] for w in self.lexicons["coercion_vectors"] if w in word_freq) / total_words
         tf_action = sum(word_freq[w] for w in self.lexicons["action_verbs"] if w in word_freq) / total_words
 
+        # Term Frequencies for NEW lexicons
+        tf_tech_threat = sum(word_freq[w] for w in self.lexicons["tech_threat"] if w in word_freq) / total_words
+        tf_tech_action = sum(word_freq[w] for w in self.lexicons["tech_action"] if w in word_freq) / total_words
+        tf_impersonation = sum(word_freq[w] for w in self.lexicons["impersonation"] if w in word_freq) / total_words
+
         # Cross-Vector Matrix Multiplication to determine Intent
         vector_scores = {
             "FINANCIAL_THEFT": (tf_finance * 1.5) + (tf_action * 1.0),
@@ -95,7 +138,10 @@ class ScamAnalyzer:
             "AUTHORITY_IMPERSONATION": (tf_coercion * 2.0) + (tf_finance * 0.5),
             "CRYPTO_SCAM": (tf_finance * 1.2) + (full_text.count("crypto") + full_text.count("btc") + full_text.count("wallet")) / total_words * 3.0,
             "LOTTERY_SCAM": (tf_finance * 0.8) + (full_text.count("won") + full_text.count("prize") + full_text.count("lottery")) / total_words * 2.5,
-            "JOB_SCAM": (tf_finance * 1.0) + (full_text.count("work") + full_text.count("earn") + full_text.count("home") + full_text.count("job") + full_text.count("salary")) / total_words * 4.0
+            "JOB_SCAM": (tf_finance * 1.0) + (full_text.count("work") + full_text.count("earn") + full_text.count("home") + full_text.count("job") + full_text.count("salary")) / total_words * 4.0,
+            # ── NEW VECTORS ──────────────────────────────────────
+            "TECH_SUPPORT_SCAM": (tf_tech_threat * 2.5) + (tf_tech_action * 1.5) + (tf_impersonation * 1.0),
+            "BRAND_IMPERSONATION": (tf_impersonation * 3.0) + (tf_tech_action * 0.5) + (tf_coercion * 0.5),
         }
 
         # Find the dominant intent vector
