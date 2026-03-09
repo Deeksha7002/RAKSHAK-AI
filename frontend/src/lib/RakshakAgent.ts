@@ -46,6 +46,43 @@ export class RakshakAgent {
         return 'OTHER';
     }
 
+    async syncWithBackend(text: string, _threadId: string): Promise<{ score: number, classification: Classification }> {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text,
+                    context: 'chat',
+                    sender_name: this.senderName
+                })
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                console.log(`[RakshakAgent] Backend Sync Success: Score ${result.risk_score}, Class: ${result.classification}`);
+
+                // Override local state with backend "Master Brain" results
+                if (result.risk_score !== undefined) {
+                    const backendScore = result.risk_score;
+                    const backendClass = result.classification as Classification;
+
+                    // Ratchet threat level upwards if backend is more concerned
+                    if (backendClass === 'scam') {
+                        this.maxThreatLevel = 'scam';
+                    } else if (backendClass === 'likely_scam' && this.maxThreatLevel !== 'scam') {
+                        this.maxThreatLevel = 'likely_scam';
+                    }
+
+                    return { score: Math.round(backendScore * 100), classification: this.maxThreatLevel };
+                }
+            }
+        } catch (e) {
+            console.warn('[RakshakAgent] Backend sync failed, falling back to local analysis.', e);
+        }
+        return { score: Math.round(this.analyzer.sophisticationScore * 100), classification: this.maxThreatLevel };
+    }
+
     ingest(text: string, conversationId: string, relationalContext?: 'family' | 'work' | 'friend'): { classification: Classification, safeText: string, intent: string, score: number, isCompromised: boolean, autoReported: boolean, missionComplete: boolean, scamType: ScamType, iocs: string[] } {
         // 1. Redact
         const safeText = SafetyGuard.redactPII(text);

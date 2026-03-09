@@ -7,11 +7,13 @@ export const DemoConsole: React.FC = () => {
     const [input, setInput] = useState('');
     const [result, setResult] = useState<any | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleAnalyze = async () => {
         if (!input.trim()) return;
         setAnalyzing(true);
         setResult(null);
+        setError(null);
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/analyze`, {
@@ -29,9 +31,11 @@ export const DemoConsole: React.FC = () => {
                 setResult(data);
             } else {
                 console.error("Analysis failed");
+                setError("The detection engine encountered an error. Please try again.");
             }
         } catch (e) {
             console.error("Connection error", e);
+            setError("Could not connect to the Rakshak Core. Ensure the backend is running.");
         } finally {
             setAnalyzing(false);
         }
@@ -40,6 +44,7 @@ export const DemoConsole: React.FC = () => {
     const handleReset = () => {
         setInput('');
         setResult(null);
+        setError(null);
     };
 
     return (
@@ -119,10 +124,18 @@ export const DemoConsole: React.FC = () => {
                         <Zap size={16} /> ENGINE OUTPUT
                     </h3>
 
-                    {!result && !analyzing && (
+                    {!result && !analyzing && !error && (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', opacity: 0.3 }}>
                             <Shield size={64} style={{ marginBottom: '1rem' }} />
                             <p>WAITING FOR INPUT</p>
+                        </div>
+                    )}
+
+                    {error && !analyzing && (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#fca5a5', textAlign: 'center', padding: '1rem' }}>
+                            <AlertTriangle size={48} style={{ marginBottom: '1rem' }} />
+                            <p style={{ fontWeight: 'bold' }}>ANALYSIS FAILED</p>
+                            <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>{error}</p>
                         </div>
                     )}
 

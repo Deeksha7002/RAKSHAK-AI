@@ -10,6 +10,8 @@ class SafetyGuard:
         """
         Scans text for sensitive patterns and replaces them with [REDACTED: <TYPE>].
         """
+        if not text:
+            return ""
         redacted_text = text
         
         for pii_type, pattern in SENSITIVE_PATTERNS.items():

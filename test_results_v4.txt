@@ -1,0 +1,20 @@
+﻿Starting Backend Accuracy Tests against http://127.0.0.1:8000...
+Root Health Check: 200 - {'status': 'active', 'system': 'Cyber Cell Core', 'version': '2.0.0 (Fortified)'}
+
+Testing: Crypto Scam + Wallet + URL
+Result: Class=scam, Intent=SCAM_DETECTED, IOCs=['Suspicious URL', 'Bitcoin Address']
+PASSED!
+
+Testing: Job Scam
+Result: Class=likely_scam, Intent=JOB_SCAM, IOCs=['Email Address']
+Classification mismatch (Expected scam)
+
+Testing: Tech Support Scam
+Result: Class=scam, Intent=TECH_SUPPORT_SCAM, IOCs=['Phone Number']
+PASSED!
+
+Testing: Benign Message
+Result: Class=benign, Intent=GENERAL_INQUIRY, IOCs=[]
+PASSED!
+
+Summary: 3/4 tests passed.

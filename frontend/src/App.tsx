@@ -421,6 +421,17 @@ function App() {
         };
       }));
 
+      // ── BACKEND AUTHENTICITY SYNC ──
+      // Parallel sync to ensure backend 'Master Brain' classification is applied
+      agent.syncWithBackend(content, threadId).then(({ score: finalScore, classification: finalClass }) => {
+        if (finalClass !== classification || finalScore !== score) {
+          console.log(`🔄 [Sync] Backend override: ${classification} -> ${finalClass} (${finalScore}%)`);
+          setThreads((prev: Thread[]) => prev.map((t: Thread) =>
+            t.id === threadId ? { ...t, classification: finalClass, threatScore: finalScore } : t
+          ));
+        }
+      });
+
       if (missionComplete && !threadState?.isBlocked) {
         addMessageToThread(threadId, {
           id: `block-${Date.now()}`,

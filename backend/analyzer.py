@@ -26,15 +26,15 @@ class ScamAnalyzer:
         
         # Vectorized Topic Lexicons (instead of binary triggers)
         self.lexicons = {
-            "financial_assets": ["money", "card", "bank", "transfer", "wire", "deposit", "payment", "fee", "charge", "cost", "dollar", "rupee", "usd", "cash", "crypto", "btc", "wallet", "usdt", "eth", "coin", "salary", "income", "profit", "earnings", "commission", "payout", "bonus", "earn", "daily", "monthly"],
-            "identity_assets": ["password", "pin", "otp", "code", "credential", "login", "ssn", "identity", "account", "social", "verification", "phrase", "seed"],
-            "coercion_vectors": ["police", "lawsuit", "jail", "arrest", "warrant", "legal", "court", "suspended", "blocked", "banned", "fbi", "interpol", "frozen", "investigate", "seized"],
-            "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon", "daily", "instantly", "part-time"],
+            "financial_assets": ["money", "card", "bank", "transfer", "wire", "deposit", "payment", "fee", "charge", "cost", "dollar", "rupee", "usd", "cash", "crypto", "btc", "wallet", "usdt", "eth", "coin", "salary", "income", "profit", "earnings", "commission", "payout", "bonus", "earn", "daily", "monthly", "tax", "refund", "unpaid", "overdue", "bill", "invoice"],
+            "identity_assets": ["password", "pin", "otp", "code", "credential", "login", "ssn", "identity", "account", "social", "verification", "phrase", "seed", "document", "passport", "license"],
+            "coercion_vectors": ["police", "lawsuit", "jail", "arrest", "warrant", "legal", "court", "suspended", "blocked", "banned", "fbi", "interpol", "frozen", "investigate", "seized", "prosecution", "penalty", "enforcement", "federal"],
+            "time_compression": ["urgent", "immediately", "now", "hurry", "fast", "seconds", "expires", "deadline", "today", "quick", "asap", "limited", "soon", "daily", "instantly", "part-time", "final notice", "urgent notice", "last chance"],
             "action_verbs": ["send", "pay", "give", "share", "tell", "click", "download", "install", "submit", "verify", "confirm", "provide", "earn", "receive", "withdraw", "claim", "apply"],
             # ── NEW: Tech Support Scam Vectors ──────────────────────────────────
             "tech_threat": ["virus", "malware", "hacked", "infected", "detected", "breach", "compromised", "trojan", "spyware", "ransomware", "threat", "attack", "warning", "alert", "error", "critical", "dangerous", "suspicious", "unauthorized", "blocked"],
             "tech_action": ["remote", "access", "teamviewer", "anydesk", "support", "technician", "engineer", "helpdesk", "call", "contact", "fix", "repair", "scan", "remove", "protect", "secure", "update", "enable", "disable"],
-            "impersonation": ["microsoft", "apple", "google", "amazon", "paypal", "netflix", "bank", "government", "irs", "tax", "customs", "helpline", "official", "support", "service", "department", "authority", "police"]
+            "impersonation": ["microsoft", "apple", "google", "amazon", "paypal", "netflix", "bank", "government", "irs", "tax", "customs", "helpline", "official", "support", "service", "department", "authority", "police", "social security", "treasury", "revenue"]
         }
 
         # ── Instant-Flag Patterns (regex): Always flag these regardless of score ─
@@ -56,8 +56,13 @@ class ScamAnalyzer:
             r"we.{0,10}(detected|noticed|identified|found).{0,20}(suspicious|unauthorized|unusual|illegal).{0,20}(activity|access|login|attempt)",
             r"(security|account).{0,20}(alert|warning|notification|breach|issue|problem|compromised)",
             # ── Brand Impersonation Openers ───────────────────────────────────
-            r"(this is|from|calling from|team from).{0,20}(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|your bank|support team)",
-            r"(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|visa|mastercard).{0,10}(has detected|detected|has identified|is alerting|security team|fraud team)",
+            r"(this is|from|calling from|team from|official from).{0,20}(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|your bank|support team|irs|social security|treasury)",
+            r"(microsoft|apple|google|amazon|coinbase|paypal|netflix|binance|visa|mastercard|irs|social security).{0,10}(has detected|detected|has identified|is alerting|security team|fraud team|revenue service)",
+            # ── NEW: Tax / Government / Authority Scams ───────────────────────
+            r"(irs|tax|social security|ssn|customs|fbi|police|department|treasury|revenue).{0,30}(notice|alert|warning|unpaid|overdue|suspended|final|warrant|penalty)",
+            r"(final notice|urgent notice).{0,30}(unpaid|tax|bill|invoice|payment|account|money)",
+            r"unpaid (tax|taxes|bill|invoice|penalty).{0,20}(of|amounting).{0,10}(\$|rs|usd|rupees)",
+            r"your (ssn|social security number|identity).{0,20}(suspended|blocked|used|compromised|stolen)",
             # Prize / Lottery
             r"(won|win|winner|selected|chosen).{0,30}(prize|lottery|award|reward|gift|cash)",
             r"(claim|collect).{0,30}(prize|reward|winning|amount|money)",
@@ -102,12 +107,13 @@ class ScamAnalyzer:
         }
 
     def analyze_behavior(self, history):
+        self.intent = "unknown"
         if not history:
-            return 0.0, "unknown"
+            return 0.0, "benign", {}, False
 
-        scammer_msgs = [m["content"] for m in history if m["role"] == "scammer"]
-        if not scammer_msgs:
-            return 0.0, "unknown"
+        scammer_msgs = [m["content"] if m["content"] is not None else "" for m in history if m["role"] == "scammer"]
+        if not scammer_msgs or not any(scammer_msgs):
+            return 0.0, "benign", {}, False
 
         # ── INSTANT FLAG CHECK: Pattern-Match Known Scam Openers ──────────────
         full_text_check = " ".join(scammer_msgs).lower()
@@ -128,10 +134,12 @@ class ScamAnalyzer:
         urgency_graph = []
         for msg in scammer_msgs:
             blob = TextBlob(msg.lower())
+            # Safely handle words list
+            words = blob.words if blob.words is not None else []
             # Count time compression + coercion tokens in this specific message
-            urgency_tokens = sum(1 for word in blob.words if word in self.lexicons["time_compression"] or word in self.lexicons["coercion_vectors"])
+            urgency_tokens = sum(1 for word in words if word in self.lexicons["time_compression"] or word in self.lexicons["coercion_vectors"])
             # Normalize by message length to find word density, plus base sentiment subjectivity
-            density = (urgency_tokens / max(len(blob.words), 1)) + (blob.sentiment.subjectivity * 0.2)
+            density = (urgency_tokens / max(len(words), 1)) + (blob.sentiment.subjectivity * 0.2)
             urgency_graph.append(density)
 
         # Detect Exponential Escalation (scammer getting impatient/aggressive)
@@ -150,7 +158,7 @@ class ScamAnalyzer:
         # 2. Vectorized Intent Processing (TF-IDF approximation for contexts)
         full_text = " ".join(scammer_msgs).lower()
         blob = TextBlob(full_text)
-        words = blob.words
+        words = blob.words if blob.words is not None else []
         word_freq = Counter(words)
         total_words = max(len(words), 1)
 
