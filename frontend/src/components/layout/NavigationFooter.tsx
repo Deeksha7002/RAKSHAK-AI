@@ -1,4 +1,4 @@
-import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut } from 'lucide-react';
+import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut, Shield } from 'lucide-react';
 
 interface NavigationFooterProps {
     isMonitoring: boolean;
@@ -9,6 +9,7 @@ interface NavigationFooterProps {
     onToggleView: (view: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO') => void;
     onToggleMute: () => void;
     onToggleIntegration: () => void;
+    onToggleProtocol: () => void;
     onLogout: () => void;
 }
 
@@ -21,6 +22,7 @@ export function NavigationFooter({
     onToggleView,
     onToggleMute,
     onToggleIntegration,
+    onToggleProtocol,
     onLogout
 }: NavigationFooterProps) {
     return (
@@ -72,6 +74,14 @@ export function NavigationFooter({
                         title="Connect Integrations"
                     >
                         <LinkIcon size={20} />
+                    </button>
+                    <button
+                        onClick={onToggleProtocol}
+                        className="btn btn-icon"
+                        title="Security Protocol"
+                        style={{ color: '#10b981' }}
+                    >
+                        <Shield size={20} />
                     </button>
                     <button
                         onClick={onLogout}

@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Cpu, Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../lib/config';
+import { SecurityProtocolModal } from './SecurityProtocolModal';
 import '../index.css';
 
 /*
@@ -142,6 +143,7 @@ export const LoginScreen: React.FC<any> = () => {
     const [regPhase, setRegPhase] = useState<'form' | 'biometric'>('form');
     const [regUsername, setRegUsername] = useState('');
     const [regPassword, setRegPassword] = useState('');
+    const [isProtocolOpen, setIsProtocolOpen] = useState(false);
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
     useEffect(() => {
@@ -736,8 +738,34 @@ export const LoginScreen: React.FC<any> = () => {
                             NEW ENROLLMENT? CREATE ACCOUNT
                         </button>
                     </div>
+
+                    <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                        <button
+                            onClick={() => setIsProtocolOpen(true)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#10b981',
+                                fontSize: '0.65rem',
+                                fontWeight: 600,
+                                letterSpacing: '1px',
+                                cursor: 'pointer',
+                                opacity: 0.6,
+                                transition: 'opacity 0.2s'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
+                            onMouseOut={(e) => (e.currentTarget.style.opacity = '0.6')}
+                        >
+                            🛡️ CORE SECURITY & PRIVACY PROTOCOL
+                        </button>
+                    </div>
                 </div>
             )}
+
+            <SecurityProtocolModal
+                isOpen={isProtocolOpen}
+                onClose={() => setIsProtocolOpen(false)}
+            />
         </div>
     );
 };

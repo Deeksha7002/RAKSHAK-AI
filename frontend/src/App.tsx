@@ -11,6 +11,7 @@ import { TestLabView } from './components/views/TestLabView';
 import { EvidenceLockerView } from './components/views/EvidenceLockerView';
 import { NavigationFooter } from './components/layout/NavigationFooter';
 import { IntegrationGuide } from './components/IntegrationGuide';
+import { SecurityProtocolModal } from './components/SecurityProtocolModal';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
@@ -39,6 +40,7 @@ function App() {
   const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
   const [isMuted, setIsMuted] = useState(false);
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
+  const [isProtocolOpen, setIsProtocolOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 
   const selectedThread = threads.find(t => t.id === selectedThreadId);
@@ -102,6 +104,7 @@ function App() {
             onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
             onToggleMute={() => setIsMuted(soundManager.toggleMute())}
             onToggleIntegration={() => setIsIntegrationOpen(true)}
+            onToggleProtocol={() => setIsProtocolOpen(true)}
             onLogout={handleLogout}
           />
         </div>
@@ -197,6 +200,7 @@ function App() {
         </div>
       </div>
       <IntegrationGuide isOpen={isIntegrationOpen} onClose={() => setIsIntegrationOpen(false)} />
+      <SecurityProtocolModal isOpen={isProtocolOpen} onClose={() => setIsProtocolOpen(false)} />
     </>
   );
 }
