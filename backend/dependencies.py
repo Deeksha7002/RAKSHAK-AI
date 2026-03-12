@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, User
 from analyzer import ScamAnalyzer
 import security
-import asyncio
 
 # ── Auth Helper ────────────────────────────────────────────────────────────────
 _bearer_scheme = HTTPBearer(auto_error=False)

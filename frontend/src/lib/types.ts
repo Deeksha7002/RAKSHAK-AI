@@ -62,6 +62,7 @@ export interface IncidentReport {
     scammerName?: string;
     platform?: string;
     classification: Classification;
+    scamType: ScamType;
     confidenceScore: number; // 0-1
     iocs: IOCs;
     transcript: Message[];

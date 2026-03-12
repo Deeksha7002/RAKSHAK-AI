@@ -32,6 +32,12 @@ export class IntelligenceService {
                 timestamp: Date.now()
             };
             this.records.push(newRecord);
+
+            // Rolling history: Keep only last 100 in-memory deep-dive records to prevent memory leaks
+            if (this.records.length > 100) {
+                this.records.shift();
+            }
+
             console.log(`[IntelligenceService] 📊 Recorded ${record.type} scam attempt from ${record.senderName}`);
         }
         this.notifyListeners();
@@ -39,9 +45,10 @@ export class IntelligenceService {
 
     static async syncWithBackend(): Promise<void> {
         try {
+            const token = localStorage.getItem('rakshak_access_token');
             const res = await fetch(`${API_BASE_URL}/api/stats`, {
                 headers: {
-                    'X-Rakshak-Token': 'rakshak-core-v1'
+                    'Authorization': `Bearer ${token}`
                 }
             });
             if (res.ok) {

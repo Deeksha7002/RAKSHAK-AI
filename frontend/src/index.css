@@ -449,6 +449,44 @@ body {
   color: var(--status-success);
 }
 
+/* WebSocket Status Dot */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.status-dot.connected {
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.status-dot.reconnecting {
+  background-color: #f59e0b;
+  animation: pulse-status 1s infinite;
+}
+
+.status-dot.idle {
+  background-color: #6b7280;
+}
+
+@keyframes pulse-status {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
 /* Cards (Dashboard) - Premium Overhaul with 3D Effects */
 .vitals-row {
   display: grid;

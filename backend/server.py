@@ -12,6 +12,8 @@ import asyncio
 
 # Import Routers
 from routers import auth, agent, stats, webhooks
+from dependencies import get_db, _prune_stale_challenges, manager, get_current_user
+from limiter_config import limiter
 
 # ── Lifespan & Initialization ────────────────────────────────────────────────
 @asynccontextmanager
@@ -53,18 +55,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 
-# FIX: Absolute permissive CORS for Render/Vercel handshake
-# Since we use user-id strings and not session cookies for biometric starts, 
-# we can safely use "*" to ensure connectivity across dynamic Vercel URLs.
+# FIX: Restricted CORS for PhonePe-grade security
+# Only allow official frontend and local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=[
+        "https://rakshak-ai-drab.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:3000"
+    ],
+    allow_credentials=True, # Set to True as we are specifying origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ── Rate Limiter Handling ────────────────────────────────────────────────────
+app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(Exception)
@@ -139,4 +147,5 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

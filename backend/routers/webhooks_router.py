@@ -99,7 +99,7 @@ async def twilio_webhook(
         platform="sms",
         classification=analysis.get("classification"),
         confidence_score=risk_score,
-        transcript=agent.conversation_history[-2:], # Just last turn for DB summary
+        transcript=json.dumps(agent.conversation_history[-2:]), # Just last turn for DB summary
         iocs={"phone": From, **agent.iocs}
     )
     db.add(new_case)

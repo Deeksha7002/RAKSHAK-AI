@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from database import Case, Stats
-from dependencies import get_db
+from dependencies import get_db, get_current_user
+from limiter_config import limiter
 from schemas import ReportRequest
 
 router = APIRouter(prefix="/api", tags=["statistics"])
@@ -19,33 +20,62 @@ def get_or_create_stats(db: Session):
         db.refresh(stats)
     return stats
 
-@router.get("/stats")
-def get_stats(db: Session = Depends(get_db)):
-    global_stats = get_or_create_stats(db)
-    
-    def get_stats_for_range(time_threshold):
-        cases_list = db.query(Case).filter(Case.created_at >= time_threshold).all()
-        scams = [c for c in cases_list if c.classification == "scam"]
-        safe = [c for c in cases_list if c.classification == "safe"]
-        
-        # Calculate types breakdown
-        types = {}
-        for c in scams:
-            t = c.scam_type or "Unknown"
-            types[t] = types.get(t, 0) + 1
-            
-        return {
-            "total_intercepted": len(cases_list),
-            "scams_prevented": len(scams),
-            "safe_conversations": len(safe),
-            "breakdown": types
-        }
-
+def get_time_bounds():
+    """Returns UTC boundaries for today, start of week, and start of month."""
     now = datetime.now(tz.utc)
+    # Today = 00:00:00 UTC
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Week = Monday of the current week (UTC)
+    week_start = today_start - timedelta(days=today_start.weekday())
+    
+    # Month = 1st of the current month (UTC)
+    month_start = today_start.replace(day=1)
+    
+    return today_start, week_start, month_start
+
+@router.get("/stats")
+def get_stats(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    global_stats = get_or_create_stats(db)
+    today_start, week_start, month_start = get_time_bounds()
+    
+    def get_raw_stats(threshold):
+        cases = db.query(Case).filter(Case.created_at >= threshold).all()
+        scams = [c for c in cases if c.classification == "scam"]
+        
+        types_breakdown = {}
+        for c in scams:
+            st = c.scam_type or "OTHER"
+            types_breakdown[st] = types_breakdown.get(st, 0) + 1
+            
+        unique_scammers = len(set(c.scammer_name for c in cases if c.scammer_name))
+        
+        return len(scams), types_breakdown, unique_scammers
+
+    today_count, today_types, today_scammers = get_raw_stats(today_start)
+    week_count, week_types, week_scammers = get_raw_stats(week_start)
+    month_count, month_types, month_scammers = get_raw_stats(month_start)
+    all_count, all_types, _ = get_raw_stats(datetime.min.replace(tzinfo=tz.utc))
+
     return {
-        "today": get_stats_for_range(now - timedelta(days=1)),
-        "week": get_stats_for_range(now - timedelta(days=7)),
-        "month": get_stats_for_range(now - timedelta(days=30)),
+        "today": today_count,
+        "today_types": today_types,
+        "today_scammers": today_scammers,
+        
+        "week": week_count,
+        "week_types": week_types,
+        "week_scammers": week_scammers,
+        
+        "month": month_count,
+        "month_types": month_types,
+        "month_scammers": month_scammers,
+        
+        "types": all_types,
+        "reports_filed": global_stats.scams_prevented, # Total for uniqueScammers calculation in frontend
         "all_time": {
             "total_intercepted": global_stats.total_intercepted,
             "scams_prevented": global_stats.scams_prevented,
@@ -55,20 +85,29 @@ def get_stats(db: Session = Depends(get_db)):
     }
 
 @router.get("/cases")
-def get_cases(db: Session = Depends(get_db)):
+def get_cases(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Authentication required")
     cases = db.query(Case).order_by(Case.created_at.desc()).limit(50).all()
     return cases
 
 @router.post("/report")
-async def submit_report(report: ReportRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def submit_report(report: ReportRequest, request: Request, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """Receives official scam reports from the frontend."""
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Authentication required")
+    import json
     new_case = Case(
         conversation_id=report.conversationId,
         scammer_name=report.scammerName,
         platform=report.platform,
         classification=report.classification,
+        scam_type=report.scamType,
         confidence_score=report.confidenceScore,
-        transcript=report.transcript,
+        transcript=json.dumps(report.transcript),
         iocs=report.iocs
     )
     db.add(new_case)

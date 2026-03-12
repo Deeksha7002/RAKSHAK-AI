@@ -43,7 +43,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String, default="operator")
-    webauthn_credentials = Column(JSON, default=list)  # default=list avoids shared mutable default
+    webauthn_credentials = Column(JSON, default=list)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class Case(Base):
@@ -119,3 +120,18 @@ def init_db():
     except Exception as e:
         import logging
         logging.error(f"❌ [MIGRATION] Failed to ensure schema consistency: {e}")
+
+    # ── Cases Table Migration ─────────────────────────────────────────────────
+    try:
+        columns = [c["name"] for c in inspector.get_columns("cases")]
+        with engine.connect() as conn:
+            if "scam_type" not in columns:
+                conn.execute(text("ALTER TABLE cases ADD COLUMN scam_type TEXT"))
+            if "transcript" not in columns:
+                conn.execute(text("ALTER TABLE cases ADD COLUMN transcript TEXT"))
+            if "auto_reported" not in columns:
+                conn.execute(text("ALTER TABLE cases ADD COLUMN auto_reported BOOLEAN DEFAULT 1"))
+            conn.commit()
+    except Exception as e:
+        import logging
+        logging.error(f"❌ [MIGRATION] Case table sync failed: {e}")

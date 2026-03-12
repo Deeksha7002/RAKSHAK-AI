@@ -6,11 +6,11 @@ from datetime import datetime, timedelta, timezone as tz
 from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import User, RefreshToken, WebAuthnChallenge
 from dependencies import get_db, get_current_user
+from limiter_config import limiter
 from schemas import LoginRequest, RefreshRequest
 import security
 
@@ -36,7 +36,7 @@ from webauthn.helpers.structs import (
 )
 
 router = APIRouter(prefix="/api", tags=["authentication"])
-limiter = Limiter(key_func=get_remote_address)
+# limiter = Limiter(key_func=get_remote_address) # MOVED TO dependencies.py
 
 RP_NAME = "Rakshak AI"
 
@@ -85,7 +85,8 @@ def get_webauthn_config(request: Request):
 # ── Standard Auth ────────────────────────────────────────────────────────────
 
 @router.post("/login")
-def login(creds: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == creds.username).first()
     if not user:
         # Fallback to users.json for backward compatibility
@@ -121,7 +122,8 @@ def login(creds: LoginRequest, db: Session = Depends(get_db)):
     return {"status": "success", "token": access_token, "refresh_token": raw_refresh}
 
 @router.post("/register")
-def register(creds: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == creds.username).first()
     if user:
         raise HTTPException(status_code=400, detail="Operator ID already exists")
@@ -173,6 +175,7 @@ def logout(payload: RefreshRequest, db: Session = Depends(get_db)):
 # ── Biometric Auth Routes ────────────────────────────────────────────────────
 
 @router.post("/auth/biometric/register/start")
+@limiter.limit("5/minute")
 def register_bio_start(username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -197,6 +200,7 @@ def register_bio_start(username: str, request: Request, db: Session = Depends(ge
     return json.loads(options_to_json(options))
 
 @router.post("/auth/biometric/register/finish")
+@limiter.limit("5/minute")
 def register_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     challenge = get_challenge(db, "REGISTER_" + username)
@@ -227,6 +231,7 @@ def register_bio_finish(response: Dict[str, Any], username: str, request: Reques
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/auth/biometric/login/start")
+@limiter.limit("5/minute")
 def login_bio_start(username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     if not user or not user.webauthn_credentials:
@@ -246,6 +251,7 @@ def login_bio_start(username: str, request: Request, db: Session = Depends(get_d
     return json.loads(options_to_json(options))
 
 @router.post("/auth/biometric/login/finish")
+@limiter.limit("5/minute")
 def login_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     challenge = get_challenge(db, "LOGIN_" + username)

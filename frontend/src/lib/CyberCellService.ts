@@ -1,4 +1,4 @@
-﻿import { PDFGenerator } from './PDFGenerator';
+import { PDFGenerator } from './PDFGenerator';
 import type { IncidentReport, CaseFile } from './types';
 import { API_BASE_URL } from './config';
 
@@ -47,6 +47,7 @@ export class CyberCellService {
                     content: m.content,
                     time: new Date(m.timestamp).toISOString()
                 })),
+                scamType: report.scamType,
                 timestamp: report.timestamp
             };
 
@@ -80,7 +81,7 @@ export class CyberCellService {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Rakshak-Token': 'rakshak-core-v1'
+                        'Authorization': `Bearer ${localStorage.getItem('rakshak_access_token')}`
                     },
                     body: JSON.stringify(evidenceJson)
                 }).then(res => {
@@ -106,7 +107,11 @@ export class CyberCellService {
      */
     static async getAllCases(): Promise<CaseFile[]> {
         try {
-            const res = await fetch(`${API_BASE_URL}/api/cases`);
+            const res = await fetch(`${API_BASE_URL}/api/cases`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('rakshak_access_token')}`
+                }
+            });
             if (res.ok) {
                 const cases = await res.json();
                 console.log('[CyberCellService] 📂 Loaded persistent cases:', cases.length);

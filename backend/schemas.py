@@ -11,6 +11,7 @@ class ReportRequest(BaseModel):
     scammerName: Optional[str] = "Unknown"
     platform: Optional[str] = "chat"
     classification: str
+    scamType: Optional[str] = "OTHER"
     confidenceScore: float
     transcript: List[Dict[str, Any]]
     iocs: Dict[str, Any]

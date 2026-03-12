@@ -403,11 +403,12 @@ export class RakshakAgent {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000); // 5s hard timeout
 
+            const token = localStorage.getItem('access_token');
             const res = await fetch(`${API_BASE_URL}/api/generate-response`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Rakshak-Token': 'rakshak-core-v1'
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     message: incomingText ?? '',
@@ -466,7 +467,8 @@ export class RakshakAgent {
     getReport(conversationId: string, _classification: Classification, transcript: Message[]): IncidentReport {
         return {
             conversationId,
-            classification: this.currentScamType !== 'OTHER' ? this.currentScamType : this.maxThreatLevel,
+            classification: this.maxThreatLevel,
+            scamType: this.currentScamType,
             confidenceScore: this.maxThreatLevel === 'scam' ? 0.95 : this.maxThreatLevel === 'likely_scam' ? 0.75 : 0.1,
             iocs: { ...this.iocs },
             transcript,

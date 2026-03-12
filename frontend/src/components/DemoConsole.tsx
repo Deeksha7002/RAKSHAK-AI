@@ -9,34 +9,76 @@ export const DemoConsole: React.FC = () => {
     const [analyzing, setAnalyzing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [agentResponse, setAgentResponse] = useState<{response: string, persona: string} | null>(null);
+    const [generatingReply, setGeneratingReply] = useState(false);
+
     const handleAnalyze = async () => {
         if (!input.trim()) return;
         setAnalyzing(true);
         setResult(null);
+        setAgentResponse(null);
         setError(null);
 
         try {
+            const token = localStorage.getItem('access_token');
             const res = await fetch(`${API_BASE_URL}/api/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Rakshak-Token': 'rakshak-core-v1'
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ text: input })
+                body: JSON.stringify({
+                    text: input,
+                    thread_id: "demo-lab",
+                    context: "{\"is_demo\": true}"
+                })
             });
 
             if (res.ok) {
                 const data = await res.json();
                 console.log("Backend Analysis:", data);
                 setResult(data);
+                setAnalyzing(false); // Show verdict immediately
+                
+                // Now fetch what the agent would actually reply
+                setGeneratingReply(true);
+                try {
+                    const replyRes = await fetch(`${API_BASE_URL}/api/generate-response`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            message: input,
+                            classification: data.classification,
+                            sender_name: "Demo User",
+                            conversation_history: []
+                        })
+                    });
+                    if (replyRes.ok) {
+                        const replyData = await replyRes.json();
+                        setAgentResponse(replyData);
+                    } else {
+                        const errText = await replyRes.text();
+                        console.error("Agent response threw status", replyRes.status, errText);
+                        setAgentResponse({ response: `API Error ${replyRes.status}: ${errText}`, persona: "error" });
+                    }
+                } catch (replyErr: any) {
+                    console.error("Agent response generation failed in demo:", replyErr);
+                    setAgentResponse({ response: `Network Error: ${replyErr.message}`, persona: "network_error" });
+                } finally {
+                    setGeneratingReply(false);
+                }
+
             } else {
                 console.error("Analysis failed");
                 setError("The detection engine encountered an error. Please try again.");
+                setAnalyzing(false);
             }
         } catch (e) {
             console.error("Connection error", e);
             setError("Could not connect to the Rakshak Core. Ensure the backend is running.");
-        } finally {
             setAnalyzing(false);
         }
     };
@@ -44,6 +86,7 @@ export const DemoConsole: React.FC = () => {
     const handleReset = () => {
         setInput('');
         setResult(null);
+        setAgentResponse(null);
         setError(null);
     };
 
@@ -90,19 +133,19 @@ export const DemoConsole: React.FC = () => {
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button
                             onClick={handleAnalyze}
-                            disabled={analyzing || !input.trim()}
+                            disabled={analyzing || generatingReply || !input.trim()}
                             className="btn"
                             style={{
                                 flex: 1,
-                                background: analyzing ? 'rgba(139, 92, 246, 0.5)' : '#8b5cf6',
+                                background: (analyzing || generatingReply) ? 'rgba(139, 92, 246, 0.5)' : '#8b5cf6',
                                 color: 'white', border: 'none',
                                 padding: '12px',
                                 fontWeight: 'bold',
-                                opacity: (analyzing || !input.trim()) ? 0.7 : 1,
-                                cursor: (analyzing || !input.trim()) ? 'not-allowed' : 'pointer'
+                                opacity: (analyzing || generatingReply || !input.trim()) ? 0.7 : 1,
+                                cursor: (analyzing || generatingReply || !input.trim()) ? 'not-allowed' : 'pointer'
                             }}
                         >
-                            {analyzing ? (
+                            {(analyzing || generatingReply) ? (
                                 <><RefreshCw className="spin-slow" size={18} /> PROCESSING...</>
                             ) : (
                                 <><Play size={18} /> RUN ANALYSIS</>
@@ -210,6 +253,45 @@ export const DemoConsole: React.FC = () => {
                                     <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>No specific IOCs extracted from this sample.</div>
                                 )}
                             </div>
+
+                            {generatingReply && !agentResponse && (
+                                <div style={{ 
+                                    marginTop: '1.5rem', 
+                                    background: 'rgba(255, 255, 255, 0.05)', 
+                                    padding: '1rem', 
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    color: '#a78bfa'
+                                }}>
+                                    <RefreshCw size={20} className="spin-slow" />
+                                    <span style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>Rakshak AI is drafting a response...</span>
+                                </div>
+                            )}
+
+                            {agentResponse && (
+                                <div style={{ 
+                                    marginTop: '1.5rem', 
+                                    background: 'rgba(139, 92, 246, 0.1)', 
+                                    border: '1px solid rgba(139, 92, 246, 0.3)', 
+                                    padding: '1.5rem', 
+                                    borderRadius: '8px',
+                                    animation: 'slideDown 0.4s ease-out'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                        <div style={{ background: '#8b5cf6', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                            RAKSHAK AI
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: '#a78bfa' }}>
+                                            PERSONA: {agentResponse.persona?.toUpperCase() || 'DEFAULT'}
+                                        </div>
+                                    </div>
+                                    <div style={{ color: '#fff', fontSize: '1rem', fontStyle: 'italic', borderLeft: '3px solid #8b5cf6', paddingLeft: '1rem', marginTop: '0.5rem' }}>
+                                        "{agentResponse.response}"
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

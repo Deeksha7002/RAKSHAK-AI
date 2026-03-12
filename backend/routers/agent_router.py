@@ -40,10 +40,20 @@ async def generate_llm_response(
     return {"response": response_text, "persona": agent.current_persona}
 
 @router.post("/api/analyze")
-async def analyze_text(payload: AnalysisRequest, request: Request):
+async def analyze_text(payload: AnalysisRequest, request: Request, current_user: str = Depends(get_current_user)):
     """Performs deep NLP analysis on a text snippet."""
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Authentication required")
+        
     logging.info(f"🔍 [ANALYZER] Input received: '{payload.text[:50]}...'")
-    result = analyzer.analyze(payload.text, context=payload.context, sender_name=payload.sender_name or "")
+    # NLP analysis can be heavy, run in thread pool
+    result = await asyncio.to_thread(
+        analyzer.analyze, 
+        payload.text, 
+        context=payload.context, 
+        sender_name=payload.sender_name or ""
+    )
     logging.info(f"📊 [ANALYZER] Result: {result.get('classification')} | Intent: {result.get('intent')}")
     return result
 
