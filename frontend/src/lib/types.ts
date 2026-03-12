@@ -102,6 +102,7 @@ export interface CaseFile {
     timestamp: string;
     detectedLocation?: GeoLocation;
     autoReported?: boolean; // Added this field
+    scamType?: ScamType;
 }
 
 export type ScamType = 'ROMANCE' | 'CRYPTO' | 'JOB' | 'IMPERSONATION' | 'LOTTERY' | 'TECHNICAL_SUPPORT' | 'AUTHORITY' | 'OTHER';

@@ -299,6 +299,7 @@ export function useRakshakCore() {
                             scammerName: senderName || 'Unknown',
                             platform: 'chat',
                             classification: 'scam',
+                            scamType: 'OTHER',
                             timestamp: new Date().toISOString(),
                             confidenceScore: result.authenticityScore,
                             transcript: [],
@@ -465,7 +466,8 @@ export function useRakshakCore() {
                 transcript: thread.messages,
                 timestamp: new Date(report.timestamp).toLocaleDateString(),
                 detectedLocation: thread.detectedLocation,
-                autoReported: thread.autoReported
+                autoReported: thread.autoReported,
+                scamType: report.scamType
             });
         });
         return cases;
