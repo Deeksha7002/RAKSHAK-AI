@@ -14,8 +14,11 @@ from dependencies import get_db, _prune_stale_challenges, manager, get_current_u
 from contextlib import asynccontextmanager
 import asyncio
 
-# Import Routers
-from routers import auth, agent, stats, webhooks
+# Import Routers explicitly
+from routers.auth_router import router as auth_router
+from routers.agent_router import router as agent_router
+from routers.stats_router import router as stats_router
+from routers.webhooks_router import router as webhooks_router
 from dependencies import get_db, _prune_stale_challenges, manager, get_current_user
 from limiter_config import limiter
 
@@ -131,10 +134,10 @@ async def secure_headers_and_obfuscation(request: Request, call_next):
     return response
 
 # ── Route Registration ───────────────────────────────────────────────────────
-app.include_router(auth.router, prefix="/api")
-app.include_router(agent.router)
-app.include_router(stats.router)
-app.include_router(webhooks.router)
+app.include_router(auth_router, prefix="/api")
+app.include_router(agent_router)
+app.include_router(stats_router)
+app.include_router(webhooks_router)
 
 @app.get("/api/debug/db-schema")
 async def debug_db_schema(reset: bool = False, current_user: str = Depends(get_current_user)):
@@ -180,7 +183,7 @@ async def list_routes():
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
-    return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.1 (Discovery)"}
+    return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.2 (Explicit)"}
 
 if __name__ == "__main__":
     import uvicorn
