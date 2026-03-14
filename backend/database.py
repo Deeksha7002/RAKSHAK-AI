@@ -97,36 +97,39 @@ class RefreshToken(Base):
 
 def init_db():
     logging.info("🛠️ Initializing database and ensuring schema consistency...")
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logging.error(f"❌ Base.metadata.create_all failed: {e}")
     
     # ── Safe Auto-Migration ───────────────────────────────────────────────────
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
+    
+    # 1. Users Table: webauthn_credentials
     try:
         columns = [c["name"] for c in inspector.get_columns("users")]
         if "webauthn_credentials" not in columns:
-            logging.warning("🚨 [MIGRATION] 'webauthn_credentials' missing from 'users' table. Attempting to add...")
-            with engine.connect() as conn:
+            logging.warning("🚨 [MIGRATION] 'webauthn_credentials' missing from 'users' table.")
+            with engine.begin() as conn:
                 if _is_sqlite:
                     conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSON DEFAULT '[]'"))
                 else:
                     conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSONB DEFAULT '[]'::jsonb"))
-                conn.commit()
-            logging.info("✅ [MIGRATION] 'webauthn_credentials' column added successfully.")
+            logging.info("✅ [MIGRATION] 'webauthn_credentials' column added.")
         else:
-            logging.info("✓ [SCHEMA] 'webauthn_credentials' column exists.")
+            logging.info("✓ [SCHEMA] 'users' table columns verified.")
     except Exception as e:
-        logging.error(f"❌ [MIGRATION] Failed to ensure users schema: {e}")
+        logging.error(f"❌ [MIGRATION] Users schema check failed: {e}")
 
-    # ── Refresh Tokens Table Migration ────────────────────────────────────────
+    # 2. Refresh Tokens Table
     try:
-        current_tables = inspector.get_table_names()
-        if "refresh_tokens" not in current_tables:
-            logging.warning("🚨 [MIGRATION] 'refresh_tokens' table missing. Creating via SQL...")
-            with engine.connect() as conn:
+        if "refresh_tokens" not in inspector.get_table_names():
+            logging.warning("🚨 [MIGRATION] 'refresh_tokens' table missing.")
+            with engine.begin() as conn:
                 if _is_sqlite:
                     conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS refresh_tokens (
+                        CREATE TABLE refresh_tokens (
                             token_hash TEXT PRIMARY KEY,
                             username TEXT,
                             expires_at DATETIME,
@@ -136,7 +139,7 @@ def init_db():
                     """))
                 else:
                     conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS refresh_tokens (
+                        CREATE TABLE refresh_tokens (
                             token_hash VARCHAR PRIMARY KEY,
                             username VARCHAR,
                             expires_at TIMESTAMP WITH TIME ZONE,
@@ -144,32 +147,28 @@ def init_db():
                             created_at TIMESTAMP WITH TIME ZONE
                         )
                     """))
-                conn.commit()
-            logging.info("✅ [MIGRATION] 'refresh_tokens' table ensured.")
+            logging.info("✅ [MIGRATION] 'refresh_tokens' table created.")
         else:
-            logging.info("✓ [SCHEMA] 'refresh_tokens' table exists.")
+            logging.info("✓ [SCHEMA] 'refresh_tokens' table verified.")
     except Exception as e:
-        logging.error(f"❌ [MIGRATION] Refresh tokens table sync failed: {e}")
+        logging.error(f"❌ [MIGRATION] Refresh tokens check failed: {e}")
 
-    # ── Cases Table Migration ─────────────────────────────────────────────────
+    # 3. Cases Table
     try:
         columns = [c["name"] for c in inspector.get_columns("cases")]
-        with engine.connect() as conn:
-            migration_needed = False
-            if "scam_type" not in columns:
-                conn.execute(text("ALTER TABLE cases ADD COLUMN scam_type TEXT"))
-                migration_needed = True
-            if "transcript" not in columns:
-                conn.execute(text("ALTER TABLE cases ADD COLUMN transcript TEXT"))
-                migration_needed = True
-            if "auto_reported" not in columns:
-                conn.execute(text("ALTER TABLE cases ADD COLUMN auto_reported BOOLEAN DEFAULT 1"))
-                migration_needed = True
-            
-            if migration_needed:
-                conn.commit()
-                logging.info("✅ [MIGRATION] Cases table schema updated.")
-            else:
-                logging.info("✓ [SCHEMA] Cases table schema is up to date.")
+        new_cols = []
+        if "scam_type" not in columns: new_cols.append("scam_type TEXT")
+        if "transcript" not in columns: new_cols.append("transcript TEXT")
+        if "auto_reported" not in columns: 
+            new_cols.append("auto_reported BOOLEAN DEFAULT 1" if _is_sqlite else "auto_reported BOOLEAN DEFAULT TRUE")
+        
+        if new_cols:
+            logging.warning(f"🚨 [MIGRATION] Cases table missing columns: {new_cols}")
+            with engine.begin() as conn:
+                for col_def in new_cols:
+                    conn.execute(text(f"ALTER TABLE cases ADD COLUMN {col_def}"))
+            logging.info("✅ [MIGRATION] Cases table schema updated.")
+        else:
+            logging.info("✓ [SCHEMA] 'cases' table columns verified.")
     except Exception as e:
-        logging.error(f"❌ [MIGRATION] Case table sync failed: {e}")
+        logging.error(f"❌ [MIGRATION] Case table check failed: {e}")

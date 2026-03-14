@@ -4,7 +4,7 @@
 requests==2.32.3
 python-dotenv==1.0.1
 fastapi
-uvicorn[standard]
+uvicorn
 pydantic
 python-jose[cryptography]
 passlib[bcrypt]
