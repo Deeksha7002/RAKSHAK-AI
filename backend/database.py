@@ -119,12 +119,21 @@ def init_db():
                     conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSONB DEFAULT '[]'::jsonb"))
             logging.info("✅ [MIGRATION] 'webauthn_credentials' column added.")
         
-        # Ensure 'role' column exists (critical fix for older databases)
+        # Ensure 'role' column exists
         if "role" not in columns:
             logging.warning("🚨 [MIGRATION] 'role' column missing from 'users' table.")
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'operator'"))
             logging.info("✅ [MIGRATION] 'role' column added.")
+
+        # Ensure 'last_login_at' column exists (found via diagnostic)
+        if "last_login_at" not in columns:
+            logging.warning("🚨 [MIGRATION] 'last_login_at' column missing from 'users' table.")
+            with engine.begin() as conn:
+                # Use TIMESTAMP WITH TIME ZONE for Postgres compatibility
+                col_type = "DATETIME" if _is_sqlite else "TIMESTAMP WITH TIME ZONE"
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN last_login_at {col_type}"))
+            logging.info("✅ [MIGRATION] 'last_login_at' column added.")
 
         logging.info("✓ [SCHEMA] 'users' table columns verified.")
     except Exception as e:
