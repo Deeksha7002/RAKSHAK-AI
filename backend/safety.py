@@ -6,13 +6,15 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [SAFETY] - %(messa
 
 class SafetyGuard:
     @staticmethod
-    def redact_pii(text):
+    def redact_pii(text, exclude_values=None):
         """
         Scans text for sensitive patterns and replaces them with [REDACTED: <TYPE>].
+        Optional: exclude_values list will NOT be redacted even if they match patterns.
         """
         if not text:
             return ""
         redacted_text = text
+        exclude_list = exclude_values or []
         
         for pii_type, pattern in SENSITIVE_PATTERNS.items():
             matches = re.findall(pattern, redacted_text)
@@ -22,9 +24,15 @@ class SafetyGuard:
                     match_str = "".join([m for m in match if m])
                 else:
                     match_str = match
+                
+                if not match_str:
+                    continue
+                
+                # Check if this match is in the exclude list (case-insensitive check for IDs etc)
+                if any(match_str.lower() == str(exc).lower() for exc in exclude_list):
+                    continue
                     
-                if match_str:
-                    redacted_text = redacted_text.replace(match_str, f"[REDACTED: {pii_type}]")
+                redacted_text = redacted_text.replace(match_str, f"[REDACTED: {pii_type}]")
         
         return redacted_text
 

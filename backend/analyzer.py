@@ -1,4 +1,4 @@
-﻿import re
+import re
 import logging
 import math
 from collections import Counter
@@ -96,6 +96,10 @@ class ScamAnalyzer:
             iocs.append("Email Address")
         if re.search(r'\b(?:bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b', text):
             iocs.append("Bitcoin Address")
+        if re.search(r'\b0x[a-fA-F0-9]{40}\b', text):
+            iocs.append("Ethereum/ERC20 Address")
+        if re.search(r'\b[1-9A-HJ-NP-Za-km-z]{32,44}\b', text) and "sol" in text.lower():
+            iocs.append("Solana Address")
             
         return {
             "risk_score": score,
@@ -217,7 +221,12 @@ class ScamAnalyzer:
         
         # Add Sentiment Penality
         if blob.sentiment.polarity < -0.3: # Highly negative/threatening language
+            mathematical_risk += 0.15
+        
+        # Authority Urgency Spike
+        if tf_coercion > 0.05 and any(w in full_text for w in self.lexicons["time_compression"]):
             mathematical_risk += 0.2
+            logging.info("[NLP Core] Authority Urgency detected: Overriding base threat.")
             
         # Sophistication: measures how "professional" the scam sounds.
         # High vocabulary richness (+0.2) = crafted, professional scam.
