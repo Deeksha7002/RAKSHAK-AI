@@ -180,7 +180,7 @@ async def list_routes():
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
-    return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.0 (Fortified)"}
+    return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.1 (Discovery)"}
 
 if __name__ == "__main__":
     import uvicorn
