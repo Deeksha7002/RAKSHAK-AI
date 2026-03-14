@@ -1,5 +1,9 @@
 import os
 import logging
+
+# Ensure INFO level logs are visible on Render
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] - %(message)s')
+
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -141,7 +145,7 @@ async def debug_db_schema(reset: bool = False, current_user: str = Depends(get_c
         report[table_name] = columns
     return report
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.0 (Fortified)"}
 
