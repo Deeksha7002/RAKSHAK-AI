@@ -26,35 +26,56 @@ async def lifespan(app: FastAPI):
     init_db()
     logging.info("🚀 Rakshak AI Core Initialized")
     
-    # 1. Start Challenge Pruner
-    import asyncio
+    # 1. Background Task Management
     stop_event = asyncio.Event()
-    
+    tasks = []
+
+    # 1.1 Start Challenge Pruner
     async def prune_loop():
         while not stop_event.is_set():
             try:
-                # Use context manager style to ensure closing
                 from database import SessionLocal
-                db = SessionLocal()
-                try:
+                with SessionLocal() as db:
                     _prune_stale_challenges(db)
-                finally:
-                    db.close()
             except Exception as e:
                 logging.error(f"Challenge pruning failed: {e}")
             await asyncio.sleep(60)
+    tasks.append(asyncio.create_task(prune_loop()))
 
-    pruner = asyncio.create_task(prune_loop())
+    # 1.2 Start Agent Simulation (if enabled)
+    if os.environ.get("ENABLE_AGENT_SIMULATION") == "1":
+        from agent import RakshakAgent
+        from mock_api import MockScammerAPI
+        
+        async def agent_loop():
+            logging.info("🤖 Rakshak AI Agent Simulation Started")
+            api = MockScammerAPI()
+            agent = RakshakAgent()
+            while not stop_event.is_set():
+                try:
+                    # Run the simulation step (blocking-ish, so we keep sleep short)
+                    msg_data = api.get_new_message()
+                    if msg_data:
+                        logging.info(f"--- Agent Ingesting: {msg_data['conversation_id']} ---")
+                        classification = agent.ingest(msg_data)
+                        if classification in ["scam", "likely_scam"]:
+                            response = agent.generate_response(msg_data['conversation_id'])
+                            if response:
+                                api.send_message(msg_data['conversation_id'], response)
+                except Exception as e:
+                    logging.error(f"Agent simulation error: {e}")
+                await asyncio.sleep(2)
+        tasks.append(asyncio.create_task(agent_loop()))
 
-    # 2. Start Redis Pub/Sub Listener (for multi-server Sync)
-    sync_task = asyncio.create_task(manager.pubsub_listener())
+    # 1.3 Start Redis Sync
+    tasks.append(asyncio.create_task(manager.pubsub_listener()))
     
     yield
     
     # Shutdown
     stop_event.set()
-    pruner.cancel()
-    sync_task.cancel()
+    for task in tasks:
+        task.cancel()
     logging.info("👋 Rakshak AI Core Shutting Down")
 
 app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)

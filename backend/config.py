@@ -1,6 +1,22 @@
-import re
+import os
+from typing import Dict, Any
 
-# Persona Configuration
+# ── General Production Configuration ─────────────────────────────────────────
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.app")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-insecure-key-change-this")
+ALGORITHM = "HS256"
+
+# ── Biometric (WebAuthn) Configuration ────────────────────────────────────────
+WEBAUTHN_RP_NAME = "Rakshak AI"
+# In production, RP_ID is the domain of the frontend.
+# If not set, we'll try to derive it from FRONTEND_URL.
+from urllib.parse import urlparse
+_parsed_frontend = urlparse(FRONTEND_URL)
+WEBAUTHN_RP_ID = os.environ.get("WEBAUTHN_RP_ID", _parsed_frontend.hostname or "localhost")
+WEBAUTHN_ORIGIN = FRONTEND_URL
+
+# ── Persona Configuration ─────────────────────────────────────────
 PERSONA = {
     "default": {
         "name": "Alex",

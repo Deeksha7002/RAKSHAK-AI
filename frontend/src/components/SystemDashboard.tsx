@@ -27,7 +27,7 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
 
     const fetchStats = async () => {
         try {
-            const token = localStorage.getItem('access_token');
+            const token = localStorage.getItem('rakshak_access_token');
             const res = await fetch(`${API_BASE_URL}/api/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });

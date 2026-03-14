@@ -230,7 +230,7 @@ export const LoginScreen: React.FC<any> = () => {
 
             if (finishRes.ok && data.token) {
                 setStatusMsg('ACCESS GRANTED');
-                localStorage.setItem('token', data.token);
+                localStorage.setItem('rakshak_access_token', data.token);
                 localStorage.setItem('scam_last_user', user);
                 // Set session BEFORE reload so AuthProvider knows user is authenticated
                 sessionStorage.setItem('active_session', JSON.stringify({ id: user, username: user }));

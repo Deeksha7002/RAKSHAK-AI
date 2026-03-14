@@ -24,6 +24,7 @@ export class RakshakAgent {
     // Current Persona state
     public currentPersona: PersonaType = 'ELDERLY';
     public senderName: string = 'Unknown';
+    public detectedLocation?: any;
 
     // Track if already reported to avoid duplicates
     private hasAutoReported: boolean = false;
@@ -403,7 +404,7 @@ export class RakshakAgent {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000); // 5s hard timeout
 
-            const token = localStorage.getItem('access_token');
+            const token = localStorage.getItem('rakshak_access_token');
             const res = await fetch(`${API_BASE_URL}/api/generate-response`, {
                 method: 'POST',
                 headers: {
@@ -472,7 +473,8 @@ export class RakshakAgent {
             confidenceScore: this.maxThreatLevel === 'scam' ? 0.95 : this.maxThreatLevel === 'likely_scam' ? 0.75 : 0.1,
             iocs: { ...this.iocs },
             transcript,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            detectedLocation: this.detectedLocation
         };
     }
 

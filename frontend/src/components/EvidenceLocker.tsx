@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CreditCard, Link as LinkIcon, Smartphone, Database, Folder, FolderOpen, AlertTriangle, Search, Send, CheckCircle, Loader2, FileDown, Code } from 'lucide-react';
 import { soundManager } from '../lib/SoundManager';
 import { PDFGenerator } from '../lib/PDFGenerator';
+import { CyberCellService } from '../lib/CyberCellService';
 import type { CaseFile } from '../lib/types';
 
 interface EvidenceLockerProps {
@@ -30,37 +31,39 @@ export const EvidenceLocker: React.FC<EvidenceLockerProps> = ({ cases, onClose }
     const [showLog, setShowLog] = useState(false);
 
     const handleReport = async () => {
-        if (selectedCase) {
-            // Generate Payloads
-            console.log("Encryption Started. Generating Secure Payloads...");
-
-            // 1. PDF Blob
-            const pdfBlob = PDFGenerator.getPDFBlob(selectedCase, selectedCase.transcript);
-            console.log(`[SECURE_UPLOAD] Evidence Report PDF generated (${pdfBlob.size} bytes)`);
-
-            // 2. JSON Payload
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { transcript: _t, ...meta } = selectedCase;
-            const jsonData = JSON.stringify({
-                metadata: meta,
-                transcript: selectedCase.transcript,
-                generatedAt: new Date().toISOString()
-            }, null, 2);
-            console.log(`[SECURE_UPLOAD] Case Data JSON generated (${jsonData.length} bytes)`);
-
-            console.log("Transmitting to CyberSec Secure Gateway...");
-        }
+        if (!selectedCase) return;
 
         setReportStatus('encrypting');
+        
+        try {
+            // Map CaseFile to IncidentReport for the service
+            const reportData = {
+                conversationId: selectedCase.id,
+                scammerName: selectedCase.scammerName,
+                platform: selectedCase.platform,
+                classification: selectedCase.threatLevel,
+                confidenceScore: selectedCase.threatLevel === 'scam' ? 0.98 : 0.85,
+                iocs: selectedCase.iocs,
+                transcript: selectedCase.transcript,
+                timestamp: new Date().toISOString(),
+                detectedLocation: selectedCase.detectedLocation,
+                scamType: 'OTHER' as any // Initial type, backend can refine
+            };
 
-        // Simulate Network Delay
-        setTimeout(() => {
-            setReportStatus('sent');
-            soundManager.playSuccess();
-
-            // Show toast/alert (simulated by console for now, UI feedback is handled by button state)
-            console.log("✅ TRANSMISSION COMPLETE. Files delivered to CyberSec.");
-        }, 2500);
+            const success = await CyberCellService.reportScam(reportData);
+            
+            if (success) {
+                setReportStatus('sent');
+                soundManager.playSuccess();
+                console.log("✅ TRANSMISSION COMPLETE. Evidence delivered to CyberSec.");
+            } else {
+                throw new Error('Transmission failed');
+            }
+        } catch (error) {
+            console.error("Manual report failed:", error);
+            setReportStatus('idle');
+            // We could show an error toast here if one existed
+        }
     };
 
     // Reset reporting status when case changes

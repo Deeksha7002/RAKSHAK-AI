@@ -6,25 +6,7 @@ import os
 import logging
 import secrets
 
-# ── SECRET_KEY Guard ──────────────────────────────────────────────────────────
-# The server REFUSES to start if SECRET_KEY has not been set via environment variable.
-# This prevents a misconfigured production deployment from using the insecure default.
-_DEFAULT_INSECURE_KEY = "RAKSHAK-AI-INSECURE-DEFAULT-CHANGE-IN-PRODUCTION"
-
-SECRET_KEY = os.environ.get("SECRET_KEY", _DEFAULT_INSECURE_KEY)
-
-if SECRET_KEY == _DEFAULT_INSECURE_KEY:
-    # Allow insecure key only in local development (explicit opt-in via env flag)
-    if os.environ.get("ALLOW_INSECURE_KEY", "").lower() not in ("1", "true", "yes"):
-        raise RuntimeError(
-            "\n\n🚨 [SECURITY] SECRET_KEY is not set!\n"
-            "Set the SECRET_KEY environment variable to a long random string before starting.\n"
-            "To allow the insecure default ONLY for local development, set:\n"
-            "  ALLOW_INSECURE_KEY=1\n"
-        )
-    logging.warning("⚠️ [SECURITY] Running with INSECURE default SECRET_KEY. NOT safe for production.")
-
-ALGORITHM = "HS256"
+from config import SECRET_KEY, ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = 15      # Short-lived; refreshed silently by the client
 REFRESH_TOKEN_EXPIRE_DAYS = 7         # Long-lived opaque secret stored hashed in DB
 

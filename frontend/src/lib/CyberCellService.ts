@@ -114,11 +114,25 @@ export class CyberCellService {
             });
             if (res.ok) {
                 const cases = await res.json();
-                console.log('[CyberCellService] 📂 Loaded persistent cases:', cases.length);
-                return cases;
+                console.log('[CyberCellService] 📂 Raw cases from backend:', cases.length);
+                
+                // MAP BE (Snake Case) -> FE (Camel Case)
+                return cases.map((c: any) => ({
+                    id: c.conversation_id || c.id?.toString(),
+                    scammerName: c.scammer_name || "Unknown",
+                    platform: c.platform || "chat",
+                    status: 'closed',
+                    threatLevel: c.classification || 'scam',
+                    iocs: typeof c.iocs === 'string' ? JSON.parse(c.iocs) : (c.iocs || { urls: [], domains: [], paymentMethods: [], sensitiveDataRedacted: 0 }),
+                    transcript: typeof c.transcript === 'string' ? JSON.parse(c.transcript) : (c.transcript || []),
+                    timestamp: c.created_at || new Date().toISOString(),
+                    detectedLocation: c.detectedLocation, 
+                    autoReported: c.auto_reported,
+                    scamType: c.scam_type || 'OTHER'
+                }));
             }
         } catch (e) {
-            console.warn('[CyberCellService] ⚠️ Failed to fetch cases from backend.');
+            console.warn('[CyberCellService] ⚠️ Failed to fetch cases from backend.', e);
         }
         return [];
     }

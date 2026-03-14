@@ -192,6 +192,7 @@ export function useRakshakCore() {
         const threadId = scenario.id;
         const agent = new RakshakAgent();
         agent.senderName = scenario.senderName;
+        agent.detectedLocation = GeoTracer.trace(scenario.location);
         agentsRef.current.set(threadId, agent);
         scammerProgressRef.current.set(threadId, 1);
 
@@ -222,6 +223,7 @@ export function useRakshakCore() {
         const threadId = Math.random().toString(36).substring(7);
         const agent = new RakshakAgent();
         agent.senderName = scenario.senderName;
+        agent.detectedLocation = GeoTracer.trace(scenario.location);
         agentsRef.current.set(threadId, agent);
         scammerProgressRef.current.set(threadId, 1);
 
@@ -330,6 +332,10 @@ export function useRakshakCore() {
             let agent = agentsRef.current.get(threadId);
             if (!agent) {
                 agent = new RakshakAgent();
+                agent.senderName = senderName || threadStateAtStart?.senderName || 'Unknown';
+                if (threadStateAtStart?.detectedLocation) {
+                    agent.detectedLocation = threadStateAtStart.detectedLocation;
+                }
                 agentsRef.current.set(threadId, agent);
             }
 

@@ -60,27 +60,25 @@ def get_challenge(db: Session, key: str) -> Optional[bytes]:
     db.commit()
     return challenge
 
+from config import WEBAUTHN_RP_NAME, WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN
+
 def get_webauthn_config(request: Request):
-    FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.app")
+    # Base configuration from centralized config.py
+    config = {
+        "rp_id": WEBAUTHN_RP_ID,
+        "origin": WEBAUTHN_ORIGIN
+    }
+    
+    # Allow local override for developer convenience
     host = request.headers.get("host", "localhost")
-    origin = request.headers.get("origin", FRONTEND_URL)
-
     if "localhost" in host or "127.0.0.1" in host:
-        # Local development: rp_id must be 'localhost'
-        rp_id = "localhost"
-        # If no origin header (e.g. Swagger test), default to localhost
+        config["rp_id"] = "localhost"
         if not request.headers.get("origin"):
-            origin = "http://localhost:5173"
-    else:
-        # Production: rp_id MUST come from the Origin header (the browser-facing domain),
-        # NOT the Host header (which is the backend Render domain — wrong for WebAuthn).
-        # e.g. origin = 'https://rakshak-ai-git-main-deeksha-bansals-projects.vercel.app'
-        # → rp_id = 'rakshak-ai-git-main-deeksha-bansals-projects.vercel.app'
-        from urllib.parse import urlparse
-        parsed = urlparse(origin)
-        rp_id = parsed.hostname or host.split(":")[0]
-
-    return {"rp_id": rp_id, "origin": origin}
+            config["origin"] = "http://localhost:5173"
+        else:
+            config["origin"] = request.headers.get("origin")
+            
+    return config
 
 # ── Standard Auth ────────────────────────────────────────────────────────────
 
@@ -91,7 +89,7 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     if not user:
         # Fallback to users.json for backward compatibility
         try:
-            users_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "users.json")
+            users_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "users.json")
             with open(users_path, "r") as f:
                 valid_users = json.load(f)
         except Exception:
