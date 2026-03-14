@@ -9,6 +9,7 @@ pydantic
 python-jose[cryptography]
 passlib[bcrypt]
 webauthn
+alembic
 sqlalchemy
 bcrypt
 psycopg2-binary
