@@ -96,86 +96,42 @@ class RefreshToken(Base):
 
 
 def init_db():
-    logging.info("🛠️ Initializing database and ensuring schema consistency...")
+    """
+    Initializes the database schema and runs Alembic migrations.
+    This is called during the application lifespan (server startup).
+    """
+    logging.info("⚙️ Initializing Database Engine...")
     try:
+        # 1. Ensure basic tables exist (Declarative Base)
         Base.metadata.create_all(bind=engine)
+        logging.info("✓ [SCHEMA] Base metadata tables verified.")
     except Exception as e:
         logging.error(f"❌ Base.metadata.create_all failed: {e}")
     
-    # ── Safe Auto-Migration ───────────────────────────────────────────────────
-    from sqlalchemy import inspect, text
-    inspector = inspect(engine)
-    
-    # 1. Users Table Schema Integrity
+    # 2. Run Alembic Migrations
+    run_migrations()
+
+def run_migrations():
+    """
+    Programmatically runs 'alembic upgrade head'.
+    This ensures the production database is always in sync with the code.
+    """
+    logging.info("🚀 Running Alembic migrations...")
     try:
-        columns = [c["name"] for c in inspector.get_columns("users")]
-        # Ensure webauthn_credentials exists
-        if "webauthn_credentials" not in columns:
-            logging.warning("🚨 [MIGRATION] 'webauthn_credentials' missing from 'users' table.")
-            with engine.begin() as conn:
-                if _is_sqlite:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSON DEFAULT '[]'"))
-                else:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSONB DEFAULT '[]'::jsonb"))
-            logging.info("✅ [MIGRATION] 'webauthn_credentials' column added.")
+        from alembic.config import Config
+        from alembic import command
         
-        # Ensure 'role' column exists
-        if "role" not in columns:
-            logging.warning("🚨 [MIGRATION] 'role' column missing from 'users' table.")
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'operator'"))
-            logging.info("✅ [MIGRATION] 'role' column added.")
-
-        # Ensure 'last_login_at' column exists (found via diagnostic)
-        if "last_login_at" not in columns:
-            logging.warning("🚨 [MIGRATION] 'last_login_at' column missing from 'users' table.")
-            with engine.begin() as conn:
-                # Use TIMESTAMP WITH TIME ZONE for Postgres compatibility
-                col_type = "DATETIME" if _is_sqlite else "TIMESTAMP WITH TIME ZONE"
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN last_login_at {col_type}"))
-            logging.info("✅ [MIGRATION] 'last_login_at' column added.")
-
-        logging.info("✓ [SCHEMA] 'users' table columns verified.")
-    except Exception as e:
-        logging.error(f"❌ [MIGRATION] Users schema check failed: {e}")
-
-    # 2. Refresh Tokens Table Schema Consistency
-    try:
-        if inspector.has_table("refresh_tokens"):
-            cols = [c["name"] for c in inspector.get_columns("refresh_tokens")]
-            if "revoked" not in cols:
-                logging.warning("🚨 [MIGRATION] 'revoked' missing from 'refresh_tokens'.")
-                with engine.begin() as conn:
-                    conn.execute(text("ALTER TABLE refresh_tokens ADD COLUMN revoked BOOLEAN DEFAULT FALSE"))
-                logging.info("✅ [MIGRATION] 'revoked' column added.")
-            if "expires_at" not in cols:
-                logging.warning("🚨 [MIGRATION] 'expires_at' missing from 'refresh_tokens'.")
-                with engine.begin() as conn:
-                    col_type = "DATETIME" if _is_sqlite else "TIMESTAMP WITH TIME ZONE"
-                    conn.execute(text(f"ALTER TABLE refresh_tokens ADD COLUMN expires_at {col_type}"))
-                logging.info("✅ [MIGRATION] 'expires_at' column added.")
-
-    except Exception as e:
-        logging.error(f"❌ [MIGRATION] Refresh tokens schema check failed: {e}")
-
-    logging.info("🛠️ Database initialization and schema verification complete.")
-
-    # 3. Cases Table
-    try:
-        columns = [c["name"] for c in inspector.get_columns("cases")]
-        new_cols = []
-        if "scam_type" not in columns: new_cols.append("scam_type TEXT")
-        if "transcript" not in columns: new_cols.append("transcript TEXT")
-        if "auto_reported" not in columns: 
-            new_cols.append("auto_reported BOOLEAN DEFAULT 1" if _is_sqlite else "auto_reported BOOLEAN DEFAULT TRUE")
+        # Locate the alembic.ini relative to this file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        ini_path = os.path.join(base_dir, "alembic.ini")
         
-        if new_cols:
-            logging.warning(f"🚨 [MIGRATION] Cases table missing columns: {new_cols}")
-            with engine.begin() as conn:
-                for col_def in new_cols:
-                    conn.execute(text(f"ALTER TABLE cases ADD COLUMN {col_def}"))
-            logging.info("✅ [MIGRATION] Cases table schema updated.")
-        else:
-            logging.info("✓ [SCHEMA] 'cases' table columns verified.")
+        alembic_cfg = Config(ini_path)
+        # Point to the versions directory
+        alembic_cfg.set_main_option("script_location", os.path.join(base_dir, "alembic"))
+        
+        # Run the upgrade
+        command.upgrade(alembic_cfg, "head")
+        logging.info("✅ [MIGRATION] Alembic migrations completed successfully.")
     except Exception as e:
-        logging.error(f"❌ [MIGRATION] Case table check failed: {e}")
+        logging.error(f"❌ [MIGRATION] Alembic migration failed: {e}")
+        # In production, we might want to fail fast here, but for now, we just log.
