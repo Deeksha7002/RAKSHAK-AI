@@ -35,7 +35,7 @@ from webauthn.helpers.structs import (
     PublicKeyCredentialDescriptor,
 )
 
-router = APIRouter(prefix="/api", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 # limiter = Limiter(key_func=get_remote_address) # MOVED TO dependencies.py
 
 RP_NAME = "Rakshak AI"
@@ -192,7 +192,7 @@ def logout(payload: RefreshRequest, db: Session = Depends(get_db)):
 
 # ── Biometric Auth Routes ────────────────────────────────────────────────────
 
-@router.post("/auth/biometric/register/start")
+@router.post("/biometric/register/start")
 @limiter.limit("5/minute")
 def register_bio_start(username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
@@ -217,7 +217,7 @@ def register_bio_start(username: str, request: Request, db: Session = Depends(ge
     # to a dict so FastAPI serialises it as a proper JSON object (not double-encoded)
     return json.loads(options_to_json(options))
 
-@router.post("/auth/biometric/register/finish")
+@router.post("/biometric/register/finish")
 @limiter.limit("5/minute")
 def register_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
@@ -248,7 +248,7 @@ def register_bio_finish(response: Dict[str, Any], username: str, request: Reques
         logging.error(f"Biometric registration failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/auth/biometric/login/start")
+@router.post("/biometric/login/start")
 @limiter.limit("5/minute")
 def login_bio_start(username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
@@ -268,7 +268,7 @@ def login_bio_start(username: str, request: Request, db: Session = Depends(get_d
     # FIX: same double-encoding fix as register/start
     return json.loads(options_to_json(options))
 
-@router.post("/auth/biometric/login/finish")
+@router.post("/biometric/login/finish")
 @limiter.limit("5/minute")
 def login_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()

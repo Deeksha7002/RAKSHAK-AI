@@ -184,7 +184,7 @@ export const LoginScreen: React.FC<any> = () => {
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
 
         // FIX: Added 'cb' (cache buster) to bypass stubborn browser/PWA caches.
-        const fetchUrl = `${API_BASE_URL}/api/auth/biometric/login/start?username=${encodeURIComponent(user)}&cb=${Date.now()}`;
+        const fetchUrl = `${API_BASE_URL}/api/biometric/login/start?username=${encodeURIComponent(user)}&cb=${Date.now()}`;
         try {
             console.log(`[RAKSHAK] Login Start | URL: ${fetchUrl} | Base: ${API_BASE_URL || 'RELATIVE'}`);
             const startRes = await fetch(fetchUrl, {
@@ -206,7 +206,7 @@ export const LoginScreen: React.FC<any> = () => {
             const assResponse = assertion.response as AuthenticatorAssertionResponse;
             setStatusMsg('AUTHORIZING ACCESS...');
 
-            const finishUrl = `${API_BASE_URL}/api/auth/biometric/login/finish?username=${encodeURIComponent(user)}`;
+            const finishUrl = `${API_BASE_URL}/api/biometric/login/finish?username=${encodeURIComponent(user)}`;
             console.log(`[RAKSHAK] Login Finish | URL: ${finishUrl}`);
             const finishRes = await fetch(finishUrl, {
                 method: 'POST',
@@ -311,7 +311,7 @@ export const LoginScreen: React.FC<any> = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
 
-        const fetchUrl = `${API_BASE_URL}/api/auth/biometric/register/start?username=${encodeURIComponent(user)}`;
+        const fetchUrl = `${API_BASE_URL}/api/biometric/register/start?username=${encodeURIComponent(user)}`;
         try {
             console.log(`[RAKSHAK] Enroll Start | URL: ${fetchUrl}`);
             const startRes = await fetch(fetchUrl, {
@@ -346,7 +346,7 @@ export const LoginScreen: React.FC<any> = () => {
             setStatusMsg('VERIFYING BIOMETRIC PAYLOAD...');
 
             const finishRes = await fetch(
-                `${API_BASE_URL}/api/auth/biometric/register/finish?username=${encodeURIComponent(user)}`,
+                `${API_BASE_URL}/api/biometric/register/finish?username=${encodeURIComponent(user)}`,
                 {
                     method: 'POST',
                     headers: {

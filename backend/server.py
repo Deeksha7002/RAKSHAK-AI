@@ -131,7 +131,7 @@ async def secure_headers_and_obfuscation(request: Request, call_next):
     return response
 
 # ── Route Registration ───────────────────────────────────────────────────────
-app.include_router(auth.router)
+app.include_router(auth.router, prefix="/api")
 app.include_router(agent.router)
 app.include_router(stats.router)
 app.include_router(webhooks.router)
