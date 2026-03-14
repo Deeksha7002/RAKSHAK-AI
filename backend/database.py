@@ -106,9 +106,10 @@ def init_db():
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
     
-    # 1. Users Table: webauthn_credentials
+    # 1. Users Table Schema Integrity
     try:
         columns = [c["name"] for c in inspector.get_columns("users")]
+        # Ensure webauthn_credentials exists
         if "webauthn_credentials" not in columns:
             logging.warning("🚨 [MIGRATION] 'webauthn_credentials' missing from 'users' table.")
             with engine.begin() as conn:
@@ -117,8 +118,15 @@ def init_db():
                 else:
                     conn.execute(text("ALTER TABLE users ADD COLUMN webauthn_credentials JSONB DEFAULT '[]'::jsonb"))
             logging.info("✅ [MIGRATION] 'webauthn_credentials' column added.")
-        else:
-            logging.info("✓ [SCHEMA] 'users' table columns verified.")
+        
+        # Ensure 'role' column exists (critical fix for older databases)
+        if "role" not in columns:
+            logging.warning("🚨 [MIGRATION] 'role' column missing from 'users' table.")
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'operator'"))
+            logging.info("✅ [MIGRATION] 'role' column added.")
+
+        logging.info("✓ [SCHEMA] 'users' table columns verified.")
     except Exception as e:
         logging.error(f"❌ [MIGRATION] Users schema check failed: {e}")
 

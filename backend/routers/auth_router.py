@@ -162,7 +162,7 @@ def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db
         logging.error(f"❌ REGISTRATION CRITICAL FAILURE for {creds.username}: {e}\n{error_trace}")
         raise HTTPException(
             status_code=500, 
-            detail=f"Internal Server Error: {str(e)}" if os.environ.get("DEBUG_MODE") == "1" else "Registration protocol failed. Check system logs."
+            detail=f"REG_FAIL: {str(e)}" # Diagnostic: Expose real error message temporarily
         )
 
 @router.post("/auth/refresh")
