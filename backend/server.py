@@ -166,6 +166,18 @@ async def debug_db_schema(reset: bool = False, current_user: str = Depends(get_c
         report[table_name] = columns
     return report
 
+@app.get("/api/debug/routes")
+async def list_routes():
+    """List all registered routes for diagnostics."""
+    routes = []
+    for route in app.routes:
+        routes.append({
+            "path": route.path,
+            "name": route.name,
+            "methods": list(route.methods) if hasattr(route, "methods") else None
+        })
+    return {"routes": routes}
+
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.0 (Fortified)"}
