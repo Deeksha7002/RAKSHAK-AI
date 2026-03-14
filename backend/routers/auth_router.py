@@ -124,26 +124,46 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
 @router.post("/register")
 @limiter.limit("5/minute")
 def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == creds.username).first()
-    if user:
-        raise HTTPException(status_code=400, detail="Operator ID already exists")
+    try:
+        logging.info(f"📝 Attempting registration for operator: {creds.username}")
+        user = db.query(User).filter(User.username == creds.username).first()
+        if user:
+            logging.warning(f"⚠️ Registration rejected: Operator {creds.username} already exists.")
+            raise HTTPException(status_code=400, detail="Operator ID already exists")
 
-    hashed_pw = security.get_password_hash(creds.password)
-    user = User(username=creds.username, hashed_password=hashed_pw, role="operator")
-    db.add(user)
-    db.commit()
+        hashed_pw = security.get_password_hash(creds.password)
+        user = User(username=creds.username, hashed_password=hashed_pw, role="operator")
+        db.add(user)
 
-    access_token = security.create_access_token(data={"sub": user.username, "role": user.role})
-    raw_refresh = security.create_refresh_token()
-    token_hash = hashlib.sha256(raw_refresh.encode()).hexdigest()
-    db_refresh = RefreshToken(
-        token_hash=token_hash,
-        username=user.username,
-        expires_at=datetime.now(tz.utc) + timedelta(days=security.REFRESH_TOKEN_EXPIRE_DAYS)
-    )
-    db.add(db_refresh)
-    db.commit()
-    return {"status": "created", "token": access_token, "refresh_token": raw_refresh}
+        # Generate tokens before final commit to ensure all or nothing
+        access_token = security.create_access_token(data={"sub": user.username, "role": user.role})
+        raw_refresh = security.create_refresh_token()
+        token_hash = hashlib.sha256(raw_refresh.encode()).hexdigest()
+        
+        db_refresh = RefreshToken(
+            token_hash=token_hash,
+            username=user.username,
+            expires_at=datetime.now(tz.utc) + timedelta(days=security.REFRESH_TOKEN_EXPIRE_DAYS)
+        )
+        db.add(db_refresh)
+
+        db.commit()
+        db.refresh(user) # Optional, but good practice to sync state
+        
+        logging.info(f"✅ Registration successful for operator: {creds.username}")
+        return {"status": "created", "token": access_token, "refresh_token": raw_refresh}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        import traceback
+        error_trace = traceback.format_exc()
+        logging.error(f"❌ REGISTRATION CRITICAL FAILURE for {creds.username}: {e}\n{error_trace}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Internal Server Error: {str(e)}" if os.environ.get("DEBUG_MODE") == "1" else "Registration protocol failed. Check system logs."
+        )
 
 @router.post("/auth/refresh")
 def refresh_access_token(payload: RefreshRequest, db: Session = Depends(get_db)):
