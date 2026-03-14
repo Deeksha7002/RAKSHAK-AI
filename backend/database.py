@@ -139,36 +139,26 @@ def init_db():
     except Exception as e:
         logging.error(f"❌ [MIGRATION] Users schema check failed: {e}")
 
-    # 2. Refresh Tokens Table
+    # 2. Refresh Tokens Table Schema Consistency
     try:
-        if "refresh_tokens" not in inspector.get_table_names():
-            logging.warning("🚨 [MIGRATION] 'refresh_tokens' table missing.")
-            with engine.begin() as conn:
-                if _is_sqlite:
-                    conn.execute(text("""
-                        CREATE TABLE refresh_tokens (
-                            token_hash TEXT PRIMARY KEY,
-                            username TEXT,
-                            expires_at DATETIME,
-                            revoked BOOLEAN DEFAULT 0,
-                            created_at DATETIME
-                        )
-                    """))
-                else:
-                    conn.execute(text("""
-                        CREATE TABLE refresh_tokens (
-                            token_hash VARCHAR PRIMARY KEY,
-                            username VARCHAR,
-                            expires_at TIMESTAMP WITH TIME ZONE,
-                            revoked BOOLEAN DEFAULT FALSE,
-                            created_at TIMESTAMP WITH TIME ZONE
-                        )
-                    """))
-            logging.info("✅ [MIGRATION] 'refresh_tokens' table created.")
-        else:
-            logging.info("✓ [SCHEMA] 'refresh_tokens' table verified.")
+        if inspector.has_table("refresh_tokens"):
+            cols = [c["name"] for c in inspector.get_columns("refresh_tokens")]
+            if "revoked" not in cols:
+                logging.warning("🚨 [MIGRATION] 'revoked' missing from 'refresh_tokens'.")
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE refresh_tokens ADD COLUMN revoked BOOLEAN DEFAULT FALSE"))
+                logging.info("✅ [MIGRATION] 'revoked' column added.")
+            if "expires_at" not in cols:
+                logging.warning("🚨 [MIGRATION] 'expires_at' missing from 'refresh_tokens'.")
+                with engine.begin() as conn:
+                    col_type = "DATETIME" if _is_sqlite else "TIMESTAMP WITH TIME ZONE"
+                    conn.execute(text(f"ALTER TABLE refresh_tokens ADD COLUMN expires_at {col_type}"))
+                logging.info("✅ [MIGRATION] 'expires_at' column added.")
+
     except Exception as e:
-        logging.error(f"❌ [MIGRATION] Refresh tokens check failed: {e}")
+        logging.error(f"❌ [MIGRATION] Refresh tokens schema check failed: {e}")
+
+    logging.info("🛠️ Database initialization and schema verification complete.")
 
     # 3. Cases Table
     try:
