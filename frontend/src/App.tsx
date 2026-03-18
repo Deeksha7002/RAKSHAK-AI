@@ -1,4 +1,4 @@
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { ChatWindow } from './components/ChatWindow';
 import { InboxList } from './components/InboxList';
 import { LoginScreen } from './components/LoginScreen';
@@ -13,6 +13,7 @@ import { NavigationFooter } from './components/layout/NavigationFooter';
 import { IntegrationGuide } from './components/IntegrationGuide';
 import { SecurityProtocolModal } from './components/SecurityProtocolModal';
 import { HoneyTokenGenerator } from './components/HoneyTokenGenerator';
+import { OnboardingTour } from './components/OnboardingTour';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
@@ -42,7 +43,16 @@ function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('rakshak_tour_shown');
+    if (isAuthenticated && !hasSeenTour) {
+      setIsTourOpen(true);
+      localStorage.setItem('rakshak_tour_shown', 'true');
+    }
+  }, [isAuthenticated]);
 
   const selectedThread = threads.find(t => t.id === selectedThreadId);
 
@@ -106,6 +116,7 @@ function App() {
             onToggleMute={() => setIsMuted(soundManager.toggleMute())}
             onToggleIntegration={() => setIsIntegrationOpen(true)}
             onToggleProtocol={() => setIsProtocolOpen(true)}
+            onOpenTour={() => setIsTourOpen(true)}
             onLogout={handleLogout}
           />
         </div>
@@ -204,6 +215,11 @@ function App() {
       </div>
       <IntegrationGuide isOpen={isIntegrationOpen} onClose={() => setIsIntegrationOpen(false)} />
       <SecurityProtocolModal isOpen={isProtocolOpen} onClose={() => setIsProtocolOpen(false)} />
+      <OnboardingTour 
+        isOpen={isTourOpen} 
+        onClose={() => setIsTourOpen(false)} 
+        onSwitchView={(view: ViewState) => { setActiveView(view); setSelectedThreadId(null); }} 
+      />
     </>
   );
 }

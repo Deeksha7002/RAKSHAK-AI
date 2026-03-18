@@ -1,4 +1,4 @@
-import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut, Shield, Target } from 'lucide-react';
+import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut, Shield, Target, HelpCircle } from 'lucide-react';
 
 interface NavigationFooterProps {
     isMonitoring: boolean;
@@ -10,6 +10,7 @@ interface NavigationFooterProps {
     onToggleMute: () => void;
     onToggleIntegration: () => void;
     onToggleProtocol: () => void;
+    onOpenTour: () => void;
     onLogout: () => void;
 }
 
@@ -23,6 +24,7 @@ export function NavigationFooter({
     onToggleMute,
     onToggleIntegration,
     onToggleProtocol,
+    onOpenTour,
     onLogout
 }: NavigationFooterProps) {
     return (
@@ -82,6 +84,14 @@ export function NavigationFooter({
                         title="Connect Integrations"
                     >
                         <LinkIcon size={20} />
+                    </button>
+                    <button
+                        onClick={onOpenTour}
+                        className="btn btn-icon"
+                        title="App Tutorial"
+                        style={{ color: '#fbbf24' }}
+                    >
+                        <HelpCircle size={20} />
                     </button>
                     <button
                         onClick={onToggleProtocol}
