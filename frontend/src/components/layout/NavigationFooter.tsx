@@ -1,4 +1,4 @@
-import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut, Shield } from 'lucide-react';
+import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut, Shield, Target } from 'lucide-react';
 
 interface NavigationFooterProps {
     isMonitoring: boolean;
@@ -6,7 +6,7 @@ interface NavigationFooterProps {
     selectedThreadId: string | null;
     isMuted: boolean;
     onStartMonitoring: () => void;
-    onToggleView: (view: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO') => void;
+    onToggleView: (view: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS') => void;
     onToggleMute: () => void;
     onToggleIntegration: () => void;
     onToggleProtocol: () => void;
@@ -46,6 +46,14 @@ export function NavigationFooter({
                         title="Forensics Lab"
                     >
                         <ScanEye size={20} />
+                    </button>
+                    <button
+                        onClick={() => onToggleView('HONEY_TOKENS')}
+                        className={`btn btn-icon ${activeView === 'HONEY_TOKENS' && !selectedThreadId ? 'active' : ''}`}
+                        title="Honey-Token Generator"
+                        style={{ color: '#ef4444' }}
+                    >
+                        <Target size={20} />
                     </button>
                     <button
                         onClick={() => onToggleView('INTELLIGENCE')}

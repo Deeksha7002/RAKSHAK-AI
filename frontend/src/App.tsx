@@ -12,6 +12,7 @@ import { EvidenceLockerView } from './components/views/EvidenceLockerView';
 import { NavigationFooter } from './components/layout/NavigationFooter';
 import { IntegrationGuide } from './components/IntegrationGuide';
 import { SecurityProtocolModal } from './components/SecurityProtocolModal';
+import { HoneyTokenGenerator } from './components/HoneyTokenGenerator';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
@@ -20,7 +21,7 @@ import { Shield, ChevronLeft, ShieldAlert } from 'lucide-react';
 import type { Thread } from './lib/types';
 import './index.css';
 
-type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO';
+type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS';
 
 function App() {
   const { clearThreads } = useThreads();
@@ -189,6 +190,7 @@ function App() {
               {activeView === 'FORENSICS' && <ForensicsView />}
               {activeView === 'INTELLIGENCE' && <IntelligenceView />}
               {activeView === 'DEMO' && <TestLabView />}
+              {activeView === 'HONEY_TOKENS' && <HoneyTokenGenerator />}
               {activeView === 'DASHBOARD' && (
                 <SystemDashboard
                   activeThreats={threads.filter(t => t.classification === 'scam' || t.classification === 'likely_scam').length}
