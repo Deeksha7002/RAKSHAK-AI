@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Cpu, Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
+import { Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../lib/config';
 import { SecurityProtocolModal } from './SecurityProtocolModal';
@@ -461,14 +461,11 @@ export const LoginScreen: React.FC<any> = () => {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
-                marginBottom: '1rem'
+                width: '80px', height: '80px', borderRadius: '12px',
+                background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
+                marginBottom: '1rem', overflow: 'hidden', padding: '10px'
             }}>
-                <div style={{ position: 'relative', width: '32px', height: '32px' }}>
-                    <Shield size={32} color="#10b981" strokeWidth={1.5} />
-                    <Cpu size={14} color="#10b981" style={{ position: 'absolute', top: '10px', left: '9px' }} />
-                </div>
+                <img src="/favicon.png" alt="Rakshak AI Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, color: '#fff' }}>
                 RAKSHAK<span style={{ color: '#10b981' }}>-AI</span>

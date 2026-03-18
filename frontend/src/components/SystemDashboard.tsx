@@ -180,11 +180,20 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
     return (
         <div className="dashboard-grid">
             <div className="dashboard-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Globe size={24} className={`spin-slow ${activeThreats > 20 ? 'text-red' : ''}`} style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'var(--primary)' }} />
-                    <h2 style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'inherit' }}>
-                        {activeThreats > 20 ? '⚠️ CRITICAL THREAT LEVEL: BOTNET DETECTED' : 'GLOBAL THREAT SURVEILLANCE'}
-                    </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ 
+                        width: '40px', height: '40px', borderRadius: '8px', 
+                        background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
+                        padding: '4px', overflow: 'hidden'
+                    }}>
+                        <img src="/favicon.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Globe size={24} className={`spin-slow ${activeThreats > 20 ? 'text-red' : ''}`} style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'var(--primary)' }} />
+                        <h2 style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'inherit' }}>
+                            {activeThreats > 20 ? '⚠️ CRITICAL THREAT LEVEL: BOTNET DETECTED' : 'GLOBAL THREAT SURVEILLANCE'}
+                        </h2>
+                    </div>
                 </div>
                 <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     {onSimulateAttack && (
