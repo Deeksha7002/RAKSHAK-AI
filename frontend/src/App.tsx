@@ -166,6 +166,7 @@ function App() {
                   threatScore={selectedThread.threatScore || 0}
                   isScanning={selectedThread.isScanning}
                   location={selectedThread.detectedLocation}
+                  neuralMatrixHistory={selectedThread.neuralMatrixHistory}
                   counterMeasure={
                     selectedThread.intent === "MONEY" ? "TRACE_PAYMENT" :
                       selectedThread.intent === "CODES" ? "INJECT_FAKE_OTP" :

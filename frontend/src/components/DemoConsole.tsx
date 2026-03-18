@@ -29,7 +29,7 @@ export const DemoConsole: React.FC = () => {
                 },
                 body: JSON.stringify({
                     text: input,
-                    thread_id: "demo-lab",
+                    conversation_id: "demo-lab",
                     context: "{\"is_demo\": true}"
                 })
             });

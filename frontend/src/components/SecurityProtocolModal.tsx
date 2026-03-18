@@ -11,7 +11,7 @@ export const SecurityProtocolModal: React.FC<SecurityProtocolModalProps> = ({ is
 
     return (
         <div className="locker-overlay" style={{ zIndex: 1000 }}>
-            <div className="locker-modal" style={{ width: '600px', height: 'auto', maxHeight: '85vh' }}>
+            <div className="locker-modal" style={{ width: '90%', maxWidth: '600px', height: 'auto', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '2rem', borderBottom: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.05)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <Shield className="text-emerald-500" size={24} />

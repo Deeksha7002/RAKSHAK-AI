@@ -70,6 +70,13 @@ export interface IncidentReport {
     detectedLocation?: GeoLocation; // New field
 }
 
+export interface NeuralMatrix {
+    financial_risk_node: number;
+    coercion_risk_node: number;
+    urgency_spike_node: number;
+    deception_complexity_node: number;
+}
+
 export interface Thread {
     id: string;
     scenarioId: string;
@@ -89,6 +96,8 @@ export interface Thread {
     intent?: string;
     threatScore?: number;
     isCompromised?: boolean;
+    neuralMatrix?: NeuralMatrix;
+  neuralMatrixHistory?: NeuralMatrix[];
 }
 
 export interface CaseFile {

@@ -5,6 +5,7 @@ class AnalysisRequest(BaseModel):
     text: str
     context: Optional[str] = "general"
     sender_name: Optional[str] = ""
+    conversation_id: Optional[str] = "default"
 
 class ReportRequest(BaseModel):
     conversationId: str

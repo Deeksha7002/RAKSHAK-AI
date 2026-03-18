@@ -40,22 +40,30 @@ async def generate_llm_response(
     return {"response": response_text, "persona": agent.current_persona}
 
 @router.post("/api/analyze")
-async def analyze_text(payload: AnalysisRequest, request: Request, current_user: str = Depends(get_current_user)):
-    """Performs deep NLP analysis on a text snippet."""
+async def analyze_text(payload: AnalysisRequest, current_user: str = Depends(get_current_user)):
+    """Performs deep stateful analysis using the RakshakAgent brain."""
     if not current_user:
         from fastapi import HTTPException
         raise HTTPException(status_code=401, detail="Authentication required")
         
-    logging.info(f"🔍 [ANALYZER] Input received: '{payload.text[:50]}...'")
-    # NLP analysis can be heavy, run in thread pool
-    result = await asyncio.to_thread(
-        analyzer.analyze, 
-        payload.text, 
-        context=payload.context, 
-        sender_name=payload.sender_name or ""
-    )
-    logging.info(f"📊 [ANALYZER] Result: {result.get('classification')} | Intent: {result.get('intent')}")
-    return result
+    thread_id = payload.conversation_id or "default"
+    agent = load_agent(thread_id, current_user)
+    
+    logging.info(f"🔍 [AGENT-CORE] Analyzing for thread {thread_id}: '{payload.text[:50]}...'")
+    
+    # Run ingestion (stateful NLP) in thread pool
+    result = await asyncio.to_thread(agent.ingest, payload.text, thread_id)
+    
+    # Persist updated state (Persona might have switched!)
+    save_agent(thread_id, agent, current_user)
+    
+    # Merge result with current agent state for the frontend
+    return {
+        **result,
+        "current_persona": agent.current_persona,
+        "thread_id": thread_id,
+        "detected_location": agent.detected_location
+    }
 
 # FIX #1: WebSocket path changed to /api/ws to match what the frontend expects
 @router.websocket("/api/ws")

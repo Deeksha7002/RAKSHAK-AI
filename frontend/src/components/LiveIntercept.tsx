@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Shield, Wifi, MapPin } from 'lucide-react';
-import type { GeoLocation } from '../lib/types';
+import type { GeoLocation, NeuralMatrix } from '../lib/types';
+import { TacticalIntelligenceGraph } from './TacticalIntelligenceGraph';
 
 interface LiveInterceptProps {
     intent: string;
@@ -8,9 +9,10 @@ interface LiveInterceptProps {
     isScanning: boolean;
     counterMeasure: string;
     location?: GeoLocation;
+    neuralMatrixHistory?: NeuralMatrix[];
 }
 
-export const LiveIntercept: React.FC<LiveInterceptProps> = ({ intent, threatScore, isScanning, counterMeasure, location }) => {
+export const LiveIntercept: React.FC<LiveInterceptProps> = ({ intent, threatScore, isScanning, counterMeasure, location, neuralMatrixHistory }) => {
     // Force usage to satisfy aggressive linter
     // console.log("Debug LiveIntercept:", intent, threatScore, isScanning, counterMeasure, location);
 
@@ -158,6 +160,11 @@ export const LiveIntercept: React.FC<LiveInterceptProps> = ({ intent, threatScor
                     </div>
                 </div>
             </div>
+
+            {/* Tactical Intelligence Graph */}
+            <TacticalIntelligenceGraph
+                history={neuralMatrixHistory ?? []}
+            />
 
             <style>{`
                 .live-intercept-panel {

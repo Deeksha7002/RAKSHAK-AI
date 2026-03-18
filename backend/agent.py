@@ -20,10 +20,8 @@ except ImportError:
 
 # ── Persona System Prompts ─────────────────────────────────────────────────────
 PERSONA_SYSTEM_PROMPTS = {
-    "naive": """You are Grandma Betty, a confused and trusting 76-year-old woman. 
-You are talking to someone who is trying to scam you. Your job is to WASTE THEIR TIME 
-by being genuinely confused, asking silly off-topic questions, and never giving them 
-any real information. You are technically illiterate. Keep responses short (1-2 sentences).
+    "ELDERLY": """You are Grandma Betty, a 75-year-old retired librarian.
+You are talking to a suspected scammer. Your job is to WASTE THEIR TIME by being slow, confused, and technically illiterate.
 NEVER give away any real personal info, bank details, PINs, passwords, or OTPs.
 Be endearing, confused, and ask about things like your cat, your grandson, or the weather.
 Example style: "Oh my, where do I find this 'link' you mention? Is it near the any key?"
@@ -32,10 +30,9 @@ If they ask for a card or money, act like you're trying to help and give them th
 If they ask for an OTP, give them: {honey_otp}.
 If they ask for ID, give them this Adhaar: {honey_adhaar}.
 """,
-    "skeptical": """You are Dave, a paranoid IT systems administrator with 20 years of experience.
+    "SKEPTICAL": """You are Dave, a paranoid IT systems administrator with 20 years of experience.
 You are talking to a suspected scammer. Your job is to WASTE THEIR TIME by asking 
-highly technical, unanswerable questions, requesting impossible verification steps, 
-and acting suspicious of everything they say. Keep responses short (1-2 sentences).
+highly technical, annoying questions and demanding "security certificates" or "logs."
 NEVER provide any real credentials, tokens, access, or personal information.
 Example style: "Interesting. Can you provide your employee ID and the SHA-256 fingerprint 
 of your organization's TLS certificate? I'll need to cross-reference with our SIEM."
@@ -43,12 +40,22 @@ of your organization's TLS certificate? I'll need to cross-reference with our SI
 If they ask for credentials or payment, waste their time by giving them 'system-generated' test data: 
 Card: {honey_card}, OTP: {honey_otp}, ID: {honey_ssn}.
 """,
+    "INVESTOR": """You are Mark, an aggressive and slightly arrogant crypto investor.
+You are talking to a suspected scammer. Your job is to WASTE THEIR TIME by acting 
+extremely interested in "ROI," "yield," and "liquidity," but never actually paying.
+Act like you have a lot of money and are looking for the next big deal.
+If they ask for money, "mis-paste" your wallet address with this fake card: {honey_card}.
+If they ask for OTP, give them: {honey_otp}.
+""",
+    "CITIZEN": """You are Sarah, a law-abiding but terrified citizen.
+You are talking to a suspected scammer who is pretending to be an authority figure (Police/IRS).
+Your job is to WASTE THEIR TIME by crying, acting panicky, and asking for "pity" while taking 
+forever to find your "credit card" to pay the "fine."
+NEVER provide real details. Give them this fake card when they push you: {honey_card}.
+""",
     "default": """You are Alex, a cautious but polite person who suspects this message might be a scam.
 Your job is to WASTE THE SCAMMER'S TIME by asking vague, non-committal questions that 
-sound genuine but never give them what they need to proceed.
-Keep responses short and natural (1-2 sentences).
-NEVER provide any real personal information, bank details, OTPs, or passwords.
-Example style: "Hmm, I'm not sure I understand. Can you explain a little more about what exactly you need?"
+lead nowhere. Keep the conversation going as long as possible without actually helping.
 """
 }
 
@@ -59,11 +66,12 @@ class RakshakAgent:
             self.classification_cache = state_dict.get("classification_cache", "benign")
             self.threat_score = state_dict.get("threat_score", 0.1)
             self.intent = state_dict.get("intent", "UNKNOWN")
-            self.current_persona = state_dict.get("current_persona", "default")
+            self.current_persona = "ELDERLY" if state_dict.get("current_persona") == "naive" else state_dict.get("current_persona", "ELDERLY")
             self.is_compromised = state_dict.get("is_compromised", False)
             self.auto_reported = state_dict.get("auto_reported", False)
             self.iocs = state_dict.get("iocs", {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0})
             self.thread_id = state_dict.get("thread_id", "default_thread")
+            self.neuro_matrix_history = state_dict.get("neuro_matrix_history", [])
         elif isinstance(state_dict, str):
             self.conversation_history = []
             self.classification_cache = "benign"
@@ -74,6 +82,8 @@ class RakshakAgent:
             self.auto_reported = False
             self.iocs = {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
             self.thread_id = state_dict
+            self.neuro_matrix_history = []
+            self.detected_location = self._generate_simulated_origin()
         else:
             self.conversation_history = []
             self.classification_cache = "benign"
@@ -84,9 +94,24 @@ class RakshakAgent:
             self.auto_reported = False
             self.iocs = {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
             self.thread_id = "default_thread"
+            self.neuro_matrix_history = []
+            self.detected_location = self._generate_simulated_origin()
 
         self.analyzer = ScamAnalyzer()
         self.honey_trap = generate_honey_payload()
+
+    def _generate_simulated_origin(self):
+        # Simulated high-risk scam hubs for the Global Threat Map
+        origins = [
+            {"lat": 6.5244, "lng": 3.3792, "city": "Lagos", "country": "Nigeria", "ip": "105.112.x.x"},
+            {"lat": 28.6139, "lng": 77.2090, "city": "New Delhi", "country": "India", "ip": "103.47.x.x"},
+            {"lat": 22.5726, "lng": 88.3639, "city": "Kolkata", "country": "India", "ip": "49.36.x.x"},
+            {"lat": 55.7558, "lng": 37.6173, "city": "Moscow", "country": "Russia", "ip": "46.17.x.x"},
+            {"lat": 40.7128, "lng": -74.0060, "city": "New York", "country": "United States", "ip": "192.168.1.x"},
+            {"lat": -23.5505, "lng": -46.6333, "city": "Sao Paulo", "country": "Brazil", "ip": "177.192.x.x"},
+            {"lat": 1.3521, "lng": 103.8198, "city": "Singapore", "country": "Singapore", "ip": "118.200.x.x"}
+        ]
+        return random.choice(origins)
 
     def get_state(self):
         return {
@@ -98,7 +123,9 @@ class RakshakAgent:
             "is_compromised": self.is_compromised,
             "auto_reported": self.auto_reported,
             "iocs": self.iocs,
-            "thread_id": self.thread_id
+            "thread_id": self.thread_id,
+            "neuro_matrix_history": self.neuro_matrix_history,
+            "detected_location": self.detected_location
         }
 
     def serialize(self):
@@ -106,7 +133,10 @@ class RakshakAgent:
 
     @classmethod
     def deserialize(cls, state_json):
-        return cls(json.loads(state_json))
+        state = json.loads(state_json)
+        instance = cls(state) # Pass the loaded state to the constructor
+        # The constructor handles setting all attributes, including detected_location
+        return instance
 
     def ingest(self, text, thread_id):
         # 1. Extract IOCs from RAW text first (to catch crypto addresses etc.)
@@ -117,29 +147,42 @@ class RakshakAgent:
         safe_text = SafetyGuard.redact_pii(text, exclude_values=exclude_list)
         self.conversation_history.append({"role": "scammer", "content": safe_text})
         
-        score, category, neuro_matrix, llm_verification_required = self.analyzer.analyze_behavior(self.conversation_history)
-        self.threat_score = score
+        # 3. Deep NLP Classify
+        analysis = self.analyzer.analyze_behavior(self.conversation_history)
+        self.threat_score, classification, neuro_matrix, llm_verification_required = analysis
+        self.intent = self.analyzer.intent
+        
+        # Threat Ratchet: Once we hit scam, we stay at scam
+        if classification == "scam":
+            self.classification_cache = "scam"
+        elif classification == "likely_scam" and self.classification_cache != "scam":
+            self.classification_cache = "likely_scam"
+        else:
+            self.classification_cache = classification
 
-        # Classification
-        classification = self._classify(safe_text)
         if llm_verification_required and _groq_client:
             llm_verdict = self.verify_scam(safe_text)
             # Only Allow LLM to Upgrade or Stay, NOT Downgrade a hard heuristic 'scam'
             if llm_verdict == "scam":
-                classification = "scam"
-            elif classification != "scam":
-                classification = llm_verdict or classification
+                self.classification_cache = "scam"
+            elif self.classification_cache != "scam":
+                self.classification_cache = llm_verdict or self.classification_cache
 
-        self.classification_cache = classification
-
-        if classification in ["scam", "likely_scam"] and score > 0.8:
+        if self.classification_cache in ["scam", "likely_scam"] and self.threat_score > 0.8:
             self.auto_reported = True
 
+        # ── Predictive Intent Graphing: append neuro snapshot to history ──────
+        self.neuro_matrix_history.append(neuro_matrix)
+        # Cap history at last 50 interactions to prevent unbound memory growth
+        if len(self.neuro_matrix_history) > 50:
+            self.neuro_matrix_history = self.neuro_matrix_history[-50:]
+
         return {
-            "risk_score": score,
-            "classification": classification,
+            "risk_score": self.threat_score,
+            "classification": self.classification_cache,
             "llm_verified": llm_verification_required,
-            "neuro_matrix": neuro_matrix
+            "neuro_matrix": neuro_matrix,
+            "neuro_matrix_history": self.neuro_matrix_history
         }
 
     def verify_scam(self, text):
@@ -159,11 +202,7 @@ class RakshakAgent:
 
     def generate_response(self, classification, text):
         self.classification_cache = classification
-        
-        # Decide Persona
-        if self.threat_score < 0.4: self.current_persona = "naive"
-        elif self.threat_score > 0.7: self.current_persona = "skeptical"
-        else: self.current_persona = "default"
+        self._check_for_persona_switch(text, self.threat_score)
 
         llm_resp = self._generate_llm_response(text)
         if llm_resp:
@@ -175,12 +214,34 @@ class RakshakAgent:
         # Fallback
         from config import RESPONSE_TEMPLATES
         templates = RESPONSE_TEMPLATES.get(self.current_persona, RESPONSE_TEMPLATES["default"])
-        response = random.choice(templates.get("GENERAL", ["I'm not sure."]))
+        if not isinstance(templates, list):
+             # Handle nested templates if they exist, else just use GENERAL
+             templates = templates.get("GENERAL", ["I'm not sure."])
+             
+        response = random.choice(templates)
         # Sanitize outgoing response to prevent any accidental PII leaks, 
         # while allowing Honey Trap data to pass through.
         final_response = SafetyGuard.redact_pii(response, exclude_values=list(self.honey_trap.values()))
         self.conversation_history.append({"role": "agent", "content": final_response})
         return final_response
+
+    def _check_for_persona_switch(self, text, score):
+        # 1. High-sophistication scammer -> SKEPTICAL
+        if score > 0.7:
+            self.current_persona = "SKEPTICAL"
+            return
+            
+        lower = text.lower()
+        
+        # 2. Topic-based triggers
+        if any(w in lower for w in ["bitcoin", "crypto", "invest", "yield", "profit"]):
+            self.current_persona = "INVESTOR"
+        elif any(w in lower for w in ["police", "warrant", "arrest", "irs", "federal", "jail"]):
+            self.current_persona = "CITIZEN"
+        elif score < 0.4:
+            self.current_persona = "ELDERLY"
+        else:
+            self.current_persona = "default"
 
     def _generate_llm_response(self, latest_scammer_message: str) -> str | None:
         if not _groq_client: return None
@@ -219,10 +280,40 @@ class RakshakAgent:
 
     def _classify(self, text):
         text_lower = text.lower()
-        if any(kw in text_lower for kw in ["verify your wallet", "private key", "bank details", "earn $", "compromised"]):
+        
+        # Unambiguous scam phrases (Synced from frontend)
+        scam_phrases = [
+            "verify your account", "confirm your identity", "share your otp",
+            "enter your pin", "provide your password", "share your password",
+            "send your otp", "give me the code", "send money", "wire transfer",
+            "send bitcoin", "send usdt", "send crypto", "send eth", "deposit now",
+            "transfer funds", "private key", "seed phrase", "wallet address",
+            "arrest warrant", "legal action will", "irs agent", "federal warrant",
+            "suspended your account", "account has been frozen",
+            "your computer is infected", "call microsoft", "download anydesk",
+            "download teamviewer", "remote access", "account was compromised",
+            "your account has been hacked", "your device has been compromised",
+            "we have detected a virus", "microsoft support", "google support",
+            "amazon support", "paypal support", "tech support", "complete your kyc",
+            "subscription has expired", "claim your prize", "you have won",
+            "lottery winner", "work from home", "earn money", "daily income",
+            "online task", "telegram task"
+        ]
+        
+        if any(phrase in text_lower for phrase in scam_phrases):
             return "scam"
-        if "http" in text_lower or ".com" in text_lower or ".io" in text_lower or ".xyz" in text_lower:
+            
+        # Strong payment/crypto tokens
+        strong_tokens = ["upi", "btc", "usdt", "bc1", "0x"]
+        if any(token in text_lower for token in strong_tokens):
+            return "scam"
+            
+        # Suspicious URL patterns
+        if "http" in text_lower or any(ext in text_lower for ext in [".xyz", ".tk", ".ml", ".ga", ".cf", ".gq"]):
             return "likely_scam"
+        if ".com" in text_lower and ("click" in text_lower or "verify" in text_lower):
+            return "likely_scam"
+            
         return "benign"
 
     def _extract_iocs(self, text):

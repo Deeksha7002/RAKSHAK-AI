@@ -49,10 +49,13 @@ export function useRakshakCore() {
 
         const connect = () => {
             let wsUrl;
-            if (API_BASE_URL.startsWith('http')) {
-                wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/api/ws';
+            
+            // If API_BASE_URL is empty (relative), derive WS from current location
+            if (!API_BASE_URL) {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                wsUrl = `${protocol}//${window.location.host}/api/ws`;
             } else {
-                wsUrl = 'wss://scam-defender-honeypot-1.onrender.com/api/ws';
+                wsUrl = (API_BASE_URL as string).replace(/^http/, 'ws') + '/api/ws';
             }
 
             ws = new WebSocket(wsUrl);
@@ -341,7 +344,31 @@ export function useRakshakCore() {
 
             const scenario = scenarioId ? apiRef.current.getScenario(scenarioId) : undefined;
             const relationalContext = scenario?.relationalContext;
-            const { classification, safeText, intent, score, isCompromised, autoReported, missionComplete, scamType, iocs } = agent.ingest(content, threadId, relationalContext);
+            
+            // 1. Local Fallback Ingest (Immediate UI Feedback potential)
+            const localResult = agent.ingest(content, threadId, relationalContext);
+            
+            // 2. Sync with Master Brain (Backend)
+            let result = localResult;
+            try {
+                const synced = await agent.syncWithBackend(content, threadId);
+                // Backend result overrides local for better precision
+                result = { 
+                    ...localResult, 
+                    classification: synced.classification, 
+                    score: synced.score,
+                    neuralMatrix: synced.neuralMatrix ?? localResult.neuralMatrix // Store neuralMatrix
+                };
+                setThreads(prev => prev.map(t =>
+                    t.id === threadId
+                        ? { ...t, threatScore: synced.score, classification: synced.classification, neuralMatrix: synced.neuralMatrix, neuralMatrixHistory: synced.neuralMatrixHistory, detectedLocation: synced.detectedLocation ?? t.detectedLocation }
+                        : t
+                ));
+            } catch (e) {
+                console.warn("[RakshakCore] Master Brain sync failed. Using local heuristics.");
+            }
+
+            const { classification, safeText, intent, score, isCompromised, autoReported, missionComplete, scamType, iocs } = result;
 
             if (classification === 'scam' || classification === 'likely_scam') {
                 IntelligenceService.recordScam({
@@ -398,14 +425,6 @@ export function useRakshakCore() {
                     })
                 };
             }));
-
-            agent.syncWithBackend(content, threadId).then(({ score: finalScore, classification: finalClass }) => {
-                if (finalClass !== classification || finalScore !== score) {
-                    setThreads((prev: Thread[]) => prev.map((t: Thread) =>
-                        t.id === threadId ? { ...t, classification: finalClass, threatScore: finalScore } : t
-                    ));
-                }
-            });
 
             if (missionComplete && !threadState?.isBlocked) {
                 addMessageToThread(threadId, {

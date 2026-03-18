@@ -5,7 +5,7 @@ import { BaitGenerator } from './BaitGenerator';
 import { ScamAnalyzer } from './ScamAnalyzer';
 import { CyberCellService } from './CyberCellService';
 import { API_BASE_URL } from './config';
-import type { Classification, Message, IncidentReport, IOCs, ScamType } from './types';
+import type { Classification, Message, IncidentReport, IOCs, ScamType, NeuralMatrix } from './types';
 
 export class RakshakAgent {
     private iocs: IOCs = {
@@ -20,6 +20,8 @@ export class RakshakAgent {
     private currentScamType: ScamType = 'OTHER';
     private analyzer = new ScamAnalyzer();
     private conversationHistory: Message[] = [];
+    public neuralMatrix?: any;
+    public neuralMatrixHistory: any[] = [];
 
     // Current Persona state
     public currentPersona: PersonaType = 'ELDERLY';
@@ -47,11 +49,15 @@ export class RakshakAgent {
         return 'OTHER';
     }
 
-    async syncWithBackend(text: string, _threadId: string): Promise<{ score: number, classification: Classification }> {
+    async syncWithBackend(text: string, _threadId: string): Promise<{ score: number, classification: Classification, neuralMatrix?: NeuralMatrix, neuralMatrixHistory?: NeuralMatrix[], detectedLocation?: any }> {
         try {
+            const token = localStorage.getItem('rakshak_access_token');
             const res = await fetch(`${API_BASE_URL}/api/analyze`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     text,
                     context: 'chat',
@@ -61,22 +67,33 @@ export class RakshakAgent {
 
             if (res.ok) {
                 const result = await res.json();
-                console.log(`[RakshakAgent] Backend Sync Success: Score ${result.risk_score}, Class: ${result.classification}`);
+                console.log(`[RakshakAgent] Backend Sync: Score ${result.risk_score}, Class: ${result.classification}, Persona: ${result.current_persona}`);
 
-                // Override local state with backend "Master Brain" results
-                if (result.risk_score !== undefined) {
-                    const backendScore = result.risk_score;
-                    const backendClass = result.classification as Classification;
+                const backendScore = result.risk_score;
+                const backendClass = result.classification as Classification;
 
-                    // Ratchet threat level upwards if backend is more concerned
-                    if (backendClass === 'scam') {
-                        this.maxThreatLevel = 'scam';
-                    } else if (backendClass === 'likely_scam' && this.maxThreatLevel !== 'scam') {
-                        this.maxThreatLevel = 'likely_scam';
-                    }
-
-                    return { score: Math.round(backendScore * 100), classification: this.maxThreatLevel };
+                // Source of Truth: Backend
+                this.maxThreatLevel = backendClass;
+                if (result.current_persona) {
+                    this.currentPersona = result.current_persona as PersonaType;
                 }
+
+                if (result.neuro_matrix) {
+                    this.neuralMatrix = result.neuro_matrix;
+                }
+                if (result.neuro_matrix_history) {
+                    this.neuralMatrixHistory = result.neuro_matrix_history;
+                }
+                if (result.detected_location) {
+                    this.detectedLocation = result.detected_location;
+                }
+                return { 
+                    score: Math.round(backendScore * 100), 
+                    classification: this.maxThreatLevel,
+                    neuralMatrix: this.neuralMatrix,
+                    neuralMatrixHistory: this.neuralMatrixHistory,
+                    detectedLocation: this.detectedLocation
+                };
             }
         } catch (e) {
             console.warn('[RakshakAgent] Backend sync failed, falling back to local analysis.', e);
@@ -84,7 +101,7 @@ export class RakshakAgent {
         return { score: Math.round(this.analyzer.sophisticationScore * 100), classification: this.maxThreatLevel };
     }
 
-    ingest(text: string, conversationId: string, relationalContext?: 'family' | 'work' | 'friend'): { classification: Classification, safeText: string, intent: string, score: number, isCompromised: boolean, autoReported: boolean, missionComplete: boolean, scamType: ScamType, iocs: string[] } {
+    ingest(text: string, conversationId: string, relationalContext?: 'family' | 'work' | 'friend'): { classification: Classification, safeText: string, intent: string, score: number, isCompromised: boolean, autoReported: boolean, missionComplete: boolean, scamType: ScamType, iocs: string[], neuralMatrix: NeuralMatrix } {
         // 1. Redact
         const safeText = SafetyGuard.redactPII(text);
         if (safeText !== text) {
@@ -138,7 +155,7 @@ export class RakshakAgent {
             CyberCellService.autoReport(report);
         }
 
-        console.log(`[RakshakAgent] Ingest Complete. Class: ${this.maxThreatLevel}, Reported: ${this.hasAutoReported}, Intent: ${intent}`);
+        console.log(`[RakshakAgent] Local Ingest Complete. Class: ${this.maxThreatLevel}, Persona: ${this.currentPersona}`);
 
         if (currentClassification === 'scam' || currentClassification === 'likely_scam') {
             this.currentScamType = this.detectScamType(text);
@@ -152,7 +169,13 @@ export class RakshakAgent {
             autoReported: this.hasAutoReported,
             missionComplete: this.isIntelligenceSufficient(),
             scamType: this.currentScamType,
-            iocs: [...this.iocs.urls, ...this.iocs.paymentMethods]
+            iocs: [...this.iocs.urls, ...this.iocs.paymentMethods],
+            neuralMatrix: this.neuralMatrix || {
+                financial_risk_node: 0.1,
+                coercion_risk_node: 0.1,
+                urgency_spike_node: 0.1,
+                deception_complexity_node: score
+            }
         };
     }
 
