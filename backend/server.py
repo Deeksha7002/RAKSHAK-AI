@@ -89,12 +89,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://rakshak-ai-drab.vercel.app",
+        "https://rakshak-ai.vercel.app",
+        "https://scam-defender-honeypot.vercel.app",
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:5175",
         "http://localhost:3000"
     ],
-    allow_credentials=True, # Set to True as we are specifying origins
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -184,6 +186,11 @@ async def list_routes():
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"status": "active", "system": "Cyber Cell Core", "version": "2.0.2 (Explicit)"}
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health_check():
+    """Standard health check endpoint for Render and uptime monitors."""
+    return {"status": "ok", "system": "Rakshak AI Core", "version": "2.0.2"}
 
 if __name__ == "__main__":
     import uvicorn
