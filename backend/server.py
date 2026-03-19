@@ -27,6 +27,25 @@ from limiter_config import limiter
 async def lifespan(app: FastAPI):
     # Startup logic
     init_db()
+
+    # Download required NLTK/TextBlob corpora if not present (critical for Render cold starts)
+    try:
+        import nltk
+        import ssl
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            pass
+        else:
+            ssl._create_default_https_context = _create_unverified_https_context
+        nltk.download('punkt', quiet=True)
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+        nltk.download('brown', quiet=True)
+        nltk.download('wordnet', quiet=True)
+        logging.info("✅ NLTK corpora verified/downloaded.")
+    except Exception as e:
+        logging.warning(f"⚠️ NLTK download skipped: {e}")
+
     logging.info("🚀 Rakshak AI Core Initialized")
     
     # 1. Background Task Management
