@@ -1,0 +1,22 @@
+name: Keep Rakshak AI Core Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes — prevents Render free tier from sleeping
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual trigger too
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Rakshak AI Core Backend
+        run: |
+          echo "Pinging Rakshak AI Core..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://scam-defender-honeypot-1.onrender.com/health)
+          echo "Backend responded with HTTP $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Rakshak AI Core is ACTIVE"
+          else
+            echo "⚠️ Backend returned status $STATUS — may be cold starting"
+          fi
