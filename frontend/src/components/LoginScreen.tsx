@@ -321,7 +321,7 @@ export const LoginScreen: React.FC<any> = () => {
         return false;
     };
 
-    const enrollBiometrics = async (user: string) => {
+    const enrollBiometrics = async (rawUser: string) => {
         setIsLoading(true);
         setError(null);
         setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
@@ -337,6 +337,7 @@ export const LoginScreen: React.FC<any> = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
 
+        const user = rawUser.trim().toLowerCase();
         const fetchUrl = `${API_BASE_URL}/api/biometric/register/start?username=${encodeURIComponent(user)}`;
         try {
             console.log(`[RAKSHAK] Enroll Start | URL: ${fetchUrl}`);

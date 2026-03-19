@@ -139,10 +139,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
 
         try {
+            const cleanUser = username.trim().toLowerCase();
             const res = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+                body: JSON.stringify({ username: cleanUser, password: password.trim() }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -175,10 +176,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
 
         try {
+            const cleanUser = username.trim().toLowerCase();
             const res = await fetch(`${API_BASE_URL}/api/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+                body: JSON.stringify({ username: cleanUser, password: password.trim() }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
