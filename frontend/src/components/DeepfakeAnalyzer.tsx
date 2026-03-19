@@ -25,28 +25,41 @@ export const DeepfakeAnalyzer: React.FC = () => {
     const logMessages = {
         IMAGE: [
             "Initializing Neural Vision Engine...",
+            "Decrypting binary texture maps...",
             "Analyzing facial geometry for 3D perspective artifacts...",
             "Scanning pupil reflections for catchlight consistency...",
+            "Measuring chromatic aberration on edge boundaries...",
             "Mapping skin pore distribution and texture density...",
+            "Detecting GAN-specific noise patterns (Gaussian Blur check)...",
             "Detecting blending artifacts at hairline boundaries...",
             "Cross-referencing shadows with local lighting sources...",
-            "Verifying EXIF metadata and sensor signature..."
+            "Running Error Level Analysis (ELA) on JPEG blocks...",
+            "Verifying EXIF metadata and sensor signature...",
+            "Finalizing Neural Consensus..."
         ],
         AUDIO: [
             "Calibrating Spectral Analysis Toolset...",
+            "Isolating harmonic frequencies...",
             "Scanning frequency distribution for digital truncation...",
             "Analyzing prosody and micro-pause patterns...",
             "Checking phoneme transitions for robotic articulation...",
+            "Verifying spectral consistency in the 8kHz-12kHz band...",
             "Detecting lack of natural harmonics above 12kHz...",
-            "Filtering room tone and background ambients..."
+            "Filtering room tone and background ambients...",
+            "Matching noise floor profile...",
+            "Finalizing Acoustic Signature..."
         ],
         VIDEO: [
             "Synchronizing Frame-by-Frame Forensics...",
+            "Buffering temporal vectors...",
             "Analyzing temporal facial stability (Motion Jitter)...",
             "Cross-referencing lip-sync with audio waveform...",
             "Tracking micro-expression blinking patterns...",
+            "Analyzing ocular movement persistence...",
             "Detecting head-to-body motion coherence...",
-            "Scanning for frame interpolation artifacts..."
+            "Scanning for frame interpolation artifacts...",
+            "Verifying compression block consistency...",
+            "Synthesizing Temporal Integrity Report..."
         ]
     };
 

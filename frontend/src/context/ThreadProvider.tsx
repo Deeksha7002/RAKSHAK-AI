@@ -8,6 +8,7 @@ interface ThreadContextType {
     threads: Thread[];
     setThreads: React.Dispatch<React.SetStateAction<Thread[]>>;
     clearThreads: () => void;
+    archiveThread: (id: string) => void;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -51,8 +52,12 @@ export const ThreadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (storageKey) localStorage.removeItem(storageKey);
     };
 
+    const archiveThread = (id: string) => {
+        setThreads(prev => prev.filter(t => t.id !== id));
+    };
+
     return (
-        <ThreadContext.Provider value={{ threads, setThreads, clearThreads }}>
+        <ThreadContext.Provider value={{ threads, setThreads, clearThreads, archiveThread }}>
             {children}
         </ThreadContext.Provider>
     );

@@ -322,6 +322,34 @@ body {
   transition: all 0.2s ease;
   align-items: center;
   position: relative;
+  overflow: hidden;
+  touch-action: pan-y; /* Allow vertical scroll while handling horizontal swipe */
+}
+
+.swipe-action-archive {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 80px;
+  background: var(--status-danger);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.75rem;
+  z-index: 1;
+}
+
+.thread-item-content {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  background: inherit;
+  transition: transform 0.2s ease-out;
 }
 
 .thread-item:hover {

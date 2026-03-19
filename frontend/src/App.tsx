@@ -22,6 +22,8 @@ import { Shield, ChevronLeft, ShieldAlert } from 'lucide-react';
 import type { Thread } from './lib/types';
 import './index.css';
 
+import { IntelligenceService } from './lib/IntelligenceService';
+
 type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS';
 
 function App() {
@@ -45,6 +47,10 @@ function App() {
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    IntelligenceService.init();
+  }, []);
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('rakshak_tour_shown');

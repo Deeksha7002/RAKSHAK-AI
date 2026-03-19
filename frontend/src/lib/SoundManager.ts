@@ -141,6 +141,27 @@ class SoundManager {
         osc.stop(this.context.currentTime + 0.2);
     }
 
+    public playClick() {
+        this.init();
+        if (!this.context || !this.masterGain || this.isMuted) return;
+
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1500, this.context.currentTime); // High sharp click
+        osc.frequency.exponentialRampToValueAtTime(1200, this.context.currentTime + 0.01);
+
+        gain.gain.setValueAtTime(0.08, this.context.currentTime); // Subtle
+        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.05);
+
+        osc.start();
+        osc.stop(this.context.currentTime + 0.05);
+    }
+
     public toggleMute() {
         this.isMuted = !this.isMuted;
         return this.isMuted;

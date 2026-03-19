@@ -5,6 +5,30 @@ export class IntelligenceService {
     private static records: ScamRecord[] = [];
     private static backendStats: any = null;
     private static listeners: (() => void)[] = [];
+    private static STORAGE_KEY = 'rakshak_intelligence_records';
+    private static isInitialized = false;
+
+    static init() {
+        if (this.isInitialized) return;
+        const saved = localStorage.getItem(this.STORAGE_KEY);
+        if (saved) {
+            try {
+                this.records = JSON.parse(saved);
+                console.log(`[IntelligenceService] 💾 Loaded ${this.records.length} records from storage.`);
+            } catch (e) {
+                console.error('[IntelligenceService] Failed to load records', e);
+            }
+        }
+        this.isInitialized = true;
+    }
+
+    private static saveToStorage() {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.records));
+        } catch (e) {
+            console.error('[IntelligenceService] Failed to save records', e);
+        }
+    }
 
     static subscribe(listener: () => void) {
         this.listeners.push(listener);
@@ -40,6 +64,7 @@ export class IntelligenceService {
 
             console.log(`[IntelligenceService] 📊 Recorded ${record.type} scam attempt from ${record.senderName}`);
         }
+        this.saveToStorage();
         this.notifyListeners();
     }
 
@@ -136,6 +161,8 @@ export class IntelligenceService {
      */
     static clearRecords() {
         this.records = [];
+        localStorage.removeItem(this.STORAGE_KEY);
         console.log('[IntelligenceService] 🗑️ All scam records have been wiped.');
+        this.notifyListeners();
     }
 }
