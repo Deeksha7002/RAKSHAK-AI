@@ -8,7 +8,7 @@
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "http://your-backend-url.render.com/api/$1" },
+    { "src": "/api/(.*)", "dest": "https://scam-defender-honeypot-1.onrender.com/api/$1" },
     { "src": "/[^.]*", "dest": "/frontend/index.html" }
   ]
 }
