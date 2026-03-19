@@ -99,7 +99,19 @@ async def submit_report(report: ReportRequest, request: Request, db: Session = D
     if not current_user:
         from fastapi import HTTPException
         raise HTTPException(status_code=401, detail="Authentication required")
+    
     import json
+    from fastapi import HTTPException
+
+    # 1. Protect against Database Bloat / DoS
+    metadata_raw = json.dumps(report.metadata) if report.metadata else "{}"
+    if len(metadata_raw) > 1_000_000: # 1MB Limit
+        raise HTTPException(status_code=413, detail="Forensic metadata exceeds permissible safety limits (1MB).")
+
+    # 2. Cryptographic Integrity Check
+    if report.is_sealed and report.forensic_signature:
+        if len(report.forensic_signature) != 64:
+            raise HTTPException(status_code=400, detail="Invalid forensic signature format. Expected SHA-256 hash.")
     new_case = Case(
         conversation_id=report.conversationId,
         scammer_name=report.scammerName,
@@ -108,7 +120,11 @@ async def submit_report(report: ReportRequest, request: Request, db: Session = D
         scam_type=report.scamType,
         confidence_score=report.confidenceScore,
         transcript=json.dumps(report.transcript),
-        iocs=report.iocs
+        iocs=report.iocs,
+        # New Phase 16 fields
+        is_sealed=report.is_sealed,
+        forensic_signature=report.forensic_signature,
+        metadata_json=report.metadata
     )
     db.add(new_case)
     

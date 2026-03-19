@@ -162,6 +162,29 @@ class SoundManager {
         osc.stop(this.context.currentTime + 0.05);
     }
 
+    public playScanError() {
+        this.init();
+        if (!this.context || !this.masterGain || this.isMuted) return;
+
+        const now = this.context.currentTime;
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+
+        osc.start();
+        osc.stop(now + 0.3);
+    }
+
     public toggleMute() {
         this.isMuted = !this.isMuted;
         return this.isMuted;

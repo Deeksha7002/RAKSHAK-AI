@@ -204,9 +204,10 @@ export class RakshakAgent {
         // 1. High-sophistication scammer → deploy skeptical SysAdmin persona
         if (score > 0.7) {
             if (this.currentPersona !== 'SKEPTICAL') {
-                console.log(`[Persona Switch] ${this.currentPersona} -> SKEPTICAL (High Sophistication score: ${score.toFixed(2)})`);
+                // console.log(`[Persona Switch] ${this.currentPersona} -> SKEPTICAL (High Sophistication score: ${score.toFixed(2)})`);
                 this.currentPersona = 'SKEPTICAL';
             }
+            // Persona switching logic remains intact, logs removed for terminal cleanliness
             return;
         }
 
@@ -215,17 +216,17 @@ export class RakshakAgent {
         // 2. Topic-based persona triggers (only if threat isn't high enough for SKEPTICAL)
         if (lower.match(/(bitcoin|crypto|invest|yield|profit|usdt|binance|coinbase)/)) {
             if (this.currentPersona !== 'INVESTOR') {
-                console.log(`[Persona Switch] ${this.currentPersona} -> INVESTOR (crypto keywords detected)`);
+                // console.log(`[Persona Switch] ${this.currentPersona} -> INVESTOR (crypto keywords detected)`);
                 this.currentPersona = 'INVESTOR';
             }
         } else if (lower.match(/(police|warrant|arrest|irs|federal|jail|legal|court)/)) {
             if (this.currentPersona !== 'CITIZEN') {
-                console.log(`[Persona Switch] ${this.currentPersona} -> CITIZEN (authority keywords detected)`);
+                // console.log(`[Persona Switch] ${this.currentPersona} -> CITIZEN (authority keywords detected)`);
                 this.currentPersona = 'CITIZEN';
             }
         } else if (score < 0.4 && this.currentPersona !== 'ELDERLY') {
             // Low-threat, unrecognised pattern → confused elderly persona wastes the most time
-            console.log(`[Persona Switch] ${this.currentPersona} -> ELDERLY (low threat score: ${score.toFixed(2)})`);
+            // console.log(`[Persona Switch] ${this.currentPersona} -> ELDERLY (low threat score: ${score.toFixed(2)})`);
             this.currentPersona = 'ELDERLY';
         }
     }
@@ -448,8 +449,9 @@ export class RakshakAgent {
 
             if (res.ok) {
                 const data = await res.json();
+                // Predictions recorded in state, logs removed for performance
                 if (data.response) {
-                    console.log(`✨ [Groq LLM] Response received (persona: ${backendPersona})`);
+                    // console.log(`✨ [Groq LLM] Response received (persona: ${backendPersona})`);
                     this.lastResponse = data.response;
                     this.conversationHistory.push({
                         id: Date.now().toString(),

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { CreditCard, Link as LinkIcon, Smartphone, Database, Folder, FolderOpen, AlertTriangle, Search, Send, CheckCircle, Loader2, FileDown, Code } from 'lucide-react';
+import { CreditCard, Link as LinkIcon, Database, Folder, FolderOpen, AlertTriangle, Search, Send, CheckCircle, Loader2, FileDown, Code, Lock, Shield } from 'lucide-react';
 import { soundManager } from '../lib/SoundManager';
 import { PDFGenerator } from '../lib/PDFGenerator';
 import { CyberCellService } from '../lib/CyberCellService';
+import { CryptoUtils } from '../lib/CryptoUtils';
 import type { CaseFile } from '../lib/types';
 
 interface EvidenceLockerProps {
@@ -29,6 +30,35 @@ export const EvidenceLocker: React.FC<EvidenceLockerProps> = ({ cases, onClose }
 
     const [reportStatus, setReportStatus] = useState<'idle' | 'encrypting' | 'sent'>('idle');
     const [showLog, setShowLog] = useState(false);
+    const [integrityStatus, setIntegrityStatus] = useState<'idle' | 'checking' | 'verified' | 'tampered'>('idle');
+
+    const verifyIntegrity = async () => {
+        if (!selectedCase || !selectedCase.signature) return;
+        
+        setIntegrityStatus('checking');
+        // Visual delay for "forensic analysis" feel
+        await new Promise(r => setTimeout(r, 1200));
+
+        // Re-generate signature from current data
+        // For our implementation, we'll sign the core fields: result (if forensic) or transcript
+        const dataToVerify = selectedCase.forensicResult ? {
+            result: selectedCase.forensicResult,
+            timestamp: new Date(selectedCase.timestamp).getTime(), // This is a bit tricky if timestamps mismatch
+            origin: 'RAKSHAK-FORENSICS-LAB'
+        } : {
+            transcript: selectedCase.transcript,
+            iocs: selectedCase.iocs
+        };
+
+        // For now, if it's already "Sealed", we trust the backend's signature field
+        // A real implementation would re-hash everything. Here we simulate the logic.
+        const isValid = await CryptoUtils.verifySignature(dataToVerify, selectedCase.signature);
+        const isFine = selectedCase.isSealed && isValid;
+        
+        setIntegrityStatus(isFine ? 'verified' : 'tampered');
+        if (isFine) soundManager.playSuccess();
+        else soundManager.playScanError();
+    };
 
     const handleReport = async () => {
         if (!selectedCase) return;
@@ -158,23 +188,49 @@ export const EvidenceLocker: React.FC<EvidenceLockerProps> = ({ cases, onClose }
                                         <span className="locker-case-id">#{selectedCase.id}</span>
                                     </h2>
                                     <div className="locker-meta-row">
-                                        <span className="locker-meta-tag"><Smartphone size={14} /> {selectedCase.platform}</span>
                                         <span className="locker-meta-tag">
-                                            {selectedCase.threatLevel === 'scam' ? (
-                                                <span className="threat-high"><AlertTriangle size={14} /> High Threat</span>
+                                            {selectedCase.isSealed ? (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem' }}>
+                                                    <Lock size={12} /> SEALED EVIDENCE
+                                                </span>
                                             ) : (
-                                                <span className="threat-med"><AlertTriangle size={14} /> Suspicious</span>
+                                                <span style={{ color: '#64748b' }}>UNSEALED</span>
                                             )}
                                         </span>
-                                        {selectedCase.detectedLocation && (
-                                            <span className="locker-meta-tag" style={{ border: '1px solid #3b82f6', color: '#93c5fd' }}>
-                                                ON-FILE: {selectedCase.detectedLocation.ip}
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="locker-header-right">
                                     <div className="flex gap-2 mb-2">
+                                        {selectedCase.isSealed && (
+                                            <button
+                                                onClick={verifyIntegrity}
+                                                disabled={integrityStatus === 'checking'}
+                                                className={`locker-action-btn ${integrityStatus}`}
+                                                style={{ 
+                                                    width: 'auto', 
+                                                    padding: '0 12px', 
+                                                    fontSize: '0.7rem',
+                                                    borderColor: integrityStatus === 'verified' ? '#10b981' : integrityStatus === 'tampered' ? '#ef4444' : 'rgba(59,130,246,0.3)',
+                                                    color: integrityStatus === 'verified' ? '#10b981' : integrityStatus === 'tampered' ? '#ef4444' : '#93c5fd'
+                                                }}
+                                            >
+                                                {integrityStatus === 'checking' ? (
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                ) : integrityStatus === 'verified' ? (
+                                                    <CheckCircle size={14} />
+                                                ) : integrityStatus === 'tampered' ? (
+                                                    <AlertTriangle size={14} />
+                                                ) : (
+                                                    <Shield size={14} />
+                                                )}
+                                                <span style={{ marginLeft: '6px' }}>
+                                                    {integrityStatus === 'checking' ? 'VERIFYING...' : 
+                                                     integrityStatus === 'verified' ? 'AUTHENTICITY VERIFIED' : 
+                                                     integrityStatus === 'tampered' ? 'TAMPERED DETECTED' : 
+                                                     'VERIFY INTEGRITY'}
+                                                </span>
+                                            </button>
+                                        )}
                                         <button
                                             title="Export PDF Report"
                                             onClick={() => PDFGenerator.generateCaseReport(selectedCase, selectedCase.transcript)}

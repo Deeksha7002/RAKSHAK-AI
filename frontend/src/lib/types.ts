@@ -110,8 +110,11 @@ export interface CaseFile {
     transcript: Message[];
     timestamp: string;
     detectedLocation?: GeoLocation;
-    autoReported?: boolean; // Added this field
+    autoReported?: boolean;
     scamType?: ScamType;
+    isSealed?: boolean;
+    signature?: string;
+    forensicResult?: MediaAnalysisResult;
 }
 
 export type ScamType = 'ROMANCE' | 'CRYPTO' | 'JOB' | 'IMPERSONATION' | 'LOTTERY' | 'TECHNICAL_SUPPORT' | 'AUTHORITY' | 'OTHER';

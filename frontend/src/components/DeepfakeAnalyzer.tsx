@@ -1,10 +1,40 @@
 import React, { useState, useRef } from 'react';
-import { Shield, Database, ShieldAlert, Cpu, Activity, Upload, Search, FileCheck, Fingerprint, Zap, EyeOff } from 'lucide-react';
+import { Shield, Database, ShieldAlert, Cpu, Activity, Upload, Search, FileCheck, Fingerprint, Zap, EyeOff, Lock, CheckCircle } from 'lucide-react';
 import { ForensicsService } from '../lib/ForensicsService';
 import { MediaLogService } from '../lib/MediaLogService';
 import { IntelligenceService } from '../lib/IntelligenceService';
 import { CyberCellService } from '../lib/CyberCellService';
-import type { MediaAnalysisResult, MediaType, ForensicLog } from '../lib/types';
+import { CryptoUtils } from '../lib/CryptoUtils';
+import type { MediaAnalysisResult, MediaType, ForensicLog, CaseFile } from '../lib/types';
+
+const ForensicStyles = () => (
+    <style>{`
+        @keyframes scan-vertical {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        @keyframes scan-horizontal {
+            0% { left: 0%; opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { left: 100%; opacity: 0; }
+        }
+        @keyframes cyber-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        @keyframes glitch {
+            0% { clip-path: inset(80% 0 0 0); }
+            10% { clip-path: inset(10% 0 50% 0); }
+            20% { clip-path: inset(50% 0 30% 0); }
+            30% { clip-path: inset(20% 0 60% 0); }
+            100% { clip-path: inset(0 0 0 0); }
+        }
+    `}</style>
+);
 
 export const DeepfakeAnalyzer: React.FC = () => {
     const [isScanning, setIsScanning] = useState(false);
@@ -14,6 +44,70 @@ export const DeepfakeAnalyzer: React.FC = () => {
     const [logs, setLogs] = useState<ForensicLog[]>([]);
     const [progress, setProgress] = useState(0);
     const [scanLog, setScanLog] = useState<string[]>([]);
+    const [isSealing, setIsSealing] = useState(false);
+    const [isSealed, setIsSealed] = useState(false);
+    const [sealError, setSealError] = useState<string | null>(null);
+
+    const handleSeal = async () => {
+        if (!result) return;
+        setIsSealing(true);
+        try {
+            // Wait for visual feedback
+            await new Promise(r => setTimeout(r, 1500));
+            
+            // Generate Cryptographic Signature
+            const signature = await CryptoUtils.generateSignature({
+                result,
+                timestamp: Date.now(),
+                origin: 'RAKSHAK-FORENSICS-LAB'
+            });
+
+            // Create a CaseFile for the Evidence Locker
+            const caseFile: CaseFile = {
+                id: `FX-${result.timestamp.toString().slice(-6)}`,
+                scammerName: `Forensic Subject ${result.timestamp.toString().slice(-4)}`,
+                platform: selectedType,
+                status: 'closed',
+                threatLevel: result.authenticityScore < 50 ? 'scam' : 'benign',
+                iocs: {
+                    urls: [],
+                    domains: [],
+                    paymentMethods: [],
+                    sensitiveDataRedacted: 0
+                },
+                transcript: [
+                    {
+                        id: '1',
+                        sender: 'system',
+                        content: `Forensic analysis of ${selectedType} initiated.`,
+                        timestamp: Date.now()
+                    },
+                    {
+                        id: '2',
+                        sender: 'agent',
+                        content: `Analysis complete. Authenticity: ${result.authenticityScore}%. Status: ${result.recommendation}`,
+                        timestamp: Date.now()
+                    }
+                ],
+                timestamp: new Date().toISOString(),
+                isSealed: true,
+                signature,
+                forensicResult: result
+            };
+
+            // Save to CyberCell Service (Investigation Storage)
+            await CyberCellService.saveCase(caseFile);
+            
+            setIsSealed(true);
+            setSealError(null);
+            console.log("✅ CASE SEALED CRYPTOGRAPHICALLY. Signature:", signature);
+        } catch (error: any) {
+            console.error("Seal failed:", error);
+            setSealError(error.message || "CRYPTOGRAPHIC SEAL FAILURE");
+        } finally {
+            setIsSealing(false);
+        }
+    };
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
 
     const fileRef = useRef<HTMLInputElement>(null);
@@ -154,6 +248,7 @@ export const DeepfakeAnalyzer: React.FC = () => {
 
     return (
         <div className="forensics-container" style={{ padding: '2rem', color: '#e2e8f0', height: '100%', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <ForensicStyles />
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1.5rem' }}>
                 <div style={{ background: 'var(--primary)', padding: '12px', borderRadius: '8px' }}>
@@ -194,7 +289,58 @@ export const DeepfakeAnalyzer: React.FC = () => {
 
                         {mediaUrl && isScanning && (
                             <div className="sys-card" style={{ padding: '0', overflow: 'hidden' }}>
-                                <div className="media-scanner-container" style={{ position: 'relative', minHeight: '200px' }}>
+                                <div className="media-scanner-container" style={{ position: 'relative', minHeight: '200px', borderRadius: '8px', overflow: 'hidden' }}>
+                                    {isScanning && (
+                                        <>
+                                            <div style={{ 
+                                                position: 'absolute', 
+                                                bottom: 0, 
+                                                left: 0, 
+                                                width: '100%', 
+                                                height: '2px', 
+                                                background: 'linear-gradient(to top, var(--primary), transparent)', 
+                                                zIndex: 10,
+                                                boxShadow: '0 0 15px var(--primary)',
+                                                animation: 'scan-vertical 2.5s ease-in-out infinite'
+                                            }} />
+                                            <div style={{ 
+                                                position: 'absolute', 
+                                                top: 0, 
+                                                right: 0, 
+                                                width: '2px', 
+                                                height: '100%', 
+                                                background: 'linear-gradient(to left, var(--primary), transparent)', 
+                                                zIndex: 10,
+                                                boxShadow: '0 0 15px var(--primary)',
+                                                animation: 'scan-horizontal 3.5s ease-in-out infinite'
+                                            }} />
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                zIndex: 11,
+                                                color: 'var(--primary)',
+                                                opacity: 0.4,
+                                                animation: 'cyber-pulse 2s infinite'
+                                            }}>
+                                                <Fingerprint size={120} strokeWidth={0.5} />
+                                            </div>
+                                        </>
+                                    )}
+                                    {selectedType === 'VIDEO' && isScanning && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '3px',
+                                            background: 'var(--primary)',
+                                            boxShadow: '0 0 15px var(--primary), 0 0 30px var(--primary)',
+                                            zIndex: 20,
+                                            animation: 'scan-vertical 3s linear infinite'
+                                        }} />
+                                    )}
                                     {selectedType === 'VIDEO' ? (
                                         <video src={mediaUrl} className="media-scanner-image" autoPlay loop muted />
                                     ) : selectedType === 'AUDIO' ? (
@@ -250,9 +396,51 @@ export const DeepfakeAnalyzer: React.FC = () => {
                                         </div>
                                         <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>ID: FX-{result.timestamp.toString().slice(-8)} | CONFIDENCE: {result.confidenceLevel.toUpperCase()}</p>
                                     </div>
-                                    <div style={{ textAlign: 'right', minWidth: '150px' }}>
-                                        <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0 0 4px 0' }}>RECOMMENDATION</p>
-                                        <span style={{ color: result.recommendation.includes('Authentic') ? '#10b981' : '#ef4444', fontWeight: 'bold', fontSize: '1.1rem', letterSpacing: '1px' }}>{result.recommendation.toUpperCase()}</span>
+                                    <div style={{ textAlign: 'right', minWidth: '150px', display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'flex-end' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0 0 4px 0' }}>RECOMMENDATION</p>
+                                            <span style={{ color: result.recommendation.includes('Authentic') ? '#10b981' : '#ef4444', fontWeight: 'bold', fontSize: '1.1rem', letterSpacing: '1px' }}>{result.recommendation.toUpperCase()}</span>
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={handleSeal}
+                                            disabled={isSealing || isSealed}
+                                            style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '0.5rem', 
+                                                padding: '8px 16px', 
+                                                background: isSealed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', 
+                                                border: `1px solid ${isSealed ? '#10b981' : 'var(--primary)'}`, 
+                                                color: isSealed ? '#10b981' : 'var(--primary)', 
+                                                borderRadius: '6px', 
+                                                cursor: isSealed ? 'default' : 'pointer',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 'bold',
+                                                transition: 'all 0.3s'
+                                            }}
+                                        >
+                                            {isSealing ? (
+                                                <Zap size={14} className="animate-spin" />
+                                            ) : isSealed ? (
+                                                <CheckCircle size={14} />
+                                            ) : (
+                                                <Lock size={14} />
+                                            )}
+                                            {isSealing ? 'GENERATING SIGNATURE...' : isSealed ? 'CASE SEALED' : 'SEAL AS EVIDENCE'}
+                                        </button>
+                                        
+                                        {sealError && (
+                                            <p style={{ 
+                                                fontSize: '0.65rem', 
+                                                color: '#ef4444', 
+                                                margin: '4px 0 0 0', 
+                                                fontWeight: 'bold',
+                                                fontFamily: 'monospace'
+                                            }}>
+                                                ERROR: {sealError.toUpperCase()}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -279,26 +467,50 @@ export const DeepfakeAnalyzer: React.FC = () => {
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', padding: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                     <div style={{ position: 'relative', width: '300px', height: '180px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '6px 10px', background: 'rgba(0,0,0,0.5)', fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 'bold', zIndex: 10 }}>ANOMALY HEATMAP GRID</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', height: '100%' }}>
-                                            {Array.from({ length: 60 }).map((_, i) => {
-                                                const anomaly = result.anomalyScore ?? 0;
-                                                const isHot = (anomaly > 5) && Math.random() > (1 - (anomaly / 100) - 0.1);
-                                                return <div key={i} style={{ background: isHot ? `rgba(239, 68, 68, ${Math.random() * 0.3 + 0.1})` : 'transparent', border: '0.5px solid rgba(255,255,255,0.02)', boxShadow: isHot ? 'inset 0 0 8px rgba(239, 68, 68, 0.15)' : 'none' }} />;
-                                            })}
+                                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '6px 10px', background: 'rgba(0,0,0,0.5)', fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 'bold', zIndex: 10 }}>
+                                            {selectedType === 'VIDEO' ? 'TEMPORAL INTEGRITY TIMELINE' : 'ANOMALY HEATMAP GRID'}
                                         </div>
+                                        {selectedType === 'VIDEO' ? (
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%', gap: '2px', padding: '10px' }}>
+                                                {Array.from({ length: 40 }).map((_, i) => {
+                                                    const jitter = (result.anomalyScore ?? 0) / 100;
+                                                    const height = 20 + Math.random() * 60 + (i > 15 && i < 25 ? jitter * 40 : 0);
+                                                    return (
+                                                        <div key={i} style={{ 
+                                                            flex: 1, 
+                                                            height: `${height}%`, 
+                                                            background: height > 70 ? '#ef4444' : 'var(--primary)', 
+                                                            opacity: 0.6,
+                                                            borderRadius: '1px'
+                                                        }} />
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', height: '100%' }}>
+                                                {Array.from({ length: 60 }).map((_, i) => {
+                                                    const anomaly = result.anomalyScore ?? 0;
+                                                    const isHot = (anomaly > 5) && Math.random() > (1 - (anomaly / 100) - 0.1);
+                                                    return <div key={i} style={{ background: isHot ? `rgba(239, 68, 68, ${Math.random() * 0.3 + 0.1})` : 'transparent', border: '0.5px solid rgba(255,255,255,0.02)', boxShadow: isHot ? 'inset 0 0 8px rgba(239, 68, 68, 0.15)' : 'none' }} />;
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center', flex: 1 }}>
-                                        <h4 style={{ margin: 0, fontSize: '0.8rem', color: 'var(--primary)', letterSpacing: '1px' }}>NEURAL CONSENSUS AUDIT</h4>
+                                        <h4 style={{ margin: 0, fontSize: '0.8rem', color: 'var(--primary)', letterSpacing: '1px' }}>
+                                            {selectedType === 'VIDEO' ? 'TEMPORAL MOTION AUDIT' : 'NEURAL CONSENSUS AUDIT'}
+                                        </h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                            {['OPTICAL', 'STRUCTURAL', 'FIDELITY', 'SEMANTIC', 'METADATA', 'ENVIRONMENTAL'].map((label) => (
+                                            {(selectedType === 'VIDEO' ? ['JITTER', 'SYNC', 'GLITCH', 'COHERENCE', 'COMPRESSION', 'EYE-BLINK'] : 
+                                              selectedType === 'IMAGE' ? ['ELA-VARIANCE', 'NOISE-PRINT', 'TOPOLOGY', 'CHROMA', 'METADATA', 'TEXTURE'] :
+                                              ['SPECTRAL', 'PROSODY', 'ATMOSPHERIC', 'HARMONIC', 'PHASE', 'CONSENSUS']).map((label) => (
                                                 <div key={label}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#cbd5e1', marginBottom: '6px' }}>
                                                         <span>{label}</span>
-                                                        <span style={{ color: (result.authenticityScore < 90) ? '#ef4444' : '#10b981' }}>{result.authenticityScore}%</span>
+                                                        <span style={{ color: (result.authenticityScore < 85) ? '#ef4444' : '#10b981' }}>{result.authenticityScore}%</span>
                                                     </div>
                                                     <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
-                                                        <div style={{ height: '100%', width: `${result.authenticityScore}%`, background: (result.authenticityScore < 90) ? '#ef4444' : '#10b981' }} />
+                                                        <div style={{ height: '100%', width: `${result.authenticityScore}%`, background: (result.authenticityScore < 85) ? '#ef4444' : '#10b981' }} />
                                                     </div>
                                                 </div>
                                             ))}

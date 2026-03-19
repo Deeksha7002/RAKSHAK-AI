@@ -62,6 +62,10 @@ class Case(Base):
     transcript = Column(Text)
     auto_reported = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    # New Phase 16 fields
+    is_sealed = Column(Boolean, default=False)
+    forensic_signature = Column(String, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
 
 
 class Stats(Base):

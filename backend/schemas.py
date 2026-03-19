@@ -17,6 +17,10 @@ class ReportRequest(BaseModel):
     transcript: List[Dict[str, Any]]
     iocs: Dict[str, Any]
     timestamp: str
+    # New Phase 16 fields
+    is_sealed: Optional[bool] = False
+    forensic_signature: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class LoginRequest(BaseModel):
     username: str

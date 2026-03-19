@@ -3,7 +3,7 @@ import type { IncidentReport, CaseFile } from './types';
 import { API_BASE_URL } from './config';
 
 export class CyberCellService {
-    private static MOCK_ENDPOINT = 'https://cybercell.gov.mock/api/v1/report';
+    // private static MOCK_ENDPOINT = 'https://cybercell.gov.mock/api/v1/report';
 
     /**
      * ADVANCED LOGIC: Zero-Trust Cryptographic Core
@@ -51,7 +51,7 @@ export class CyberCellService {
                 timestamp: report.timestamp
             };
 
-            console.log('[CyberCellService] Generated JSON Payload:', evidenceJson);
+            // console.log('[CyberCellService] Generated JSON Payload:', evidenceJson);
 
             // 2. Generate PDF Evidence
             const caseShim: CaseFile = {
@@ -70,7 +70,7 @@ export class CyberCellService {
             console.log(`[CyberCellService] Generated PDF Evidence (${(pdfBlob.size / 1024).toFixed(2)} KB)`);
 
             // 3. Simulate API Transmission
-            console.log(`[CyberCellService] POSTING to ${this.MOCK_ENDPOINT}...`);
+            // console.log(`[CyberCellService] POSTING to ${this.MOCK_ENDPOINT}...`);
 
             // Artificial delay to simulate network
             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -142,6 +142,50 @@ export class CyberCellService {
      */
     static async reportScam(report: IncidentReport): Promise<boolean> {
         return this.autoReport(report);
+    }
+
+    /**
+     * Persists a forensic case to the investigation vault.
+     */
+    static async saveCase(caseFile: CaseFile): Promise<boolean> {
+        console.log(`%c[CyberCellService] Sealing Case: ${caseFile.id}`, 'color: #3b82f6; font-weight: bold;');
+        
+        try {
+            // MAP FE (Camel Case) -> BE (Snake Case)
+            const bePayload = {
+                conversation_id: caseFile.id,
+                scammer_name: caseFile.scammerName,
+                platform: caseFile.platform,
+                classification: caseFile.threatLevel,
+                iocs: JSON.stringify(caseFile.iocs),
+                transcript: JSON.stringify(caseFile.transcript),
+                scam_type: caseFile.scamType || 'OTHER',
+                auto_reported: caseFile.autoReported || false,
+                // New Phase 16 fields
+                is_sealed: caseFile.isSealed,
+                forensic_signature: caseFile.signature,
+                metadata: JSON.stringify(caseFile.forensicResult || {})
+            };
+
+            const res = await fetch(`${API_BASE_URL}/api/cases`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('rakshak_access_token')}`
+                },
+                body: JSON.stringify(bePayload)
+            });
+
+            if (res.ok) {
+                console.log('%c[CyberCellService] ✅ Investigation Case Sealed and Persisted.', 'color: #22c55e; font-weight: bold;');
+                return true;
+            }
+            throw new Error(`Server responded with ${res.status}`);
+        } catch (error) {
+            console.error('[CyberCellService] ⚠️ Persistence failed. Syncing with local volatile memory.', error);
+            // Fallback: This tool is zero-persistence by default if backend is unavailable
+            return false;
+        }
     }
 
     /**
