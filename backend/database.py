@@ -105,10 +105,13 @@ def init_db():
         # 1. Ensure basic tables exist (Declarative Base)
         Base.metadata.create_all(bind=engine)
         logging.info("✓ [SCHEMA] Base metadata tables verified.")
+        
+        # 2. Dispose of engine to release any SQLite locks before Alembic takes over
+        engine.dispose()
     except Exception as e:
         logging.error(f"❌ Base.metadata.create_all failed: {e}")
     
-    # 2. Run Alembic Migrations
+    # 3. Run Alembic Migrations
     run_migrations()
 
 def run_migrations():

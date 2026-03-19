@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Shield, Database, Trash2, ShieldAlert, Cpu, Activity, Info, BarChart3, Upload, Search, FileCheck, Fingerprint, Zap, EyeOff } from 'lucide-react';
+import { Shield, Database, ShieldAlert, Cpu, Activity, Upload, Search, FileCheck, Fingerprint, Zap, EyeOff } from 'lucide-react';
 import { ForensicsService } from '../lib/ForensicsService';
 import { MediaLogService } from '../lib/MediaLogService';
 import { IntelligenceService } from '../lib/IntelligenceService';
