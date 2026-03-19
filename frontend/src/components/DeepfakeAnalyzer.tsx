@@ -5,6 +5,9 @@ import { MediaLogService } from '../lib/MediaLogService';
 import { IntelligenceService } from '../lib/IntelligenceService';
 import { CyberCellService } from '../lib/CyberCellService';
 import { CryptoUtils } from '../lib/CryptoUtils';
+import { ConsensusEngine } from '../lib/ConsensusEngine';
+import type { ConsensusResult } from '../lib/ConsensusEngine';
+import { IntelligenceGrid } from './IntelligenceGrid';
 import type { MediaAnalysisResult, MediaType, ForensicLog, CaseFile } from '../lib/types';
 
 const ForensicStyles = () => (
@@ -44,6 +47,7 @@ export const DeepfakeAnalyzer: React.FC = () => {
     const [logs, setLogs] = useState<ForensicLog[]>([]);
     const [progress, setProgress] = useState(0);
     const [scanLog, setScanLog] = useState<string[]>([]);
+    const [consensus, setConsensus] = useState<ConsensusResult | null>(null);
     const [isSealing, setIsSealing] = useState(false);
     const [isSealed, setIsSealed] = useState(false);
     const [sealError, setSealError] = useState<string | null>(null);
@@ -188,7 +192,20 @@ export const DeepfakeAnalyzer: React.FC = () => {
         }
 
         const analysis = await ForensicsService.analyzeMedia(file, selectedType);
+        
+        // Step 1: Contextual Cross-Referencing
+        setScanLog(prev => [...prev, "🧬 CONTEXTUAL CROSS-REFERENCING COMPLETE"]);
+        await new Promise(r => setTimeout(r, 600));
+
+        // Step 2: Multi-Agent Consensus Deliberation
+        setScanLog(prev => [...prev, "⚖️ INITIATING MULTI-AGENT CONSENSUS..."]);
+        await new Promise(r => setTimeout(r, 1000)); // Simulate deliberation time
+        const consensusResult = await ConsensusEngine.reachConsensus(selectedType, analysis);
+        setConsensus(consensusResult);
+        
         setResult(analysis);
+        setScanLog(prev => [...prev, "✅ ANALYSIS SEALED BY COUNCIL OF EXPERTS"]);
+        setProgress(100); // Final progress
         setIsScanning(false);
         stopSpectralVisualizer();
     };
@@ -396,6 +413,13 @@ export const DeepfakeAnalyzer: React.FC = () => {
                                         </div>
                                         <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>ID: FX-{result.timestamp.toString().slice(-8)} | CONFIDENCE: {result.confidenceLevel.toUpperCase()}</p>
                                     </div>
+
+                                    {consensus && (
+                                        <div style={{ width: '100%', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                                            <IntelligenceGrid result={consensus} />
+                                        </div>
+                                    )}
+
                                     <div style={{ textAlign: 'right', minWidth: '150px', display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'flex-end' }}>
                                         <div>
                                             <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0 0 4px 0' }}>RECOMMENDATION</p>
