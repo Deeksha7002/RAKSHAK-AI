@@ -305,10 +305,34 @@ export const LoginScreen: React.FC<any> = () => {
     };
 
     // ── Biometric enroll (separate user gesture after account creation) ──────
+    // Pre-flight ping to wake up a sleeping Render instance before biometric call
+    const wakeBackend = async (): Promise<boolean> => {
+        setStatusMsg('CONNECTING TO RAKSHAK CORE...');
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/ping`, { method: 'GET', signal: AbortSignal.timeout(15000) });
+                if (res.ok || res.status === 404) return true; // 404 = server is awake, just route doesn't exist
+            } catch (e) {
+                console.warn(`[RAKSHAK] Wake attempt ${attempt}/3 failed`);
+                if (attempt < 3) setStatusMsg(`WAKING RAKSHAK CORE... (${attempt}/3)`);
+            }
+            if (attempt < 3) await new Promise(r => setTimeout(r, 3000));
+        }
+        return false;
+    };
+
     const enrollBiometrics = async (user: string) => {
         setIsLoading(true);
         setError(null);
         setStatusMsg('INITIALIZING BIOMETRIC PROTOCOL...');
+
+        // Wake up Render before the critical biometric call
+        const backendAwake = await wakeBackend();
+        if (!backendAwake) {
+            setError('NETWORK ERROR: Could not connect to Rakshak AI Core. Check your internet or try later.');
+            setIsLoading(false);
+            return;
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
