@@ -60,24 +60,30 @@ def get_challenge(db: Session, key: str) -> Optional[bytes]:
     db.commit()
     return challenge
 
-from config import WEBAUTHN_RP_NAME, WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN
+from config import WEBAUTHN_RP_NAME, WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN, VALID_PRODUCTION_ORIGINS
 
 def get_webauthn_config(request: Request):
-    # Base configuration from centralized config.py
+    # Dynamic parsing to support multiple Vercel alias subdomains securely
+    origin_header = request.headers.get("origin")
+    host_header = request.headers.get("host", "localhost")
+
     config = {
         "rp_id": WEBAUTHN_RP_ID,
         "origin": WEBAUTHN_ORIGIN
     }
     
-    # Allow local override for developer convenience
-    host = request.headers.get("host", "localhost")
-    if "localhost" in host or "127.0.0.1" in host:
+    if "localhost" in host_header or "127.0.0.1" in host_header:
         config["rp_id"] = "localhost"
-        if not request.headers.get("origin"):
-            config["origin"] = "http://localhost:5173"
-        else:
-            config["origin"] = request.headers.get("origin")
-            
+        config["origin"] = origin_header if origin_header else "http://localhost:5173"
+        return config
+
+    # For production Vercel apps, match exact alias
+    if origin_header in VALID_PRODUCTION_ORIGINS:
+        config["origin"] = origin_header
+        # Deriving RP_ID from valid origin (e.g., https://rakshak-ai.vercel.app -> rakshak-ai.vercel.app)
+        from urllib.parse import urlparse
+        config["rp_id"] = urlparse(origin_header).hostname
+
     return config
 
 # ── Standard Auth ────────────────────────────────────────────────────────────

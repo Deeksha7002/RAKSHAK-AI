@@ -9,12 +9,17 @@ ALGORITHM = "HS256"
 
 # ── Biometric (WebAuthn) Configuration ────────────────────────────────────────
 WEBAUTHN_RP_NAME = "Rakshak AI"
-# In production, RP_ID is the domain of the frontend.
-# If not set, we'll try to derive it from FRONTEND_URL.
-from urllib.parse import urlparse
-_parsed_frontend = urlparse(FRONTEND_URL)
-WEBAUTHN_RP_ID = os.environ.get("WEBAUTHN_RP_ID", _parsed_frontend.hostname or "localhost")
-WEBAUTHN_ORIGIN = FRONTEND_URL
+# We no longer hardcode RP_ID/Origin. We define a list of valid production domains.
+# The actual RP_ID and Origin will be dynamically extracted from the request headers
+# in auth_router.py to match exactly what the user's browser is seeing.
+VALID_PRODUCTION_ORIGINS = [
+    "https://rakshak-ai-drab.vercel.app",
+    "https://rakshak-ai.vercel.app",
+    "https://scam-defender-honeypot.vercel.app"
+]
+# Fallbacks
+WEBAUTHN_RP_ID = "rakshak-ai-drab.vercel.app"
+WEBAUTHN_ORIGIN = "https://rakshak-ai-drab.vercel.app"
 
 # ── Persona Configuration ─────────────────────────────────────────
 PERSONA = {
