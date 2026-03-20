@@ -121,8 +121,15 @@ def init_db():
     This is called during the application lifespan (server startup).
     """
     logging.info("⚙️ Initializing Database Engine...")
+    
+    # CRITICAL DIAGNOSTIC LOGGING
+    safe_db_url = SQLALCHEMY_DATABASE_URL.split('@')[-1] if '@' in SQLALCHEMY_DATABASE_URL else SQLALCHEMY_DATABASE_URL
+    logging.info(f"🔍 DIAGNOSTIC: SQLite Mode = {_is_sqlite}")
+    logging.info(f"🔍 DIAGNOSTIC: Target DB Host = {safe_db_url}")
+    
     try:
         # 1. Ensure basic tables exist (Declarative Base)
+        logging.info("⏳ Waiting for Base.metadata.create_all(bind=engine)...")
         Base.metadata.create_all(bind=engine)
         logging.info("✓ [SCHEMA] Base metadata tables verified.")
         
