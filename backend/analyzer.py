@@ -5,13 +5,15 @@ from collections import Counter
 from textblob import TextBlob
 try:
     import nltk
-    nltk.download('punkt', quiet=True)
-    nltk.download('wordnet', quiet=True)
-    nltk.download('omw-1.4', quiet=True)
+    import os
+    # Ensure analyzer reads from the same relative NLTK directory
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nltk_data")
+    if os.path.exists(data_dir) and data_dir not in nltk.data.path:
+        nltk.data.path.append(data_dir)
 except ImportError:
     logging.warning("⚠️ nltk package not installed. Sophisticated NLP features may be limited.")
 except Exception as e:
-    logging.warning(f"⚠️ NLTK download failed: {e}")
+    logging.warning(f"⚠️ NLTK pathing setup failed: {e}")
 
 class ScamAnalyzer:
     """
