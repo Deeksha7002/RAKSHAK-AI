@@ -28,34 +28,21 @@ async def lifespan(app: FastAPI):
     # Startup logic
     init_db()
 
-    # Download NLTK in the background so it never blocks the fastAPI event loop
-    async def download_nltk_async():
-        try:
-            import nltk
-            import ssl
-            try:
-                _create_unverified_https_context = ssl._create_unverified_context
-            except AttributeError:
-                pass
-            else:
-                ssl._create_default_https_context = _create_unverified_https_context
-            
-            # TextBlob specifically requires these 6 packages to operate its analyzers
-            corpora = ['punkt', 'averaged_perceptron_tagger', 'brown', 'wordnet', 'conll2000', 'movie_reviews']
-            for corpus in corpora:
-                await asyncio.to_thread(nltk.download, corpus, quiet=True)
-            
-            logging.info("✅ NLTK & TextBlob corpora verified/downloaded.")
-        except Exception as e:
-            logging.warning(f"⚠️ NLTK background download failed/skipped: {e}")
+    # Download required TextBlob corpora synchronously to guarantee disk presence
+    try:
+        import subprocess
+        logging.info("⏳ Downloading TextBlob Corpora...")
+        # textblob.download_corpora is very fast and skips already-downloaded files
+        subprocess.run(["python", "-m", "textblob.download_corpora"], timeout=30, check=True)
+        logging.info("✅ NLTK & TextBlob corpora verified.")
+    except Exception as e:
+        logging.warning(f"⚠️ TextBlob download skipped/failed: {e}")
 
+    logging.info("🚀 Rakshak AI Core Initialized")
+    
     # 1. Background Task Management
     stop_event = asyncio.Event()
     tasks = []
-
-    # Launch it safely into the background without awaiting it!
-    tasks.append(asyncio.create_task(download_nltk_async()))
-    logging.info("🚀 Rakshak AI Core Initialized")
 
     # 1.1 Start Challenge Pruner
     async def prune_loop():
