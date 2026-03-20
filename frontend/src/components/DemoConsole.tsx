@@ -82,8 +82,9 @@ export const DemoConsole: React.FC = () => {
                 }
 
             } else {
-                console.error("Analysis failed");
-                setError("The detection engine encountered an error. Please try again.");
+                const errText = await res.text();
+                console.error("Analysis failed", res.status, errText);
+                setError(`Server Error ${res.status}: ${errText}`);
                 setAnalyzing(false);
             }
         } catch (e) {
