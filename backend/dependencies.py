@@ -22,7 +22,11 @@ def get_current_user(
 ) -> Optional[str]:
     """Decodes JWT and returns the username, or None if unauthenticated."""
     jwt_token = None
-    if credentials:
+    
+    # 📝 Diagnostic Trace
+    logging.info(f"🔑 [AUTH] creds={bool(credentials)} x-auth={bool(request.headers.get('X-Auth-Token'))} q_token={bool(token)}")
+
+    if credentials and credentials.credentials:
         jwt_token = credentials.credentials
     elif request.headers.get("X-Auth-Token"):
         jwt_token = request.headers.get("X-Auth-Token")
@@ -30,6 +34,7 @@ def get_current_user(
         jwt_token = token
         
     if not jwt_token:
+        # logging.info("🔑 [AUTH] No token found")
         return None
         
     payload = security.decode_access_token(jwt_token)
