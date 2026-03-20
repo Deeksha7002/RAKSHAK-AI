@@ -22,15 +22,21 @@ else:
 
 _is_sqlite = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
 
-# pool_pre_ping ensures stale connections are recycled (important for PostgreSQL)
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False} if _is_sqlite else {},
-    pool_pre_ping=not _is_sqlite,   # no-op for SQLite; keeps PG connections alive
-    pool_size=5 if not _is_sqlite else 5,
-    max_overflow=10 if not _is_sqlite else 10,
-    pool_timeout=30 if not _is_sqlite else 30,
-)
+# For SQLite, we must NOT pass pool_size/max_overflow/pool_timeout 
+# as it forces a QueuePool which causes file deadlocks on server restart.
+if _is_sqlite:
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -97,6 +103,16 @@ class RefreshToken(Base):
     expires_at = Column(DateTime(timezone=True))   # 7-day TTL
     revoked = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class DashboardState(Base):
+    """Stores the unified intelligence dashboard state for persistent cross-device sync."""
+    __tablename__ = "dashboard_states"
+
+    username = Column(String, primary_key=True)
+    intelligence_data = Column(JSON)  # Stores the full IntelligenceSummary structure
+    threat_coordinates = Column(JSON) # Stores the list of GeoLocation markers
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 def init_db():
