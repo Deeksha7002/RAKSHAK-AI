@@ -12,6 +12,11 @@ from agent import RakshakAgent
 
 router = APIRouter(tags=["agent"])
 
+@router.get("/api/debug/headers")
+async def debug_headers(request: Request):
+    """Returns the raw headers sent to the backend."""
+    return dict(request.headers)
+
 @router.post("/api/generate-response")
 async def generate_llm_response(
     payload: GenerateResponseRequest,
