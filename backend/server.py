@@ -30,10 +30,27 @@ async def lifespan(app: FastAPI):
 
     # Download required TextBlob corpora synchronously to guarantee disk presence
     try:
-        import subprocess
-        logging.info("⏳ Downloading TextBlob Corpora...")
-        # textblob.download_corpora is very fast and skips already-downloaded files
-        subprocess.run(["python", "-m", "textblob.download_corpora"], timeout=30, check=True)
+        import nltk
+        
+        # Explicitly define a relative path for dictionary loading to avoid OS ambient gaps
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nltk_data")
+        os.makedirs(data_dir, exist_ok=True)
+        if data_dir not in nltk.data.path:
+            nltk.data.path.append(data_dir)
+
+        import ssl
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            pass
+        else:
+            ssl._create_default_https_context = _create_unverified_https_context
+            
+        logging.info(f"⏳ Downloading TextBlob Corpora into {data_dir}...")
+        corpora = ['punkt', 'averaged_perceptron_tagger', 'brown', 'wordnet', 'conll2000', 'movie_reviews']
+        for corpus in corpora:
+            nltk.download(corpus, download_dir=data_dir, quiet=True)
+            
         logging.info("✅ NLTK & TextBlob corpora verified.")
     except Exception as e:
         logging.warning(f"⚠️ TextBlob download skipped/failed: {e}")
@@ -98,15 +115,7 @@ app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 # Only allow official frontend and local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://rakshak-ai-drab.vercel.app",
-        "https://rakshak-ai.vercel.app",
-        "https://scam-defender-honeypot.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:3000"
-    ],
+    allow_origin_regex="https://.*\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
