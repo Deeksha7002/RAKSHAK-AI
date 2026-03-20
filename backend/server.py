@@ -28,29 +28,37 @@ async def lifespan(app: FastAPI):
     # Startup logic
     init_db()
 
-    # Download required NLTK/TextBlob corpora if not present (critical for Render cold starts)
-    try:
-        import nltk
-        import ssl
+    # Download NLTK in the background so it never blocks the fastAPI event loop
+    async def download_nltk_async():
         try:
-            _create_unverified_https_context = ssl._create_unverified_context
-        except AttributeError:
-            pass
-        else:
-            ssl._create_default_https_context = _create_unverified_https_context
-        nltk.download('punkt', quiet=True)
-        nltk.download('averaged_perceptron_tagger', quiet=True)
-        nltk.download('brown', quiet=True)
-        nltk.download('wordnet', quiet=True)
-        logging.info("✅ NLTK corpora verified/downloaded.")
-    except Exception as e:
-        logging.warning(f"⚠️ NLTK download skipped: {e}")
+            # Set a global timeout just for this thread so it doesn't hang forever
+            import socket
+            socket.setdefaulttimeout(10.0)
+            
+            import nltk
+            import ssl
+            try:
+                _create_unverified_https_context = ssl._create_unverified_context
+            except AttributeError:
+                pass
+            else:
+                ssl._create_default_https_context = _create_unverified_https_context
+            
+            await asyncio.to_thread(nltk.download, 'punkt', quiet=True)
+            await asyncio.to_thread(nltk.download, 'averaged_perceptron_tagger', quiet=True)
+            await asyncio.to_thread(nltk.download, 'brown', quiet=True)
+            await asyncio.to_thread(nltk.download, 'wordnet', quiet=True)
+            logging.info("✅ NLTK corpora verified/downloaded.")
+        except Exception as e:
+            logging.warning(f"⚠️ NLTK background download failed/skipped: {e}")
 
-    logging.info("🚀 Rakshak AI Core Initialized")
-    
     # 1. Background Task Management
     stop_event = asyncio.Event()
     tasks = []
+
+    # Launch it safely into the background without awaiting it!
+    tasks.append(asyncio.create_task(download_nltk_async()))
+    logging.info("🚀 Rakshak AI Core Initialized")
 
     # 1.1 Start Challenge Pruner
     async def prune_loop():
