@@ -310,7 +310,10 @@ export const LoginScreen: React.FC<any> = () => {
         setStatusMsg('CONNECTING TO RAKSHAK CORE...');
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/ping`, { method: 'GET', signal: AbortSignal.timeout(15000) });
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const res = await fetch(`${API_BASE_URL}/api/ping`, { method: 'GET', signal: controller.signal });
+                clearTimeout(timeoutId);
                 if (res.ok || res.status === 404) return true; // 404 = server is awake, just route doesn't exist
             } catch (e) {
                 console.warn(`[RAKSHAK] Wake attempt ${attempt}/3 failed`);
