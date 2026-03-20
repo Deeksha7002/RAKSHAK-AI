@@ -28,12 +28,13 @@ def get_current_user(
     AUTH_LOGS.append(trace)
     logging.info(f"🔑 [AUTH] {trace}")
 
-    if credentials and credentials.credentials:
-        jwt_token = credentials.credentials
+    # 1. Prioritize Query Param (completely immune to full proxy stripping)
+    if token and token != 'null' and token != 'undefined':
+        jwt_token = token
     elif request.headers.get("X-Auth-Token"):
         jwt_token = request.headers.get("X-Auth-Token")
-    elif token:
-        jwt_token = token
+    elif credentials and credentials.credentials:
+        jwt_token = credentials.credentials
         
     if not jwt_token:
         # logging.info("🔑 [AUTH] No token found")
