@@ -31,10 +31,6 @@ async def lifespan(app: FastAPI):
     # Download NLTK in the background so it never blocks the fastAPI event loop
     async def download_nltk_async():
         try:
-            # Set a global timeout just for this thread so it doesn't hang forever
-            import socket
-            socket.setdefaulttimeout(10.0)
-            
             import nltk
             import ssl
             try:
@@ -44,11 +40,12 @@ async def lifespan(app: FastAPI):
             else:
                 ssl._create_default_https_context = _create_unverified_https_context
             
-            await asyncio.to_thread(nltk.download, 'punkt', quiet=True)
-            await asyncio.to_thread(nltk.download, 'averaged_perceptron_tagger', quiet=True)
-            await asyncio.to_thread(nltk.download, 'brown', quiet=True)
-            await asyncio.to_thread(nltk.download, 'wordnet', quiet=True)
-            logging.info("✅ NLTK corpora verified/downloaded.")
+            # TextBlob specifically requires these 6 packages to operate its analyzers
+            corpora = ['punkt', 'averaged_perceptron_tagger', 'brown', 'wordnet', 'conll2000', 'movie_reviews']
+            for corpus in corpora:
+                await asyncio.to_thread(nltk.download, corpus, quiet=True)
+            
+            logging.info("✅ NLTK & TextBlob corpora verified/downloaded.")
         except Exception as e:
             logging.warning(f"⚠️ NLTK background download failed/skipped: {e}")
 
