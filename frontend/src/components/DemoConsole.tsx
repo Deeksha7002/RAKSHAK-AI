@@ -25,7 +25,8 @@ export const DemoConsole: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'X-Auth-Token': token || ''
                 },
                 body: JSON.stringify({
                     text: input,
@@ -47,7 +48,8 @@ export const DemoConsole: React.FC = () => {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
+                            'Authorization': `Bearer ${token}`,
+                            'X-Auth-Token': token || ''
                         },
                         body: JSON.stringify({
                             message: input,
