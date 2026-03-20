@@ -245,9 +245,13 @@ def register_bio_finish(response: Dict[str, Any], username: str, request: Reques
             "public_key": bytes_to_base64url(verification.credential_public_key),
             "sign_count": verification.sign_count,
         }
-        credentials = list(user.webauthn_credentials)
+        credentials = list(user.webauthn_credentials) if user.webauthn_credentials else []
         credentials.append(cred_data)
         user.webauthn_credentials = credentials
+        
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(user, "webauthn_credentials")
+        
         db.commit()
         return {"status": "success"}
     except Exception as e:
