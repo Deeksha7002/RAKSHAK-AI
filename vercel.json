@@ -7,8 +7,8 @@
       "config": { "distDir": "dist" }
     }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://scam-defender-honeypot-1-fi61.onrender.com/api/$1" },
-    { "src": "/[^.]*", "dest": "/frontend/index.html" }
+  "rewrites": [
+    { "source": "/api/:match*", "destination": "https://scam-defender-honeypot-1-fi61.onrender.com/api/:match*" },
+    { "source": "/:path((?!.*\\.).*)", "destination": "/index.html" }
   ]
 }
