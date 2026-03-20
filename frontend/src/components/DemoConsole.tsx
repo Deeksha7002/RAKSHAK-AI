@@ -26,7 +26,10 @@ export const DemoConsole: React.FC = () => {
                 setAnalyzing(false);
                 return;
             }
-            const res = await fetch(`${API_BASE_URL}/api/analyze?token=${token}`, {
+            
+            // 🚀 BYPASS VERCEL: Hit Render direct to bypass proxy Stripping 
+            const LIVE_RENDER_URL = 'https://scam-defender-honeypot-1-fi61.onrender.com';
+            const res = await fetch(`${LIVE_RENDER_URL}/api/analyze?token=${token}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -49,7 +52,8 @@ export const DemoConsole: React.FC = () => {
                 // Now fetch what the agent would actually reply
                 setGeneratingReply(true);
                 try {
-                    const replyRes = await fetch(`${API_BASE_URL}/api/generate-response?token=${token}`, {
+                    const LIVE_RENDER_URL = 'https://scam-defender-honeypot-1-fi61.onrender.com';
+                    const replyRes = await fetch(`${LIVE_RENDER_URL}/api/generate-response?token=${token}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
