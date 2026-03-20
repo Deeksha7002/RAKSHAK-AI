@@ -65,10 +65,14 @@ def run_migrations_online() -> None:
     if configuration:
         configuration["sqlalchemy.url"] = SQLALCHEMY_DATABASE_URL
     
+    # For non-SQLite, apply connect_args to prevent execution hangs
+    _is_sqlite = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+    
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"connect_timeout": 5} if not _is_sqlite else {},
     )
 
     with connectable.connect() as connection:
