@@ -21,6 +21,11 @@ export const DemoConsole: React.FC = () => {
 
         try {
             const token = localStorage.getItem('access_token');
+            if (!token) {
+                setError("Authentication required. Please sign in or register to use the Simulation Lab.");
+                setAnalyzing(false);
+                return;
+            }
             const res = await fetch(`${API_BASE_URL}/api/analyze?token=${token}`, {
                 method: 'POST',
                 headers: {
