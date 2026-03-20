@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 import { Shield, ShieldAlert, CheckCircle, AlertTriangle, Play, RefreshCw, Terminal, Search, Zap } from 'lucide-react';
-import { API_BASE_URL } from '../lib/config';
 
 export const DemoConsole: React.FC = () => {
     const [input, setInput] = useState('');
@@ -20,7 +19,7 @@ export const DemoConsole: React.FC = () => {
         setError(null);
 
         try {
-            const token = localStorage.getItem('access_token');
+            const token = localStorage.getItem('rakshak_access_token');
             if (!token) {
                 setError("Authentication required. Please sign in or register to use the Simulation Lab.");
                 setAnalyzing(false);
