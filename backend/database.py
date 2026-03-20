@@ -35,7 +35,11 @@ else:
         pool_pre_ping=True,
         pool_size=5,
         max_overflow=10,
-        pool_timeout=30,
+        pool_timeout=10,
+        # connect_timeout tells psycopg2 to give up after 5s if the host is unreachable.
+        # Without this, a sleeping/dead Render Postgres instance will hang the entire
+        # server startup indefinitely — the OS TCP stack can wait 2+ minutes.
+        connect_args={"connect_timeout": 5},
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
