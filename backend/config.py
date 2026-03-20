@@ -7,6 +7,9 @@ BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-insecure-key-change-this")
 ALGORITHM = "HS256"
 
+# 📝 In-memory Auth Diagnostics Buffer 
+AUTH_LOGS = []
+
 # ── Biometric (WebAuthn) Configuration ────────────────────────────────────────
 WEBAUTHN_RP_NAME = "Rakshak AI"
 # We no longer hardcode RP_ID/Origin. We define a list of valid production domains.

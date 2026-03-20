@@ -19,7 +19,7 @@ async def debug_headers(request: Request):
 
 @router.get("/api/debug/auth_logs")
 async def debug_auth_logs():
-    from dependencies import AUTH_LOGS
+    from config import AUTH_LOGS
     return AUTH_LOGS
 
 @router.post("/api/generate-response")

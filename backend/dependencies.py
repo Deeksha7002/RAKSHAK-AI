@@ -14,6 +14,7 @@ import security
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 from fastapi import WebSocket, Depends, HTTPException, Header, Request
+from config import AUTH_LOGS
 
 def get_current_user(
     request: Request,
@@ -23,8 +24,9 @@ def get_current_user(
     """Decodes JWT and returns the username, or None if unauthenticated."""
     jwt_token = None
     
-    # 📝 Diagnostic Trace
-    logging.info(f"🔑 [AUTH] creds={bool(credentials)} x-auth={bool(request.headers.get('X-Auth-Token'))} q_token={bool(token)}")
+    trace = f"creds={bool(credentials)} (val={credentials.credentials if credentials else 'None'}) x-auth={request.headers.get('X-Auth-Token')} q_token={token}"
+    AUTH_LOGS.append(trace)
+    logging.info(f"🔑 [AUTH] {trace}")
 
     if credentials and credentials.credentials:
         jwt_token = credentials.credentials
