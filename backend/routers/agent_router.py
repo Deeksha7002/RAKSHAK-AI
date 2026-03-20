@@ -17,6 +17,11 @@ async def debug_headers(request: Request):
     """Returns the raw headers sent to the backend."""
     return dict(request.headers)
 
+@router.get("/api/debug/auth_logs")
+async def debug_auth_logs():
+    from dependencies import AUTH_LOGS
+    return AUTH_LOGS
+
 @router.post("/api/generate-response")
 async def generate_llm_response(
     payload: GenerateResponseRequest,
