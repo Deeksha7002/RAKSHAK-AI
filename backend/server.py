@@ -115,7 +115,7 @@ app = FastAPI(title="Rakshak AI Cyber Cell API", lifespan=lifespan)
 # Only allow official frontend and local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https://.*\.vercel\.app|http://localhost:\d+",
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
