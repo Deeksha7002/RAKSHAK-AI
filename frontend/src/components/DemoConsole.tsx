@@ -102,6 +102,17 @@ export const DemoConsole: React.FC = () => {
                 <div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, letterSpacing: '1px' }}>THREAT SIMULATION LAB</h1>
                     <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>Manual heuristic verification environment</p>
+                    {/* 🛠️ Temporary Debug Force-Sign-Out Button */}
+                    <button 
+                        onClick={() => { localStorage.clear(); window.location.reload(); }}
+                        style={{
+                            background: '#ef4444', color: 'white', border: 'none', 
+                            padding: '6px 12px', borderRadius: '4px', marginTop: '10px', 
+                            fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem'
+                        }}
+                    >
+                        🚨 FORCE SIGN OUT & RESET
+                    </button>
                 </div>
             </div>
 
