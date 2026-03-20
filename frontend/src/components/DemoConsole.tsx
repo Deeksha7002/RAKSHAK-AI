@@ -21,7 +21,7 @@ export const DemoConsole: React.FC = () => {
 
         try {
             const token = localStorage.getItem('access_token');
-            const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+            const res = await fetch(`${API_BASE_URL}/api/analyze?token=${token}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ export const DemoConsole: React.FC = () => {
                 // Now fetch what the agent would actually reply
                 setGeneratingReply(true);
                 try {
-                    const replyRes = await fetch(`${API_BASE_URL}/api/generate-response`, {
+                    const replyRes = await fetch(`${API_BASE_URL}/api/generate-response?token=${token}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

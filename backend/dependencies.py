@@ -13,24 +13,26 @@ import security
 # ── Auth Helper ────────────────────────────────────────────────────────────────
 _bearer_scheme = HTTPBearer(auto_error=False)
 
-from fastapi import WebSocket, Depends, HTTPException, Header
+from fastapi import WebSocket, Depends, HTTPException, Header, Request
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
-    x_auth_token: Optional[str] = Header(None)
+    token: Optional[str] = None  # URL Query Param fallback
 ) -> Optional[str]:
     """Decodes JWT and returns the username, or None if unauthenticated."""
-    token = None
+    jwt_token = None
     if credentials:
-        token = credentials.credentials
-    elif x_auth_token:
-        # Use custom header to bypass Vercel header-stripping issues
-        token = x_auth_token
+        jwt_token = credentials.credentials
+    elif request.headers.get("X-Auth-Token"):
+        jwt_token = request.headers.get("X-Auth-Token")
+    elif token:
+        jwt_token = token
         
-    if not token:
+    if not jwt_token:
         return None
         
-    payload = security.decode_access_token(token)
+    payload = security.decode_access_token(jwt_token)
     return payload.get("sub") if payload else None
 
 # ── WebAuthn Challenge Pruning ─────────────────────────────────────────────────
