@@ -175,7 +175,7 @@ export const LoginScreen: React.FC<any> = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, username]);
 
-    const triggerBiometric = async (user: string) => {
+    const triggerBiometric = async (rawUser: string) => {
         setIsLoading(true);
         setError(null);
         setStatusMsg('SCANNING BIOMETRICS...');
@@ -183,6 +183,7 @@ export const LoginScreen: React.FC<any> = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for cold starts
 
+        const user = rawUser.trim().toLowerCase();
         // FIX: Added 'cb' (cache buster) to bypass stubborn browser/PWA caches.
         const fetchUrl = `${API_BASE_URL}/api/biometric/login/start?username=${encodeURIComponent(user)}&cb=${Date.now()}`;
         try {
@@ -286,10 +287,11 @@ export const LoginScreen: React.FC<any> = () => {
             console.log(`[RAKSHAK] Account Created. Transitioning to Biometric Phase.`);
 
             // Critical State Persistence for the Biometric Handshake
+            const cleanUser = username.trim().toLowerCase();
             localStorage.setItem('scam_registered', 'true');
-            localStorage.setItem('scam_last_user', username);
+            localStorage.setItem('scam_last_user', cleanUser);
 
-            setRegUsername(username);
+            setRegUsername(cleanUser);
             setRegPassword(password);
 
             // Switch Phase IMMEDIATELY
