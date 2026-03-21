@@ -60,8 +60,7 @@ export class RakshakAgent {
                 },
                 body: JSON.stringify({
                     text,
-                    context: 'chat',
-                    sender_name: this.senderName
+                    conversation_id: _threadId
                 })
             });
 
