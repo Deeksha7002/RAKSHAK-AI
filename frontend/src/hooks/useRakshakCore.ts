@@ -458,21 +458,27 @@ export function useRakshakCore() {
             if (shouldReply) {
                 const effectiveClassification = (classification === 'benign') ? 'scam' : classification;
                 console.log(`%c💬 [RakshakCore] TRIGGERING REPLY. Class: ${effectiveClassification}`);
-                const response = await agent.generateResponse(effectiveClassification, content);
-                console.log(`%c💬 [RakshakCore] Reply Generated:`, 'color: pink', response?.substring(0, 30));
-                if (response) {
-                    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
-                    handleIncomingMessage(threadId, response, 'agent', undefined, scenarioId, undefined, silent);
+                try {
+                    const response = await agent.generateResponse(effectiveClassification, content);
+                    console.log(`%c💬 [RakshakCore] Reply Generated:`, 'color: pink', response?.substring(0, 30));
+                    if (response) {
+                        await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+                        handleIncomingMessage(threadId, response, 'agent', undefined, scenarioId, undefined, silent);
 
-                    if (scenarioId) {
-                        const currentStep = scammerProgressRef.current.get(threadId) || 1;
-                        let reply = await apiRef.current.getReplyForScenario(scenarioId, currentStep);
-                        if (reply) {
-                            scammerProgressRef.current.set(threadId, currentStep + 1);
-                            await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
-                            handleIncomingMessage(threadId, reply, 'scammer', undefined, scenarioId, undefined, silent);
+                        if (scenarioId) {
+                            const currentStep = scammerProgressRef.current.get(threadId) || 1;
+                            let reply = await apiRef.current.getReplyForScenario(scenarioId, currentStep);
+                            if (reply) {
+                                scammerProgressRef.current.set(threadId, currentStep + 1);
+                                await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+                                handleIncomingMessage(threadId, reply, 'scammer', undefined, scenarioId, undefined, silent);
+                            }
                         }
+                    } else {
+                         console.warn(`%c⚠️ [RakshakCore] generateResponse returned NULL/undefined!`, 'color: orange');
                     }
+                } catch (err) {
+                    console.error(`%c🔥 [RakshakCore] generateResponse CRASHED:`, 'color: red', err);
                 }
             }
         }
