@@ -47,6 +47,12 @@ export const DemoConsole: React.FC = () => {
                 setResult(data);
                 setAnalyzing(false); // Show verdict immediately
                 
+                // Do not draft a persona response if the message is deemed SAFE
+                if (!data.is_scam) {
+                    setAgentResponse(null);
+                    return;
+                }
+
                 // Now fetch what the agent would actually reply
                 setGeneratingReply(true);
                 try {
