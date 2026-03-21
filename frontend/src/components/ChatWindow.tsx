@@ -57,7 +57,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
     }, [visibleCount]);
 
     const displayedMessages = messages.slice(0, visibleCount);
-    const isTyping = visibleCount < messages.length && messages[visibleCount].sender === 'scammer';
+    const isTyping = visibleCount < messages.length && messages[visibleCount]?.sender === 'scammer';
+
+    console.log(`%c🖥️ [ChatWindow] Render`, 'color: #10b981', { 
+        messagesTotal: messages.length, 
+        visible: visibleCount, 
+        displayed: displayedMessages.length,
+        isTyping
+    });
 
     const isSystemAction = (msg: Message) => msg.sender === 'system' || (msg.sender === 'agent' && msg.content.startsWith('['));
 
