@@ -31,6 +31,7 @@ function App() {
   const { isAuthenticated, logout } = useAuth();
   const {
     threads,
+    changePersona,
     isMonitoring,
     notification,
     startMonitoring,
@@ -198,7 +199,22 @@ function App() {
                 </button>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem' }}>{selectedThread.senderName}</div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{selectedThread.source}</div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.6, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {selectedThread.source}
+                    <select 
+                      value={selectedThread.persona || 'ELDERLY'} 
+                      onChange={(e) => changePersona(selectedThread.id, e.target.value)}
+                      style={{ padding: '2px 4px', fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      <option value="ELDERLY">👵 Elderly</option>
+                      <option value="SKEPTICAL">🤨 Dave (Skeptic)</option>
+                      <option value="INVESTOR">📈 Investor</option>
+                      <option value="CITIZEN">⚖ Citizen</option>
+                      <option value="FRIENDLY">😊 Friendly</option>
+                      <option value="EXPERT">🧠 Expert</option>
+                      <option value="GUARD">🛡️ Guard</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -241,7 +257,22 @@ function App() {
                       {selectedThread.senderName}
                       <span className={`status-dot ${wsStatus}`} title={`Uplink: ${wsStatus}`} />
                     </div>
-                    <div className="sender-source">{selectedThread.source}</div>
+                    <div className="sender-source" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {selectedThread.source}
+                      <select 
+                        value={selectedThread.persona || 'ELDERLY'} 
+                        onChange={(e) => changePersona(selectedThread.id, e.target.value)}
+                        style={{ padding: '2px 4px', fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        <option value="ELDERLY">👵 Elderly</option>
+                        <option value="SKEPTICAL">🤨 Dave (Skeptic)</option>
+                        <option value="INVESTOR">📈 Investor</option>
+                        <option value="CITIZEN">⚖ Citizen</option>
+                        <option value="FRIENDLY">😊 Friendly</option>
+                        <option value="EXPERT">🧠 Expert</option>
+                        <option value="GUARD">🛡️ Guard</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div>

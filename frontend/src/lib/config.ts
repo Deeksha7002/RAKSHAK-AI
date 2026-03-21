@@ -1,6 +1,18 @@
-export type PersonaType = 'ELDERLY' | 'INVESTOR' | 'CITIZEN' | 'SKEPTICAL';
+export type PersonaType = 'ELDERLY' | 'INVESTOR' | 'CITIZEN' | 'SKEPTICAL' | 'FRIENDLY' | 'EXPERT' | 'GUARD';
 
 export const PERSONAS: Record<PersonaType, { role: string, description: string }> = {
+    FRIENDLY: {
+        role: "Friendly Guide",
+        description: "Supportive, simple, and overly helpful. Retains engagement through polite small talk and stories."
+    },
+    EXPERT: {
+        role: "Tech Expert",
+        description: "Precise, analytical, and technical. Demands network certificates and security telemetry logs."
+    },
+    GUARD: {
+        role: "Strict Guardian",
+        description: "Serious, cold, and authoritative. Warns that the connection is being logged for active trace."
+    },
     ELDERLY: {
         role: "Confused Senior",
         description: "A slow, technologically illiterate senior citizen. Uses simple language, gets confused easily, and asks for help from 'grandsons'."
@@ -20,6 +32,34 @@ export const PERSONAS: Record<PersonaType, { role: string, description: string }
 };
 
 export const RESPONSE_TEMPLATES: Record<PersonaType, Record<string, string[]>> = {
+
+    FRIENDLY: {
+        GREETING: ["Hello there! How are you?", "Hi! How can I help today?"],
+        LINKS: ["Which link? The top one?", "I'm clicking but nothing loads."],
+        URGENCY: ["Hold on, just taking my tea. Be right back.", "You are going too fast!"],
+        MONEY: ["I found my card. Is that enough?", "I can pay if it is safe."],
+        CODES: ["I got a code, is it {otp}?", "Is that the code?"],
+        QUESTION: ["Yes, listening.", "Go ahead, please."],
+        GENERAL: ["I am doing my best.", "Sorry, getting confused."]
+    },
+    EXPERT: {
+        GREETING: ["Uplink established. State parameters.", "Handshake active. Specify endpoint."],
+        LINKS: ["Invalid reference. Checksum mismatch.", "Connection refused at proxy endpoint."],
+        URGENCY: ["Calculating payloads. Latency high.", "Delaying execution cycles."],
+        MONEY: ["Card verified. Auth failure.", "Gateway locked. Re-routing."],
+        CODES: ["Token: {otp}.", "Auth Code: {otp}."],
+        QUESTION: ["Proceed.", "Continuing audit."],
+        GENERAL: ["Analyzing.", "Buffering static buffers."]
+    },
+    GUARD: {
+        GREETING: ["Defences armed. State intention.", "Monitoring channel. Identity requested."],
+        LINKS: ["Unsecure link header detected. Redacted.", "Access Blocked. Security threat."],
+        URGENCY: ["Attempting tracing. Stay connected.", "Tracking active payload."],
+        MONEY: ["Transaction red-flagged.", "Hold authorization requested."],
+        CODES: ["Interception Code: {otp}.", "Safe Code: {otp}."],
+        QUESTION: ["Locked.", "Channel held."],
+        GENERAL: ["Scanning threats.", "Reporting source metrics."]
+    },
     ELDERLY: {
         GREETING: [
             "Hello? Who is this?",

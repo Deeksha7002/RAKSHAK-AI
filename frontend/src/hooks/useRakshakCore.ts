@@ -479,6 +479,14 @@ export function useRakshakCore() {
         }
     };
 
+    const changePersona = (threadId: string, persona: any) => {
+        const agent = agentsRef.current.get(threadId);
+        if (agent) {
+            agent.currentPersona = persona;
+        }
+        setThreads((prev: Thread[]) => prev.map((t: Thread) => t.id === threadId ? { ...t, persona } : t));
+    };
+
     const addMessageToThread = (threadId: string, msg: Message) => {
         setThreads((prev: Thread[]) => prev.map((t: Thread) => {
             if (t.id === threadId) {
@@ -522,6 +530,7 @@ export function useRakshakCore() {
 
     return {
         threads,
+        changePersona,
         isMonitoring,
         notification,
         setNotification,
