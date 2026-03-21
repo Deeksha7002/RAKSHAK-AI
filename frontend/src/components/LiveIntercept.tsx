@@ -113,7 +113,7 @@ export const LiveIntercept: React.FC<LiveInterceptProps> = ({ intent, threatScor
                 </div>
 
                 {/* AI Analysis Cards */}
-                <div className="live-intercept-info-cards" style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+                <div className="live-intercept-info-cards" style={{ display: 'flex', gap: '1rem', flex: 1, overflowX: 'auto', paddingBottom: '0.25rem' }}>
                     <div className="analysis-card">
                         <div className="label">DETECTED INTENT</div>
                         <div className="value text-warning">{intent || "ANALYZING..."}</div>
@@ -193,8 +193,15 @@ export const LiveIntercept: React.FC<LiveInterceptProps> = ({ intent, threatScor
                     border: 1px solid rgba(255,255,255,0.1);
                     padding: 0.5rem 1rem;
                     border-radius: 6px;
-                    flex: 1;
-                    min-width: 0;
+                    flex: 0 0 150px;
+                    min-width: 150px;
+                }
+                .live-intercept-info-cards::-webkit-scrollbar {
+                    height: 4px;
+                }
+                .live-intercept-info-cards::-webkit-scrollbar-thumb {
+                    background: rgba(255,255,255,0.2);
+                    border-radius: 2px;
                 }
                 .analysis-card .label {
                     font-size: 0.7rem;
