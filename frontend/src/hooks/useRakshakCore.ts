@@ -48,16 +48,8 @@ export function useRakshakCore() {
         let reconnectCount = 0;
 
         const connect = () => {
-            let wsUrl;
-            
-            // If API_BASE_URL is empty (relative), derive WS from current location
-            if (!API_BASE_URL) {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                wsUrl = `${protocol}//${window.location.host}/api/ws`;
-            } else {
-                wsUrl = (API_BASE_URL as string).replace(/^http/, 'ws') + '/api/ws';
-            }
-
+            // Connect absolute to Render to bypass Vercel Proxy WebSocket 404 failures
+            const wsUrl = 'wss://scam-defender-honeypot-1-fi61.onrender.com/api/ws';
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
