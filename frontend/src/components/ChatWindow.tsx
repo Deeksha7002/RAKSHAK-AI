@@ -175,9 +175,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
 
             {/* Invisible div to scroll to bottom securely */}
             <div ref={bottomRef} style={{ height: '10px' }} />
-            <div style={{ position: 'fixed', bottom: '10px', right: '10px', color: '#ff4444', fontSize: '12px', background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: '4px', zIndex: 9999 }}>
-                🧪 DEBUG_VIEW: {displayedMessages.length} / {messages.length} (vis: {visibleCount})
-            </div>
+
         </div>
     );
 };
