@@ -222,7 +222,7 @@ function App() {
           renderSidebar()
         )}
 
-        <div className="main-chat" style={{ display: isMobile && !selectedThreadId ? 'none' : 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <div className="main-chat" style={{ display: isMobile ? 'none' : 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {selectedThreadId && selectedThread ? (
             <>
               <div className="chat-banner" data-status={
