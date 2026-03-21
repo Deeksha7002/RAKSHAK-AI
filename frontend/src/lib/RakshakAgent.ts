@@ -465,7 +465,7 @@ export class RakshakAgent {
             if (intent) category = intent;
         }
 
-        const personaTemplates = RESPONSE_TEMPLATES[this.currentPersona] as Record<string, string[]>;
+        const personaTemplates = (RESPONSE_TEMPLATES[this.currentPersona] || RESPONSE_TEMPLATES["ELDERLY"]) as Record<string, string[]>;
         const templates = personaTemplates[category] || personaTemplates["GENERAL"];
 
         let response = templates[Math.floor(Math.random() * templates.length)];
