@@ -60,41 +60,41 @@ export function NavigationFooter({
                             </button>
                             
                             {openFolder === 'tactical' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', padding: '0.4rem 0.6rem 0.2rem 0.6rem', gap: '2px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', padding: '0.5rem 0.6rem 0.6rem 0.6rem' }}>
                                     <button
                                         onClick={() => { onToggleView('INTELLIGENCE'); soundManager.playClick(); }}
-                                        style={navItemStyle(activeView === 'INTELLIGENCE' && !selectedThreadId)}
+                                        className={`btn btn-icon ${activeView === 'INTELLIGENCE' && !selectedThreadId ? 'active' : ''}`}
+                                        title="Intelligence Graph"
                                     >
-                                        <BarChart3 size={16} color={activeView === 'INTELLIGENCE' && !selectedThreadId ? "var(--primary)" : "#8b5cf6"} /> 
-                                        <span>Intelligence Graph</span>
+                                        <BarChart3 size={18} color={activeView === 'INTELLIGENCE' && !selectedThreadId ? "var(--primary)" : "#8b5cf6"} /> 
                                     </button>
                                     <button
                                         onClick={() => { onToggleView('FORENSICS'); soundManager.playClick(); }}
-                                        style={navItemStyle(activeView === 'FORENSICS' && !selectedThreadId)}
+                                        className={`btn btn-icon ${activeView === 'FORENSICS' && !selectedThreadId ? 'active' : ''}`}
+                                        title="Forensics Lab"
                                     >
-                                        <ScanEye size={16} color={activeView === 'FORENSICS' && !selectedThreadId ? "var(--primary)" : "#3b82f6"} /> 
-                                        <span>Forensics Lab</span>
+                                        <ScanEye size={18} color={activeView === 'FORENSICS' && !selectedThreadId ? "var(--primary)" : "#3b82f6"} /> 
                                     </button>
                                     <button
                                         onClick={() => { onToggleView('HONEY_TOKENS'); soundManager.playClick(); }}
-                                        style={navItemStyle(activeView === 'HONEY_TOKENS' && !selectedThreadId)}
+                                        className={`btn btn-icon ${activeView === 'HONEY_TOKENS' && !selectedThreadId ? 'active' : ''}`}
+                                        title="Honey Tokens"
                                     >
-                                        <Target size={16} color={activeView === 'HONEY_TOKENS' && !selectedThreadId ? "var(--primary)" : "#ef4444"} /> 
-                                        <span>Honey Tokens</span>
+                                        <Target size={18} color={activeView === 'HONEY_TOKENS' && !selectedThreadId ? "var(--primary)" : "#ef4444"} /> 
                                     </button>
                                     <button
                                         onClick={() => { onToggleView('DEMO'); soundManager.playClick(); }}
-                                        style={navItemStyle(activeView === 'DEMO' && !selectedThreadId)}
+                                        className={`btn btn-icon ${activeView === 'DEMO' && !selectedThreadId ? 'active' : ''}`}
+                                        title="Threat Lab (Demo)"
                                     >
-                                        <Zap size={16} color={activeView === 'DEMO' && !selectedThreadId ? "var(--primary)" : "#fbbf24"} /> 
-                                        <span>Threat Lab (Demo)</span>
+                                        <Zap size={18} color={activeView === 'DEMO' && !selectedThreadId ? "var(--primary)" : "#fbbf24"} /> 
                                     </button>
                                     <button
                                         onClick={() => { onToggleView('LOCKER'); soundManager.playClick(); }}
-                                        style={navItemStyle(activeView === 'LOCKER' && !selectedThreadId)}
+                                        className={`btn btn-icon ${activeView === 'LOCKER' && !selectedThreadId ? 'active' : ''}`}
+                                        title="Evidence Vault"
                                     >
-                                        <Database size={16} color={activeView === 'LOCKER' && !selectedThreadId ? "var(--primary)" : "#ec4899"} /> 
-                                        <span>Evidence Vault</span>
+                                        <Database size={18} color={activeView === 'LOCKER' && !selectedThreadId ? "var(--primary)" : "#ec4899"} /> 
                                     </button>
                                 </div>
                             )}
@@ -111,18 +111,20 @@ export function NavigationFooter({
                             </button>
                             
                             {openFolder === 'system' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', padding: '0.4rem 0.6rem 0.2rem 0.6rem', gap: '2px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', padding: '0.5rem 0.6rem 0.6rem 0.6rem' }}>
                                     <button
                                         onClick={() => { onToggleProtocol(); soundManager.playClick(); }}
-                                        style={navItemStyle(false)}
+                                        className="btn btn-icon"
+                                        title="Security Protocols"
                                     >
-                                        <Shield size={16} color="#10b981" /> <span>Security Protocols</span>
+                                        <Shield size={18} color="#10b981" />
                                     </button>
                                     <button
                                         onClick={() => { onToggleIntegration(); soundManager.playClick(); }}
-                                        style={navItemStyle(false)}
+                                        className="btn btn-icon"
+                                        title="API Integrations"
                                     >
-                                        <LinkIcon size={16} color="#a1a1aa" /> <span>API Integrations</span>
+                                        <LinkIcon size={18} color="#a1a1aa" />
                                     </button>
                                 </div>
                             )}
@@ -162,21 +164,3 @@ export function NavigationFooter({
         </div>
     );
 }
-
-// Helper for inline active state styling of list items
-const navItemStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '10px', 
-    width: '100%', 
-    padding: '8px 10px', 
-    background: isActive ? 'var(--primary-subtle)' : 'transparent', 
-    border: `1px solid ${isActive ? 'var(--primary)' : 'transparent'}`, 
-    color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-    borderRadius: '6px',
-    textAlign: 'left',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: isActive ? 600 : 500,
-    transition: 'all 0.2s ease'
-});
