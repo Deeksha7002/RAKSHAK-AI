@@ -85,7 +85,8 @@ async def twilio_webhook(
             "classification": analysis.get("classification"),
             "intent": analysis.get("intent"),
             "timestamp": int(time.time() * 1000),
-            "agentReply": response_body
+            "agentReply": response_body,
+            "persona": agent.current_persona
         }
     })
     await manager.broadcast(alert_msg)
@@ -176,7 +177,8 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
                 "classification": analysis.get("classification"),
                 "intent": analysis.get("intent"),
                 "timestamp": int(time.time() * 1000),
-                "agentReply": reply_content if reply_content else None
+                "agentReply": reply_content if reply_content else None,
+                "persona": agent.current_persona
             }
         })
         await manager.broadcast(alert_msg)

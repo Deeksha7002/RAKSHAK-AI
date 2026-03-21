@@ -62,7 +62,7 @@ export function useRakshakCore() {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'NEW_INTERCEPT') {
-                        handleLiveIntercept(data);
+                        handleLiveIntercept(data.data);
                     }
                 } catch (e) {
                     console.error('WebSocket parsing error:', e);
@@ -115,10 +115,13 @@ export function useRakshakCore() {
                 avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.threadId}`,
                 isCompromised: false,
                 isArchived: false,
-                intent: data.intent
+                intent: data.intent,
+                persona: data.persona || 'ELDERLY'
             };
             setThreads((prev: Thread[]) => [newThread, ...prev]);
             soundManager.playAlert();
+        } else {
+            setThreads((prev: Thread[]) => prev.map(t => t.id === threadId ? { ...t, persona: data.persona || t.persona } : t));
         }
 
         addMessageToThread(threadId, {
