@@ -55,6 +55,7 @@ export const LiveIntercept: React.FC<LiveInterceptProps> = ({ intent, threatScor
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
+            flex: 1,
             gap: '1rem',
             transition: 'border-color 0.5s ease'
         }}>

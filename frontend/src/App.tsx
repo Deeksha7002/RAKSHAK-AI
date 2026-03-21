@@ -228,23 +228,29 @@ function App() {
                 </div>
               )}
 
-              {selectedThread.isIntercepted && (
-                <LiveIntercept
-                  intent={selectedThread.intent || "ANALYZING..."}
-                  threatScore={selectedThread.threatScore || 0}
-                  isScanning={selectedThread.isScanning}
-                  location={selectedThread.detectedLocation}
-                  neuralMatrixHistory={selectedThread.neuralMatrixHistory}
-                  counterMeasure={
-                    selectedThread.intent === "MONEY" ? "TRACE_PAYMENT" :
-                      selectedThread.intent === "CODES" ? "INJECT_FAKE_OTP" :
-                        selectedThread.intent === "URGENCY" ? "STALLING_PROTOCOL" : "MONITORING"
-                  }
-                />
-              )}
+              <div className="chat-split-view">
+                <div className="chat-left-pane">
+                  <div className="chat-viewport">
+                    <ChatWindow messages={selectedThread.messages} />
+                  </div>
+                </div>
 
-              <div className="chat-viewport">
-                <ChatWindow messages={selectedThread.messages} />
+                {selectedThread.isIntercepted && (
+                  <div className="live-analysis-right-pane">
+                    <LiveIntercept
+                      intent={selectedThread.intent || "ANALYZING..."}
+                      threatScore={selectedThread.threatScore || 0}
+                      isScanning={selectedThread.isScanning}
+                      location={selectedThread.detectedLocation}
+                      neuralMatrixHistory={selectedThread.neuralMatrixHistory}
+                      counterMeasure={
+                        selectedThread.intent === "MONEY" ? "TRACE_PAYMENT" :
+                          selectedThread.intent === "CODES" ? "INJECT_FAKE_OTP" :
+                            selectedThread.intent === "URGENCY" ? "STALLING_PROTOCOL" : "MONITORING"
+                      }
+                    />
+                  </div>
+                )}
               </div>
             </>
           ) : (

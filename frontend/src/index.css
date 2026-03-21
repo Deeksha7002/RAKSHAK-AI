@@ -178,6 +178,48 @@ body {
   /* CRITICAL: Allows flex child to shrink and show scrollbar */
 }
 
+/* 3-Pane Responsive Chat Split View */
+.chat-split-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden; /* Contains the scrollable children */
+}
+
+/* On Desktop (>1024px), split Side-By-Side */
+@media (min-width: 1024px) {
+  .chat-split-view {
+    flex-direction: row;
+  }
+}
+
+.chat-left-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.live-analysis-right-pane {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .live-analysis-right-pane {
+    width: 45%;
+    max-width: 600px;
+    border-top: none;
+    border-left: 1px solid var(--border-color);
+  }
+}
+
 /* Dashboard Grid */
 .dashboard-grid {
   flex: 1;

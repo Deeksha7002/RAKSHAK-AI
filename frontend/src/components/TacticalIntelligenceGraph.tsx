@@ -68,9 +68,13 @@ export const TacticalIntelligenceGraph: React.FC<TacticalIntelligenceGraphProps>
             borderRadius: '10px',
             padding: '0.85rem 1rem 0.6rem',
             backdropFilter: 'blur(8px)',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minHeight: '200px'
         }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexShrink: 0 }}>
                 <span style={{
                     fontSize: '0.68rem',
                     fontWeight: 700,
@@ -90,11 +94,10 @@ export const TacticalIntelligenceGraph: React.FC<TacticalIntelligenceGraphProps>
                 </span>
             </div>
 
-            {/* SVG Graph */}
             <svg
                 viewBox={`0 0 ${W} ${H}`}
                 preserveAspectRatio="none"
-                style={{ width: '100%', height: '110px', overflow: 'visible' }}
+                style={{ width: '100%', height: '100%', overflow: 'visible', flex: 1 }}
             >
                 <defs>
                     {METRICS.map(m => (
