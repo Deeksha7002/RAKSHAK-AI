@@ -94,7 +94,7 @@ function App() {
       )}
 
       <div className="messenger-container" data-mobile-view={selectedThreadId ? 'chat' : 'list'}>
-        <div className="sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="sidebar" style={{ display: isMobile && selectedThreadId ? 'none' : 'flex', flexDirection: 'column' }}>
           
           {/* TAB SWITCHER UI */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
