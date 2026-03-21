@@ -451,6 +451,7 @@ export const LoginScreen: React.FC<any> = () => {
                 setError('ACCESS DENIED: INVALID CREDENTIALS');
             } else {
                 localStorage.setItem('scam_last_user', username);
+                window.location.reload();
             }
         } catch {
             setError('SYSTEM ERROR — TRY AGAIN');
