@@ -223,7 +223,11 @@ function App() {
       <SecurityProtocolModal isOpen={isProtocolOpen} onClose={() => setIsProtocolOpen(false)} />
       <OnboardingTour 
         isOpen={isTourOpen} 
-        onClose={() => setIsTourOpen(false)} 
+        onClose={() => { 
+          setIsTourOpen(false); 
+          setActiveView('DASHBOARD'); 
+          setSelectedThreadId(null); 
+        }} 
         onSwitchView={(view: ViewState) => { setActiveView(view); setSelectedThreadId(null); }} 
       />
     </>
