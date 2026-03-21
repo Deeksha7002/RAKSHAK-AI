@@ -18,7 +18,7 @@ import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
 import { soundManager } from './lib/SoundManager';
-import { Shield, ChevronLeft, ShieldAlert } from 'lucide-react';
+import { Shield, ChevronLeft, ShieldAlert, HelpCircle, VolumeX, Volume2, LogOut } from 'lucide-react';
 import type { Thread } from './lib/types';
 import './index.css';
 
@@ -42,6 +42,7 @@ function App() {
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
+  const [sidebarTab, setSidebarTab] = useState<'INBOX' | 'COMMAND'>('INBOX');
   const [isMuted, setIsMuted] = useState(false);
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
@@ -83,48 +84,100 @@ function App() {
       )}
 
       <div className="messenger-container" data-mobile-view={selectedThreadId ? 'chat' : 'list'}>
-        <div className="sidebar">
-          <InboxList
-            threads={threads.map((t: Thread) => ({
-              id: t.id,
-              senderName: t.senderName,
-              source: t.source,
-              lastMessage: t.messages[t.messages.length - 1]?.content || '',
-              classification: t.classification,
-              isIntercepted: t.isIntercepted,
-              persona: t.persona,
-              autoReported: t.autoReported,
-              isCompromised: t.isCompromised,
-              isBlocked: t.isBlocked
-            }))}
-            selectedThreadId={selectedThreadId}
-            onSelectThread={(id) => {
-              if (id === 'DASHBOARD_VIEW') {
-                setSelectedThreadId(null);
-                setActiveView('DASHBOARD');
-              } else {
-                setSelectedThreadId(id);
-              }
-            }}
-            onBack={() => {
-              setSelectedThreadId(null);
-              setActiveView('DASHBOARD');
-            }}
-          />
+        <div className="sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
+          
+          {/* TAB SWITCHER UI */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
+             <button 
+                onClick={() => { setSidebarTab('INBOX'); soundManager.playClick(); }}
+                style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'INBOX' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'INBOX' ? '2px solid var(--primary)' : '2px solid transparent', color: sidebarTab === 'INBOX' ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+             >
+                INBOX
+             </button>
+             <button 
+                onClick={() => { setSidebarTab('COMMAND'); soundManager.playClick(); }}
+                style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'COMMAND' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'COMMAND' ? '2px solid #ec4899' : '2px solid transparent', color: sidebarTab === 'COMMAND' ? '#ec4899' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+             >
+                COMMAND CENTER
+             </button>
+          </div>
 
-          <NavigationFooter
-            isMonitoring={isMonitoring}
-            activeView={activeView}
-            selectedThreadId={selectedThreadId}
-            isMuted={isMuted}
-            onStartMonitoring={startMonitoring}
-            onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
-            onToggleMute={() => setIsMuted(soundManager.toggleMute())}
-            onToggleIntegration={() => setIsIntegrationOpen(true)}
-            onToggleProtocol={() => setIsProtocolOpen(true)}
-            onOpenTour={() => setIsTourOpen(true)}
-            onLogout={handleLogout}
-          />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ flex: 1, display: sidebarTab === 'INBOX' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
+              <InboxList
+                threads={threads.map((t: Thread) => ({
+                  id: t.id,
+                  senderName: t.senderName,
+                  source: t.source,
+                  lastMessage: t.messages[t.messages.length - 1]?.content || '',
+                  classification: t.classification,
+                  isIntercepted: t.isIntercepted,
+                  persona: t.persona,
+                  autoReported: t.autoReported,
+                  isCompromised: t.isCompromised,
+                  isBlocked: t.isBlocked
+                }))}
+                selectedThreadId={selectedThreadId}
+                onSelectThread={(id) => {
+                  if (id === 'DASHBOARD_VIEW') {
+                    setSelectedThreadId(null);
+                    setActiveView('DASHBOARD');
+                  } else {
+                    setSelectedThreadId(id);
+                  }
+                }}
+                onBack={() => {
+                  setSelectedThreadId(null);
+                  setActiveView('DASHBOARD');
+                }}
+              />
+            </div>
+            
+            <div style={{ flex: 1, display: sidebarTab === 'COMMAND' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
+              <NavigationFooter
+                isMonitoring={isMonitoring}
+                activeView={activeView}
+                selectedThreadId={selectedThreadId}
+                isMuted={isMuted}
+                onStartMonitoring={startMonitoring}
+                onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
+                onToggleMute={() => setIsMuted(soundManager.toggleMute())}
+                onToggleIntegration={() => setIsIntegrationOpen(true)}
+                onToggleProtocol={() => setIsProtocolOpen(true)}
+                onOpenTour={() => setIsTourOpen(true)}
+                onLogout={handleLogout}
+              />
+            </div>
+          </div>
+
+          {/* ACCOUNT & PREFERENCES STRIP (Permanently docked at bottom of sidebar) */}
+          <div style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
+              <button
+                  onClick={() => { setIsTourOpen(true); soundManager.playClick(); }}
+                  title="App Tutorial"
+                  className="btn-icon"
+                  style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}
+              >
+                  <HelpCircle size={16} color="#fbbf24" />
+              </button>
+              <button
+                  onClick={() => { setIsMuted(soundManager.toggleMute()); soundManager.playClick(); }}
+                  title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+                  className="btn-icon"
+                  style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}
+              >
+                  {isMuted ? <VolumeX size={16} color="#94a3b8" /> : <Volume2 size={16} color="#94a3b8" />}
+              </button>
+              <button
+                  onClick={() => { handleLogout(); soundManager.playClick(); }}
+                  title="Terminate Session"
+                  className="btn-icon"
+                  style={{ flex: 1, height: '36px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}
+              >
+                  <LogOut size={16} color="#ef4444" />
+              </button>
+          </div>
+          
         </div>
 
         <div className="main-chat">

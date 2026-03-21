@@ -130,35 +130,6 @@ export function NavigationFooter({
                             )}
                         </div>
                     </div>
-
-                    {/* ACCOUNT & PREFERENCES STRIP (Sticky to bottom of sidebar) */}
-                    <div style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)' }}>
-                        <button
-                            onClick={() => { onOpenTour(); soundManager.playClick(); }}
-                            title="App Tutorial"
-                            className="btn-icon"
-                            style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}
-                        >
-                            <HelpCircle size={16} color="#fbbf24" />
-                        </button>
-                        <button
-                            onClick={() => { onToggleMute(); soundManager.playClick(); }}
-                            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                            className="btn-icon"
-                            style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}
-                        >
-                            {isMuted ? <VolumeX size={16} color="#94a3b8" /> : <Volume2 size={16} color="#94a3b8" />}
-                        </button>
-                        <button
-                            onClick={() => { onLogout(); soundManager.playClick(); }}
-                            title="Terminate Session"
-                            className="btn-icon"
-                            style={{ flex: 1, height: '36px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}
-                        >
-                            <LogOut size={16} color="#ef4444" />
-                        </button>
-                    </div>
-
                 </div>
             )}
         </div>
