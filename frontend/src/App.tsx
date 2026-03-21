@@ -86,9 +86,9 @@ function App() {
   if (isLocked) return <LockScreen onUnlock={() => setIsLocked(false)} />;
 
   // ==========================================
-  // SIDEBAR TEMPLATE (Extracted for Layout branching)
+  // SIDEBAR TEMPLATE (Wrapped in Function to fix startup crash)
   // ==========================================
-  const sidebarTemplate = (
+  const renderSidebar = () => (
     <div className="sidebar" style={{ display: isMobile && selectedThreadId ? 'none' : 'flex', flexDirection: 'column' }}>
       
       {/* TAB SWITCHER UI */}
@@ -219,7 +219,7 @@ function App() {
             </div>
           </div>
         ) : (
-          sidebarTemplate
+          renderSidebar()
         )}
 
         <div className="main-chat" style={{ display: isMobile && !selectedThreadId ? 'none' : 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
