@@ -49,6 +49,7 @@ function App() {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -84,6 +85,97 @@ function App() {
   if (!isAuthenticated) return <LoginScreen />;
   if (isLocked) return <LockScreen onUnlock={() => setIsLocked(false)} />;
 
+  // ==========================================
+  // SIDEBAR TEMPLATE (Extracted for Layout branching)
+  // ==========================================
+  const sidebarTemplate = (
+    <div className="sidebar" style={{ display: isMobile && selectedThreadId ? 'none' : 'flex', flexDirection: 'column' }}>
+      
+      {/* TAB SWITCHER UI */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
+         <button 
+            onClick={() => { setSidebarTab('INBOX'); soundManager.playClick(); }}
+            style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'INBOX' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'INBOX' ? '2px solid var(--primary)' : '2px solid transparent', color: sidebarTab === 'INBOX' ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+         >
+            INBOX
+         </button>
+         <button 
+            onClick={() => { setSidebarTab('COMMAND'); soundManager.playClick(); }}
+            style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'COMMAND' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'COMMAND' ? '2px solid #ec4899' : '2px solid transparent', color: sidebarTab === 'COMMAND' ? '#ec4899' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+         >
+            COMMAND CENTER
+         </button>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: sidebarTab === 'INBOX' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
+          <InboxList
+            threads={threads.map((t: Thread) => ({
+              id: t.id,
+              senderName: t.senderName,
+              source: t.source,
+              lastMessage: t.messages[t.messages.length - 1]?.content || '',
+              classification: t.classification,
+              isIntercepted: t.isIntercepted,
+              persona: t.persona,
+              autoReported: t.autoReported,
+              isCompromised: t.isCompromised,
+              isBlocked: t.isBlocked
+            }))}
+            selectedThreadId={selectedThreadId}
+            onSelectThread={(id) => {
+              if (id === 'DASHBOARD_VIEW') {
+                setSelectedThreadId(null);
+                setActiveView('DASHBOARD');
+              } else {
+                setSelectedThreadId(id);
+              }
+            }}
+            onBack={() => {
+              setSelectedThreadId(null);
+              setActiveView('DASHBOARD');
+            }}
+          />
+        </div>
+        
+        <div style={{ flex: 1, display: sidebarTab === 'COMMAND' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
+          <NavigationFooter
+            activeView={activeView}
+            selectedThreadId={selectedThreadId}
+            onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
+            onToggleIntegration={() => setIsIntegrationOpen(true)}
+            onToggleProtocol={() => setIsProtocolOpen(true)}
+          />
+        </div>
+      </div>
+
+      <div style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
+          <button onClick={() => { setIsTourOpen(true); soundManager.playClick(); }} className="btn-icon" style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}><HelpCircle size={16} color="#fbbf24" /></button>
+          <button onClick={() => { setIsMuted(soundManager.toggleMute()); soundManager.playClick(); }} className="btn-icon" style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}>{isMuted ? <VolumeX size={16} color="#94a3b8" /> : <Volume2 size={16} color="#94a3b8" />}</button>
+          <button onClick={() => { handleLogout(); soundManager.playClick(); }} className="btn-icon" style={{ flex: 1, height: '36px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}><LogOut size={16} color="#ef4444" /></button>
+      </div>
+    </div>
+  );
+
+  if (!isInitialized) {
+    return (
+      <div className="system-boot-screen" style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: 'radial-gradient(circle at center, #0B1120 0%, #040914 100%)',
+        color: '#fff', gap: '1.5rem', padding: '2rem', textAlign: 'center'
+      }}>
+        <div className="glowing-orb" style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(56, 189, 248, 0.3)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+          <Shield size={40} className="animate-pulse" color="#38bdf8" />
+        </div>
+        <h1 style={{ letterSpacing: '2px', fontWeight: 800, margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>RAKSHAK-AI SYSTEM</h1>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', fontSize: '0.9rem', lineHeight: '1.5' }}>Advanced honey-token and scam interceptor defense ready for deployment setup.</p>
+        <button onClick={() => { setIsInitialized(true); setIsTourOpen(true); startMonitoring(); }} className="btn-primary-glow" style={{ padding: '0.8rem 2rem', fontSize: '1rem', fontWeight: 700, borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+          INITIALIZE DEFENSES
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       {notification && (
@@ -94,97 +186,43 @@ function App() {
       )}
 
       <div className="messenger-container" data-mobile-view={selectedThreadId ? 'chat' : 'list'}>
-        <div className="sidebar" style={{ display: isMobile && selectedThreadId ? 'none' : 'flex', flexDirection: 'column' }}>
-          
-          {/* TAB SWITCHER UI */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
-             <button 
-                onClick={() => { setSidebarTab('INBOX'); soundManager.playClick(); }}
-                style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'INBOX' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'INBOX' ? '2px solid var(--primary)' : '2px solid transparent', color: sidebarTab === 'INBOX' ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
-             >
-                INBOX
-             </button>
-             <button 
-                onClick={() => { setSidebarTab('COMMAND'); soundManager.playClick(); }}
-                style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'COMMAND' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'COMMAND' ? '2px solid #ec4899' : '2px solid transparent', color: sidebarTab === 'COMMAND' ? '#ec4899' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
-             >
-                COMMAND CENTER
-             </button>
-          </div>
-
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ flex: 1, display: sidebarTab === 'INBOX' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
-              <InboxList
-                threads={threads.map((t: Thread) => ({
-                  id: t.id,
-                  senderName: t.senderName,
-                  source: t.source,
-                  lastMessage: t.messages[t.messages.length - 1]?.content || '',
-                  classification: t.classification,
-                  isIntercepted: t.isIntercepted,
-                  persona: t.persona,
-                  autoReported: t.autoReported,
-                  isCompromised: t.isCompromised,
-                  isBlocked: t.isBlocked
-                }))}
-                selectedThreadId={selectedThreadId}
-                onSelectThread={(id) => {
-                  if (id === 'DASHBOARD_VIEW') {
-                    setSelectedThreadId(null);
-                    setActiveView('DASHBOARD');
-                  } else {
-                    setSelectedThreadId(id);
-                  }
-                }}
-                onBack={() => {
-                  setSelectedThreadId(null);
-                  setActiveView('DASHBOARD');
-                }}
-              />
+        {isMobile && selectedThreadId && selectedThread ? (
+          /* ==========================================
+             MOBILE VIEWPORT CHAT OVERLAY
+             ========================================== */
+          <div className="mobile-chat-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <div className="chat-banner" style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.4)', padding: '0.75rem 1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button className="mobile-back-btn" onClick={() => { setSelectedThreadId(null); setActiveView('DASHBOARD'); }} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
+                  <ChevronLeft size={24} />
+                </button>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>{selectedThread.senderName}</div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{selectedThread.source}</div>
+                </div>
+              </div>
             </div>
-            
-            <div style={{ flex: 1, display: sidebarTab === 'COMMAND' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
-              <NavigationFooter
-                activeView={activeView}
-                selectedThreadId={selectedThreadId}
-                onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
-                onToggleIntegration={() => setIsIntegrationOpen(true)}
-                onToggleProtocol={() => setIsProtocolOpen(true)}
-              />
+
+            {selectedThread.isIntercepted && (
+              <div className="mobile-compact-stats" style={{ display: 'flex', gap: '0.5rem', padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)', overflowX: 'auto', flexWrap: 'nowrap' }}>
+                <span style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', whiteSpace: 'nowrap' }}>
+                  🚨 {selectedThread.threatScore || 0}% RISK
+                </span>
+                <span style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)', whiteSpace: 'nowrap' }}>
+                  🎯 {selectedThread.intent || "SCAN"}
+                </span>
+              </div>
+            )}
+
+            <div className="chat-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
+              <ChatWindow messages={selectedThread.messages} />
             </div>
           </div>
+        ) : (
+          sidebarTemplate
+        )}
 
-          {/* ACCOUNT & PREFERENCES STRIP (Permanently docked at bottom of sidebar) */}
-          <div style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
-              <button
-                  onClick={() => { setIsTourOpen(true); soundManager.playClick(); }}
-                  title="App Tutorial"
-                  className="btn-icon"
-                  style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}
-              >
-                  <HelpCircle size={16} color="#fbbf24" />
-              </button>
-              <button
-                  onClick={() => { setIsMuted(soundManager.toggleMute()); soundManager.playClick(); }}
-                  title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                  className="btn-icon"
-                  style={{ flex: 1, height: '36px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)' }}
-              >
-                  {isMuted ? <VolumeX size={16} color="#94a3b8" /> : <Volume2 size={16} color="#94a3b8" />}
-              </button>
-              <button
-                  onClick={() => { handleLogout(); soundManager.playClick(); }}
-                  title="Terminate Session"
-                  className="btn-icon"
-                  style={{ flex: 1, height: '36px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}
-              >
-                  <LogOut size={16} color="#ef4444" />
-              </button>
-          </div>
-          
-        </div>
-
-        <div className="main-chat">
+        <div className="main-chat" style={{ display: isMobile && !selectedThreadId ? 'none' : 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {selectedThreadId && selectedThread ? (
             <>
               <div className="chat-banner" data-status={
