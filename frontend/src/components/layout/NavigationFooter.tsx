@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown } from 'lucide-react';
+import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown, Eye, Settings } from 'lucide-react';
 import { soundManager } from '../../lib/SoundManager';
 
 interface NavigationFooterProps {
@@ -36,7 +36,10 @@ export function NavigationFooter({
                             onClick={() => toggleFolder('tactical')}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.6rem 1rem', background: openFolder === 'tactical' ? 'rgba(0,0,0,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
                         >
-                            <span>TACTICAL MODULES</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Eye size={16} color="var(--primary)" />
+                                <span>TACTICAL MODULES</span>
+                            </div>
                             {openFolder === 'tactical' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
                         
@@ -87,7 +90,10 @@ export function NavigationFooter({
                             onClick={() => toggleFolder('system')}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.6rem 1rem', background: openFolder === 'system' ? 'rgba(0,0,0,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
                         >
-                            <span>SYSTEM & POLICIES</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Settings size={16} color="#94a3b8" />
+                                <span>SYSTEM & POLICIES</span>
+                            </div>
                             {openFolder === 'system' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
                         
