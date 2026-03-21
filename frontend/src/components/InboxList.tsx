@@ -67,7 +67,7 @@ export const InboxList: React.FC<InboxListProps> = ({ threads, selectedThreadId,
             case 'CITIZEN': return '⚖ CITIZEN';
             case 'ELDERLY': return '👴 ELDERLY';
             case 'SKEPTICAL': return '🤨 SKEPTICAL';
-            default: return null;
+            default: return '👴 ELDERLY';
         }
     };
 
