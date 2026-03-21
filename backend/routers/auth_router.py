@@ -91,7 +91,8 @@ def get_webauthn_config(request: Request):
 @router.post("/login")
 @limiter.limit("5/minute")
 def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == creds.username).first()
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == creds.username.lower()).first()
     if not user:
         # Fallback to users.json for backward compatibility
         try:
@@ -130,7 +131,8 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
 def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     try:
         logging.info(f"📝 Attempting registration for operator: {creds.username}")
-        user = db.query(User).filter(User.username == creds.username).first()
+        from sqlalchemy import func
+        user = db.query(User).filter(func.lower(User.username) == creds.username.lower()).first()
         if user:
             logging.warning(f"⚠️ Registration rejected: Operator {creds.username} already exists.")
             raise HTTPException(status_code=400, detail="Operator ID already exists")
@@ -201,7 +203,8 @@ def logout(payload: RefreshRequest, db: Session = Depends(get_db)):
 @router.post("/biometric/register/start")
 @limiter.limit("5/minute")
 def register_bio_start(username: str, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -226,7 +229,8 @@ def register_bio_start(username: str, request: Request, db: Session = Depends(ge
 @router.post("/biometric/register/finish")
 @limiter.limit("5/minute")
 def register_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
     challenge = get_challenge(db, "REGISTER_" + username)
     if not challenge:
         raise HTTPException(status_code=400, detail="No active registration challenge")
@@ -261,7 +265,8 @@ def register_bio_finish(response: Dict[str, Any], username: str, request: Reques
 @router.post("/biometric/login/start")
 @limiter.limit("5/minute")
 def login_bio_start(username: str, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
     if not user or not user.webauthn_credentials:
         raise HTTPException(status_code=400, detail="User has no biometric credentials")
 
@@ -281,7 +286,8 @@ def login_bio_start(username: str, request: Request, db: Session = Depends(get_d
 @router.post("/biometric/login/finish")
 @limiter.limit("5/minute")
 def login_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
     challenge = get_challenge(db, "LOGIN_" + username)
     if not challenge:
         raise HTTPException(status_code=400, detail="No active login challenge")
@@ -307,7 +313,8 @@ def login_bio_finish(response: Dict[str, Any], username: str, request: Request, 
         for c in credentials:
             if c["credential_id"] == credential_id:
                 c["sign_count"] = verification.new_sign_count
-        user.webauthn_credentials = credentials
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(user, "webauthn_credentials")
         db.commit()
 
         access_token = security.create_access_token(data={"sub": user.username, "role": user.role})
