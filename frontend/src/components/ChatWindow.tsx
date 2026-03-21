@@ -21,46 +21,55 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
         }
     }, [displayedMessages, typingScammers]);
 
-    // 2. High-Fidelity Typing Animation Interceptor
+    // 2. High-Fidelity Typing Animation Interceptor (Message Queue)
     useEffect(() => {
         if (messages.length === 0) return;
 
-        const latestMessage = messages[messages.length - 1];
+        // Find ALL messages that haven't been displayed yet
+        const missingMessages = messages.filter(m => !displayedMessages.some(dm => dm.id === m.id));
+        if (missingMessages.length === 0) return;
 
-        // If we already added it, ignore
-        if (displayedMessages.find(m => m.id === latestMessage.id)) return;
+        // Process sequentially
+        const nextMessage = missingMessages[0];
 
-        if (latestMessage.sender === 'scammer') {
-            // Simulate realistic typing delay based on message length
-            setTypingScammers(prev => new Set(prev).add(latestMessage.id));
+        if (nextMessage.sender === 'scammer') {
+            setTypingScammers(prev => new Set(prev).add(nextMessage.id));
 
-            // Calculate delay: 50ms per character, min 800ms, max 2500ms
-            const delay = Math.max(800, Math.min(2500, latestMessage.content.length * 50));
+            const delay = Math.max(800, Math.min(2500, nextMessage.content.length * 50));
 
             const timer = setTimeout(() => {
                 setTypingScammers(prev => {
                     const next = new Set(prev);
-                    next.delete(latestMessage.id);
+                    next.delete(nextMessage.id);
                     return next;
                 });
-                setDisplayedMessages(prev => [...prev, latestMessage]);
+                setDisplayedMessages(prev => [...prev, nextMessage]);
             }, delay);
 
             return () => clearTimeout(timer);
         } else {
             // Agent messages and system countermeasures appear instantly
-            setDisplayedMessages(prev => [...prev, latestMessage]);
+            setDisplayedMessages(prev => [...prev, nextMessage]);
         }
     }, [messages, displayedMessages]);
 
-    // Initial Load - populate instantly if there's already history
     useEffect(() => {
-        if (messages.length > 0 && displayedMessages.length === 0) {
+        if (messages.length === 0) {
+             setDisplayedMessages([]);
+             return;
+        }
+        
+        // If we switch threads, completely wipe and replace the view
+        const isNewThread = displayedMessages.length === 0 || 
+                           (displayedMessages[0] && displayedMessages[0].id.split('-')[0] !== messages[0].id.split('-')[0]) ||
+                           !messages.some(m => m.id === displayedMessages[0]?.id);
+
+        if (isNewThread) {
             setDisplayedMessages(messages);
         }
     }, [messages]);
 
-    const isSystemAction = (msg: Message) => msg.sender === 'agent' && msg.content.startsWith('[');
+    const isSystemAction = (msg: Message) => msg.sender === 'system' || (msg.sender === 'agent' && msg.content.startsWith('['));
 
     return (
         <div className="chat-window scroll-smooth">
