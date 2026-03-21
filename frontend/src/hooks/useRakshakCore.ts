@@ -260,8 +260,12 @@ export function useRakshakCore() {
         attachments?: any[],
         silent: boolean = false
     ) => {
+        console.log(`%c🚨 [RakshakCore] handleIncomingMessage ENTER`, 'background: #222; color: #bada55', { threadId, sender, content: content.substring(0, 30), silent });
         const threadStateAtStart = threadsRef.current.find(t => t.id === threadId);
-        if (threadStateAtStart?.isBlocked && sender !== 'system') return;
+        if (threadStateAtStart?.isBlocked && sender !== 'system') {
+             console.log(`%c⛔ [RakshakCore] Thread BLOCKED. Skipping.`, 'color: red', threadId);
+             return;
+        }
 
         addMessageToThread(threadId, {
             id: Math.random().toString(36),
@@ -351,7 +355,9 @@ export function useRakshakCore() {
             // 2. Sync with Master Brain (Backend)
             let result = localResult;
             try {
+                console.log(`%c🧠 [RakshakCore] Syncing with Backend... content:`, 'color: cyan', content.substring(0, 30));
                 const synced = await agent.syncWithBackend(content, threadId);
+                console.log(`%c🧠 [RakshakCore] Backend Sync SUCCESS`, 'color: green', { synced_score: synced.score, synced_class: synced.classification });
                 // Backend result overrides local for better precision
                 result = { 
                     ...localResult, 
@@ -365,7 +371,7 @@ export function useRakshakCore() {
                         : t
                 ));
             } catch (e) {
-                console.warn("[RakshakCore] Master Brain sync failed. Using local heuristics.");
+                console.warn("[RakshakCore] Master Brain sync failed. Using local heuristics.", e);
             }
 
             const { classification, safeText, intent, score, isCompromised, autoReported, missionComplete, scamType, iocs } = result;
@@ -400,6 +406,7 @@ export function useRakshakCore() {
             }
 
             const shouldReply = (isNewInterception || wasIntercepted) && !missionComplete && !threadState?.isBlocked;
+            console.log(`%c🤔 [RakshakCore] Decision Check`, 'color: yellow', { isNewInterception, wasIntercepted, missionComplete, isBlocked: threadState?.isBlocked, shouldReply });
 
             setThreads((prev: Thread[]) => prev.map((t: Thread) => {
                 if (t.id !== threadId) return t;
@@ -444,7 +451,9 @@ export function useRakshakCore() {
 
             if (shouldReply) {
                 const effectiveClassification = (classification === 'benign') ? 'scam' : classification;
+                console.log(`%c💬 [RakshakCore] TRIGGERING REPLY. Class: ${effectiveClassification}`);
                 const response = await agent.generateResponse(effectiveClassification, content);
+                console.log(`%c💬 [RakshakCore] Reply Generated:`, 'color: pink', response?.substring(0, 30));
                 if (response) {
                     await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
                     handleIncomingMessage(threadId, response, 'agent', undefined, scenarioId, undefined, silent);
