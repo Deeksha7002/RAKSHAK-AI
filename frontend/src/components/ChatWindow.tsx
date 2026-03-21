@@ -8,80 +8,62 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
-    const [typingScammers, setTypingScammers] = useState<Set<string>>(new Set());
-    const [displayedMessages, setDisplayedMessages] = useState<Message[]>([]);
+    const [visibleCount, setVisibleCount] = useState<number>(0);
+    const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
 
-    // 1. Smooth Auto-Scroll Physics
+    // 1. Thread Tracking & Reset
+    useEffect(() => {
+        if (messages.length === 0) {
+            setVisibleCount(0);
+            setCurrentThreadId(null);
+            return;
+        }
+        
+        // Use the very first message's unique ID as the permanent signature for this Thread
+        const threadSignature = messages[0].id;
+        
+        if (threadSignature !== currentThreadId) {
+            // New thread selected: Mount all strictly existing messages instantly to avoid re-typing history
+            setVisibleCount(messages.length);
+            setCurrentThreadId(threadSignature);
+        }
+    }, [messages, currentThreadId]);
+
+    // 2. Sequential Delay Pump
+    useEffect(() => {
+        if (visibleCount < messages.length && currentThreadId === messages[0]?.id) {
+            const nextMessage = messages[visibleCount];
+
+            if (nextMessage.sender === 'scammer') {
+                const delay = Math.max(800, Math.min(2500, nextMessage.content.length * 50));
+                const timer = setTimeout(() => {
+                    setVisibleCount(c => c + 1);
+                }, delay);
+                return () => clearTimeout(timer);
+            } else {
+                // Agent and System messages render instantly
+                setVisibleCount(c => c + 1);
+            }
+        }
+    }, [messages, visibleCount, currentThreadId]);
+
+    // 3. Smooth Auto-Scroll Physics
     useEffect(() => {
         if (bottomRef.current) {
-            // Using a slight timeout ensures the DOM has painted the new bubble
             setTimeout(() => {
                 bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }, 50);
         }
-    }, [displayedMessages, typingScammers]);
+    }, [visibleCount]);
 
-    // 2. High-Fidelity Typing Animation Interceptor (Message Queue)
-    useEffect(() => {
-        if (messages.length === 0) return;
-
-        // Find ALL messages that haven't been displayed yet
-        const missingMessages = messages.filter(m => !displayedMessages.some(dm => dm.id === m.id));
-        if (missingMessages.length === 0) return;
-
-        // Process sequentially
-        const nextMessage = missingMessages[0];
-        
-        // If this message is already actively being typed, DO NOT restart the timer
-        // This breaks the deadlock when new messages arrive while typing!
-        if (typingScammers.has(nextMessage.id)) return;
-
-        if (nextMessage.sender === 'scammer') {
-            setTypingScammers(prev => new Set(prev).add(nextMessage.id));
-
-            const delay = Math.max(800, Math.min(2500, nextMessage.content.length * 50));
-
-            setTimeout(() => {
-                setTypingScammers(prev => {
-                    const next = new Set(prev);
-                    next.delete(nextMessage.id);
-                    return next;
-                });
-                setDisplayedMessages(prev => [...prev, nextMessage]);
-            }, delay);
-
-            // Removing clearTimeout prevents the timer from aborting if another message arrives
-            // The typingScammers.has() check prevents double execution
-            return;
-        } else {
-            // Agent messages and system countermeasures appear instantly
-            setDisplayedMessages(prev => [...prev, nextMessage]);
-        }
-    }, [messages, displayedMessages, typingScammers]);
-
-    useEffect(() => {
-        if (messages.length === 0) {
-             setDisplayedMessages([]);
-             setTypingScammers(new Set());
-             return;
-        }
-        
-        // If we switch threads, completely wipe and replace the view
-        const isNewThread = displayedMessages.length === 0 || 
-                           (displayedMessages[0] && displayedMessages[0].id.split('-')[0] !== messages[0].id.split('-')[0]) ||
-                           !messages.some(m => m.id === displayedMessages[0]?.id);
-
-        if (isNewThread) {
-            setDisplayedMessages(messages);
-            setTypingScammers(new Set());
-        }
-    }, [messages, displayedMessages]);
+    const displayedMessages = messages.slice(0, visibleCount);
+    const isTyping = visibleCount < messages.length && messages[visibleCount].sender === 'scammer';
 
     const isSystemAction = (msg: Message) => msg.sender === 'system' || (msg.sender === 'agent' && msg.content.startsWith('['));
 
     return (
         <div className="chat-window scroll-smooth">
-            {displayedMessages.length === 0 && Array.from(typingScammers).length === 0 && (
+            {displayedMessages.length === 0 && !isTyping && (
                 <div className="empty-state" style={{ opacity: 0.8, textAlign: 'center', marginTop: '2rem' }}>
                     <p style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Secure Channel Established.</p>
                     <p style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>Awaiting anomalous packet interception...</p>
@@ -171,9 +153,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
                 );
             })}
 
-            {/* Simulated Typing Indicator Bubbles */}
-            {Array.from(typingScammers).map(msgId => (
-                <div key={`typing-${msgId}`} className="message-row scammer msg-enter-active">
+            {/* Simulated Typing Indicator Bubble */}
+            {isTyping && (
+                <div className="message-row scammer msg-enter-active">
                     <div className="message-bubble" style={{ background: 'transparent', boxShadow: 'none', padding: '0.5rem 0' }}>
                         <div className="typing-indicator">
                             <div className="typing-dot"></div>
@@ -182,7 +164,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
                         </div>
                     </div>
                 </div>
-            ))}
+            )}
 
             {/* Invisible div to scroll to bottom securely */}
             <div ref={bottomRef} style={{ height: '10px' }} />
