@@ -8,8 +8,17 @@ try:
     import os
     # Ensure analyzer reads from the same relative NLTK directory
     data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nltk_data")
-    if os.path.exists(data_dir) and data_dir not in nltk.data.path:
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir, exist_ok=True)
+    if data_dir not in nltk.data.path:
         nltk.data.path.append(data_dir)
+    
+    # Auto-fetch datasets for Render build environments where nltk_data is not tracked
+    nltk.download('punkt', download_dir=data_dir, quiet=True)
+    nltk.download('punkt_tab', download_dir=data_dir, quiet=True)
+    nltk.download('brown', download_dir=data_dir, quiet=True)
+    nltk.download('wordnet', download_dir=data_dir, quiet=True)
+    nltk.download('averaged_perceptron_tagger', download_dir=data_dir, quiet=True)
 except ImportError:
     logging.warning("⚠️ nltk package not installed. Sophisticated NLP features may be limited.")
 except Exception as e:
