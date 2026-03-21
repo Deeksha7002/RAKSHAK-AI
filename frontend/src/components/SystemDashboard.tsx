@@ -3,6 +3,7 @@ import { Activity, Cpu, Shield, Wifi, Server, Zap, Globe, Lock, AlertTriangle } 
 import { GlobalThreatMap } from './GlobalThreatMap';
 import { type GeoLocation } from '../lib/types';
 import { API_BASE_URL } from '../lib/config';
+import { PersistenceService } from '../lib/PersistenceService';
 
 interface SystemDashboardProps {
     activeThreats?: number;
@@ -17,11 +18,30 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
     const [displayNetwork, setDisplayNetwork] = useState(45);
     const [neuralPoints, setNeuralPoints] = useState<number[]>(Array(30).fill(20));
     const [enhancedMonitoring, setEnhancedMonitoring] = useState<{ region: string, active: boolean }>({ region: '', active: false });
+    const [isLoading, setIsLoading] = useState(true);
 
-    // 1. Fetch backend stats for target predictive baselines
+    // 1. Initial State Reconciliation (Cloud Sync)
     useEffect(() => {
+        const initCloudState = async () => {
+            setIsLoading(true);
+            await PersistenceService.initializeState(
+                (stats) => {
+                    const activeReports = stats.reports_filed || 0;
+                    setTargetCpu(Math.min(100, 12 + Math.pow(activeReports, 1.2) * 2.5));
+                    setTargetNetwork(Math.max(10, Math.min(999, (activeReports * 3.5) + 45)));
+                },
+                (coords) => {
+                    if (coords && coords.length > 0) {
+                        localStorage.setItem('threat_coordinates', JSON.stringify(coords));
+                    }
+                }
+            );
+            setIsLoading(false);
+        };
+
+        initCloudState();
         fetchStats();
-        const interval = setInterval(fetchStats, 2000);
+        const interval = setInterval(fetchStats, 5000); // Slower polling now that we have sync
         return () => clearInterval(interval);
     }, []);
 
@@ -133,6 +153,16 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
                 </svg>
             );
         };
+
+        if (isLoading) {
+            return (
+                <div className="sys-card sys-card-skeleton">
+                    <div className="skeleton-header" style={{ width: '40%', height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+                    <div className="skeleton-value" style={{ width: '70%', height: '32px', background: 'rgba(255,255,255,0.05)', margin: '1rem 0', borderRadius: '4px' }} />
+                    <div className="skeleton-sub" style={{ width: '50%', height: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+                </div>
+            );
+        }
 
         return (
             <div

@@ -4,10 +4,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from database import Case, Stats
+from database import Case, Stats, DashboardState
 from dependencies import get_db, get_current_user
 from limiter_config import limiter
-from schemas import ReportRequest
+from schemas import ReportRequest, SyncRequest
 
 router = APIRouter(prefix="/api", tags=["statistics"])
 
@@ -139,3 +139,39 @@ async def submit_report(report: ReportRequest, request: Request, db: Session = D
     db.commit()
     logging.info(f"📁 New Case Filed: {report.conversationId} ({report.classification})")
     return {"status": "filed", "case_id": report.conversationId}
+
+@router.get("/sync")
+async def get_dashboard_sync(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """Retrieves the persisted dashboard state for the current operator."""
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    state = db.query(DashboardState).filter(DashboardState.username == current_user).first()
+    if not state:
+        return {"intelligence_data": None, "threat_coordinates": []}
+    
+    return {
+        "intelligence_data": state.intelligence_data,
+        "threat_coordinates": state.threat_coordinates,
+        "updated_at": state.updated_at
+    }
+
+@router.post("/sync")
+async def post_dashboard_sync(sync_data: SyncRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """Persists the full dashboard state to ensure cross-device consistency."""
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    state = db.query(DashboardState).filter(DashboardState.username == current_user).first()
+    if not state:
+        state = DashboardState(username=current_user)
+        db.add(state)
+    
+    state.intelligence_data = sync_data.intelligence_data
+    state.threat_coordinates = sync_data.threat_coordinates
+    db.commit()
+    
+    logging.info(f"🔄 Dashboard Synced for Operator: {current_user}")
+    return {"status": "synced"}

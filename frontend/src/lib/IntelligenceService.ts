@@ -1,5 +1,6 @@
 import type { ScamRecord, IntelligenceSummary } from './types';
 import { API_BASE_URL } from './config';
+import { PersistenceService } from './PersistenceService';
 
 export class IntelligenceService {
     private static records: ScamRecord[] = [];
@@ -66,6 +67,12 @@ export class IntelligenceService {
         }
         this.saveToStorage();
         this.notifyListeners();
+        
+        // Trigger Persistence Sync
+        PersistenceService.queueSync({
+            intelligence_data: this.getSummary(),
+            threat_coordinates: JSON.parse(localStorage.getItem('threat_coordinates') || '[]')
+        });
     }
 
     static async syncWithBackend(): Promise<void> {

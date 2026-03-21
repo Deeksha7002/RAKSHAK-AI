@@ -2,7 +2,7 @@ services:
   - type: web
     name: rakshak-backend
     env: python
-    buildCommand: "cd backend && pip install -r requirements.txt"
+    buildCommand: "cd backend && pip install -r requirements.txt && python -m textblob.download_corpora"
     startCommand: "cd backend && gunicorn -k uvicorn.workers.UvicornWorker server:app"
     envVars:
       - key: DATABASE_URL

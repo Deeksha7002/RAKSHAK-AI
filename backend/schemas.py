@@ -38,3 +38,7 @@ class RefreshRequest(BaseModel):
 
 class AnalyzeRequest(BaseModel): # Used by Twilio webhook
     text: str
+
+class SyncRequest(BaseModel):
+    intelligence_data: Dict[str, Any]
+    threat_coordinates: List[Dict[str, Any]]

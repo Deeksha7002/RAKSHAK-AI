@@ -29,13 +29,10 @@ export function NavigationFooter({
     onOpenTour,
     onLogout
 }: NavigationFooterProps) {
-    const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-        tactical: true,
-        system: false,
-    });
+    const [openFolder, setOpenFolder] = useState<string | null>('tactical');
 
     const toggleFolder = (folder: string) => {
-        setOpenFolders(prev => ({ ...prev, [folder]: !prev[folder] }));
+        setOpenFolder(prev => prev === folder ? null : folder);
         soundManager.playClick();
     };
 
@@ -56,13 +53,13 @@ export function NavigationFooter({
                         <div className="nav-folder">
                             <button 
                                 onClick={() => toggleFolder('tactical')}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.6rem 1rem', background: openFolders.tactical ? 'rgba(0,0,0,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.6rem 1rem', background: openFolder === 'tactical' ? 'rgba(0,0,0,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
                             >
                                 <span>TACTICAL MODULES</span>
-                                {openFolders.tactical ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                {openFolder === 'tactical' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                             </button>
                             
-                            {openFolders.tactical && (
+                            {openFolder === 'tactical' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', padding: '0.4rem 0.6rem 0.2rem 0.6rem', gap: '2px' }}>
                                     <button
                                         onClick={() => { onToggleView('INTELLIGENCE'); soundManager.playClick(); }}
@@ -107,13 +104,13 @@ export function NavigationFooter({
                         <div className="nav-folder">
                             <button 
                                 onClick={() => toggleFolder('system')}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.6rem 1rem', background: openFolders.system ? 'rgba(0,0,0,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.6rem 1rem', background: openFolder === 'system' ? 'rgba(0,0,0,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
                             >
                                 <span>SYSTEM & POLICIES</span>
-                                {openFolders.system ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                {openFolder === 'system' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                             </button>
                             
-                            {openFolders.system && (
+                            {openFolder === 'system' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', padding: '0.4rem 0.6rem 0.2rem 0.6rem', gap: '2px' }}>
                                     <button
                                         onClick={() => { onToggleProtocol(); soundManager.playClick(); }}
