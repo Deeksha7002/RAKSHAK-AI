@@ -26,9 +26,8 @@ export const DemoConsole: React.FC = () => {
                 return;
             }
             
-            // 🚀 BYPASS VERCEL: Hit Render direct to bypass proxy Stripping 
-            const LIVE_RENDER_URL = 'https://scam-defender-honeypot-1-fi61.onrender.com';
-            const res = await fetch(`${LIVE_RENDER_URL}/api/analyze?token=${token}`, {
+            // Use relative path to hit Vercel proxy, which now correctly routes to Render
+            const res = await fetch(`/api/analyze?token=${token}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -51,8 +50,7 @@ export const DemoConsole: React.FC = () => {
                 // Now fetch what the agent would actually reply
                 setGeneratingReply(true);
                 try {
-                    const LIVE_RENDER_URL = 'https://scam-defender-honeypot-1-fi61.onrender.com';
-                    const replyRes = await fetch(`${LIVE_RENDER_URL}/api/generate-response?token=${token}`, {
+                    const replyRes = await fetch(`/api/generate-response?token=${token}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
