@@ -208,14 +208,11 @@ function App() {
                   {selectedThread.autoReported && (
                     <span className="status-reported">AUTO-REPORTED ✅</span>
                   )}
-                  {selectedThread.persona && (
                     <span className="status-reported" style={{ marginLeft: '0.5rem', background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)' }}>
-                       {selectedThread.persona === 'ELDERLY' ? '👴 ELDERLY' :
-                        selectedThread.persona === 'INVESTOR' ? '📈 INVESTOR' :
+                       {selectedThread.persona === 'INVESTOR' ? '📈 INVESTOR' :
                         selectedThread.persona === 'CITIZEN' ? '⚖ CITIZEN' :
                         selectedThread.persona === 'SKEPTICAL' ? '🤨 SKEPTICAL' : '👴 ELDERLY'}
                     </span>
-                  )}
                 </div>
               </div>
 
