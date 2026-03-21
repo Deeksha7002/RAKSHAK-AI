@@ -40,6 +40,10 @@ async def generate_llm_response(
     if payload.conversation_history:
         agent.conversation_history = payload.conversation_history
 
+    # Sync requested persona from frontend
+    if payload.persona:
+        agent.current_persona = payload.persona
+
     # FIX #2: Run blocking Groq I/O in a thread pool so we don't block the event loop
     response_text = await asyncio.to_thread(agent.generate_response, payload.classification, payload.message)
 

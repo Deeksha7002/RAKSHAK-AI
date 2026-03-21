@@ -45,10 +45,10 @@ export class ScamAnalyzer {
         tech_threat: ['virus', 'malware', 'hacked', 'infected', 'detected', 'breach', 'compromised', 'trojan', 'ransomware', 'threat', 'attack', 'unauthorized', 'blocked', 'dangerous', 'critical'],
         tech_action: ['remote', 'access', 'teamviewer', 'anydesk', 'support', 'technician', 'helpdesk', 'call now', 'contact us', 'scan', 'remove', 'protect', 'install', 'download'],
         impersonation: ['microsoft', 'apple', 'google', 'amazon', 'coinbase', 'binance', 'paypal', 'netflix', 'bank', 'government', 'irs', 'helpline', 'official', 'authority'],
-        financial: ['money', 'card', 'bank', 'transfer', 'wire', 'deposit', 'payment', 'fee', 'cash', 'crypto', 'btc', 'wallet', 'usdt', 'salary', 'income', 'profit', 'earnings', 'commission', 'bonus'],
+        financial: ['money', 'card', 'bank', 'transfer', 'wire', 'deposit', 'payment', 'fee', 'cash', 'crypto', 'btc', 'wallet', 'usdt', 'salary', 'income', 'profit', 'earnings', 'commission', 'bonus', 'tax', 'taxes', 'unpaid', 'fine', 'penalty'],
         credentials: ['password', 'pin', 'otp', 'code', 'credential', 'login', 'ssn', 'identity', 'account', 'verification', 'seed', 'phrase'],
-        urgency: ['urgent', 'immediately', 'now', 'hurry', 'fast', 'expires', 'deadline', 'today', 'quick', 'asap', 'limited', 'last chance'],
-        coercion: ['police', 'lawsuit', 'jail', 'arrest', 'warrant', 'court', 'suspended', 'banned', 'fbi', 'frozen', 'investigated', 'seized', 'legal action'],
+        urgency: ['urgent', 'immediately', 'now', 'hurry', 'fast', 'expires', 'deadline', 'today', 'quick', 'asap', 'limited', 'last chance', 'final notice'],
+        coercion: ['police', 'lawsuit', 'jail', 'arrest', 'warrant', 'court', 'suspended', 'banned', 'fbi', 'frozen', 'investigated', 'seized', 'legal action', 'warrant', 'penalty'],
     };
 
     analyzeBehavior(history: Message[]): { score: number, category: string } {

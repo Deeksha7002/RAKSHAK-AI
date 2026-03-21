@@ -408,14 +408,7 @@ export class RakshakAgent {
             return neutralResponses[Math.floor(Math.random() * neutralResponses.length)];
         }
 
-        // Map TS persona names → backend persona names
-        const personaMap: Record<PersonaType, string> = {
-            'ELDERLY': 'naive',
-            'SKEPTICAL': 'skeptical',
-            'INVESTOR': 'default',
-            'CITIZEN': 'default',
-        };
-        const backendPersona = personaMap[this.currentPersona] ?? 'default';
+        const backendPersona = this.currentPersona;
 
         // Build conversation history for LLM context (last 10 turns)
         const historyForLLM = this.conversationHistory.slice(-10).map(m => ({
