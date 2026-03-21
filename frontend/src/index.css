@@ -193,6 +193,18 @@ body {
   }
 }
 
+/* On Mobile/Tablet (<1024px), place Live Intercept at the top above Chat */
+@media (max-width: 1023px) {
+  .chat-split-view {
+    flex-direction: column-reverse;
+  }
+  .live-analysis-right-pane {
+    max-height: 45vh; /* Prevents Live intercept from filling too much height */
+    border-top: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
 .chat-left-pane {
   flex: 1;
   display: flex;
