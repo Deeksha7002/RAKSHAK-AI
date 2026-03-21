@@ -1,33 +1,25 @@
 import { useState } from 'react';
-import { Play, Database, ScanEye, BarChart3, Zap, Volume2, VolumeX, Link as LinkIcon, LogOut, Shield, Target, HelpCircle, ChevronRight, ChevronDown } from 'lucide-react';
+import { Play, Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown } from 'lucide-react';
 import { soundManager } from '../../lib/SoundManager';
 
 interface NavigationFooterProps {
     isMonitoring: boolean;
     activeView: string;
     selectedThreadId: string | null;
-    isMuted: boolean;
     onStartMonitoring: () => void;
     onToggleView: (view: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS') => void;
-    onToggleMute: () => void;
     onToggleIntegration: () => void;
     onToggleProtocol: () => void;
-    onOpenTour: () => void;
-    onLogout: () => void;
 }
 
 export function NavigationFooter({
     isMonitoring,
     activeView,
     selectedThreadId,
-    isMuted,
     onStartMonitoring,
     onToggleView,
-    onToggleMute,
     onToggleIntegration,
     onToggleProtocol,
-    onOpenTour,
-    onLogout
 }: NavigationFooterProps) {
     const [openFolder, setOpenFolder] = useState<string | null>('tactical');
 

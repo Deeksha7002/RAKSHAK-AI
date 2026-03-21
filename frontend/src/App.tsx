@@ -138,14 +138,10 @@ function App() {
                 isMonitoring={isMonitoring}
                 activeView={activeView}
                 selectedThreadId={selectedThreadId}
-                isMuted={isMuted}
                 onStartMonitoring={startMonitoring}
                 onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
-                onToggleMute={() => setIsMuted(soundManager.toggleMute())}
                 onToggleIntegration={() => setIsIntegrationOpen(true)}
                 onToggleProtocol={() => setIsProtocolOpen(true)}
-                onOpenTour={() => setIsTourOpen(true)}
-                onLogout={handleLogout}
               />
             </div>
           </div>
