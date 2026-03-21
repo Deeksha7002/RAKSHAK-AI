@@ -138,10 +138,8 @@ function App() {
             
             <div style={{ flex: 1, display: sidebarTab === 'COMMAND' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
               <NavigationFooter
-                isMonitoring={isMonitoring}
                 activeView={activeView}
                 selectedThreadId={selectedThreadId}
-                onStartMonitoring={startMonitoring}
                 onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
                 onToggleIntegration={() => setIsIntegrationOpen(true)}
                 onToggleProtocol={() => setIsProtocolOpen(true)}
