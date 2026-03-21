@@ -31,13 +31,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
 
         // Process sequentially
         const nextMessage = missingMessages[0];
+        
+        // If this message is already actively being typed, DO NOT restart the timer
+        // This breaks the deadlock when new messages arrive while typing!
+        if (typingScammers.has(nextMessage.id)) return;
 
         if (nextMessage.sender === 'scammer') {
             setTypingScammers(prev => new Set(prev).add(nextMessage.id));
 
             const delay = Math.max(800, Math.min(2500, nextMessage.content.length * 50));
 
-            const timer = setTimeout(() => {
+            setTimeout(() => {
                 setTypingScammers(prev => {
                     const next = new Set(prev);
                     next.delete(nextMessage.id);
@@ -46,16 +50,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
                 setDisplayedMessages(prev => [...prev, nextMessage]);
             }, delay);
 
-            return () => clearTimeout(timer);
+            // Removing clearTimeout prevents the timer from aborting if another message arrives
+            // The typingScammers.has() check prevents double execution
+            return;
         } else {
             // Agent messages and system countermeasures appear instantly
             setDisplayedMessages(prev => [...prev, nextMessage]);
         }
-    }, [messages, displayedMessages]);
+    }, [messages, displayedMessages, typingScammers]);
 
     useEffect(() => {
         if (messages.length === 0) {
              setDisplayedMessages([]);
+             setTypingScammers(new Set());
              return;
         }
         
@@ -66,8 +73,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
 
         if (isNewThread) {
             setDisplayedMessages(messages);
+            setTypingScammers(new Set());
         }
-    }, [messages]);
+    }, [messages, displayedMessages]);
 
     const isSystemAction = (msg: Message) => msg.sender === 'system' || (msg.sender === 'agent' && msg.content.startsWith('['));
 
