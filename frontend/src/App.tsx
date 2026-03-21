@@ -55,11 +55,14 @@ function App() {
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('rakshak_tour_shown');
-    if (isAuthenticated && !hasSeenTour) {
-      setIsTourOpen(true);
-      localStorage.setItem('rakshak_tour_shown', 'true');
+    if (isAuthenticated) {
+      if (!isMonitoring) startMonitoring();
+      if (!hasSeenTour) {
+        setIsTourOpen(true);
+        localStorage.setItem('rakshak_tour_shown', 'true');
+      }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isMonitoring, startMonitoring]);
 
   const selectedThread = threads.find(t => t.id === selectedThreadId);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Classification } from '../lib/types';
-import { ArrowLeft, Activity } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 interface ThreadSummary {
     id: string;
@@ -86,26 +86,7 @@ export const InboxList: React.FC<InboxListProps> = ({ threads, selectedThreadId,
             </div>
 
             <div className="thread-list">
-                {/* Dashboard Link */}
-                <div
-                    onClick={() => onSelectThread('DASHBOARD_VIEW')}
-                    className={`thread-item ${selectedThreadId === null ? 'selected' : ''}`}
-                    style={{ borderBottom: '1px solid #334155', marginBottom: '10px', paddingBottom: '10px' }}
-                >
-                    <div className="avatar" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3b82f6', color: '#3b82f6' }}>
-                        <Activity size={18} />
-                    </div>
-                    <div className="thread-content">
-                        <div className="thread-top">
-                            <div className="sender-name" style={{ color: '#60a5fa' }}>
-                                SYSTEM DASHBOARD
-                            </div>
-                        </div>
-                        <div className="thread-preview" style={{ color: '#94a3b8' }}>
-                            View Global Threat Map
-                        </div>
-                    </div>
-                </div>
+
 
                 {threads.length === 0 && (
                     <div className="inbox-empty">Waiting for traffic...</div>
