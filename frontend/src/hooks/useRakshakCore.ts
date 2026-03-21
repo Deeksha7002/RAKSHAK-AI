@@ -276,6 +276,12 @@ export function useRakshakCore() {
             isRedacted: false,
             attachments
         });
+        
+        // 🚨 CRITICAL DEFENSE: Only messages from the 'scammer' should trigger analysis and responses
+        if (sender !== 'scammer') {
+             console.log(`%c🛑 [RakshakCore] Skipping Analysis for non-scammer: ${sender}`, 'color: gray');
+             return;
+        }
 
         if (sender === 'scammer') {
             if (!silent) soundManager.playNotification();
