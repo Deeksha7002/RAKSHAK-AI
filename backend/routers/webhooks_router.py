@@ -71,7 +71,12 @@ async def twilio_webhook(
     analysis = agent.ingest(Body, thread_id)
     risk_score = analysis.get("risk_score", 0)
     
-    # 2. Broadcast to frontend
+    # 2. Generate adaptive response
+    response_body = await asyncio.to_thread(agent.generate_response, analysis.get("classification"), Body)
+    if not response_body:
+        response_body = "I'm busy right now, but I can look into this later. Why is it urgent?"
+
+    # 3. Broadcast to frontend
     alert_msg = json.dumps({
         "type": "NEW_INTERCEPT",
         "data": {
@@ -79,15 +84,11 @@ async def twilio_webhook(
             "scammerText": Body,
             "classification": analysis.get("classification"),
             "intent": analysis.get("intent"),
-            "timestamp": int(time.time() * 1000)
+            "timestamp": int(time.time() * 1000),
+            "agentReply": response_body
         }
     })
     await manager.broadcast(alert_msg)
-
-    # 3. Generate adaptive response
-    response_body = await asyncio.to_thread(agent.generate_response, analysis.get("classification"), Body)
-    if not response_body:
-        response_body = "I'm busy right now, but I can look into this later. Why is it urgent?"
     
     # Save agent state (especially for LLM context etc.)
     save_agent(thread_id, agent)
@@ -156,20 +157,8 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
         analysis = agent.ingest(ctx_body, thread_id)
         risk_score = analysis.get("risk_score", 0)
 
-        # 2. Broadcast
-        alert_msg = json.dumps({
-            "type": "NEW_INTERCEPT",
-            "data": {
-                "threadId": thread_id,
-                "scammerText": body,
-                "classification": analysis.get("classification"),
-                "intent": analysis.get("intent"),
-                "timestamp": int(time.time() * 1000)
-            }
-        })
-        await manager.broadcast(alert_msg)
-
-        # 3. Generate adaptive reply if suspicious
+        # 2. Generate adaptive reply if suspicious
+        reply_content = ""
         if risk_score > 0.4:
             reply_content = await asyncio.to_thread(agent.generate_response, analysis.get("classification"), ctx_body)
             if not reply_content:
@@ -177,6 +166,20 @@ async def email_webhook(request: Request, db: Session = Depends(get_db)):
             
             send_email_reply(sender, f"Re: {subject}", reply_content)
             save_agent(thread_id, agent)
+
+        # 3. Broadcast
+        alert_msg = json.dumps({
+            "type": "NEW_INTERCEPT",
+            "data": {
+                "threadId": thread_id,
+                "scammerText": body,
+                "classification": analysis.get("classification"),
+                "intent": analysis.get("intent"),
+                "timestamp": int(time.time() * 1000),
+                "agentReply": reply_content if reply_content else None
+            }
+        })
+        await manager.broadcast(alert_msg)
 
         return {"status": "processed"}
     except Exception as e:
