@@ -120,7 +120,14 @@ export function useRakshakCore() {
             setThreads((prev: Thread[]) => [newThread, ...prev]);
             soundManager.playAlert();
         } else {
-            setThreads((prev: Thread[]) => prev.map(t => t.id === threadId ? { ...t, persona: data.persona || t.persona } : t));
+            setThreads((prev: Thread[]) => {
+                const existing = prev.find(t => t.id === threadId);
+                if (existing) {
+                    const updated = { ...existing, persona: data.persona || existing.persona };
+                    return [updated, ...prev.filter(t => t.id !== threadId)];
+                }
+                return prev;
+            });
         }
 
         addMessageToThread(threadId, {
