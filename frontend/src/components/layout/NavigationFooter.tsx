@@ -11,6 +11,7 @@ interface NavigationFooterProps {
     onToggleView: (view: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS') => void;
     onToggleIntegration: () => void;
     onToggleProtocol: () => void;
+    onNuke: () => void;
 }
 
 export function NavigationFooter({
@@ -19,6 +20,7 @@ export function NavigationFooter({
     onToggleView,
     onToggleIntegration,
     onToggleProtocol,
+    onNuke,
 }: NavigationFooterProps) {
     const [openFolder, setOpenFolder] = useState<string | null>(null);
 
@@ -43,6 +45,7 @@ export function NavigationFooter({
                 MediaLogService.clearLogs();
                 IntelligenceService.clearRecords();
                 CyberCellService.clearSession();
+                onNuke();
                 alert("🔒 SECURE WIPE COMPLETE: All volatile data clusters have been securely overwritten.");
             }
         }

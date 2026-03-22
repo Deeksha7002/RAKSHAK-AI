@@ -170,6 +170,7 @@ function App() {
             }}
             onToggleIntegration={() => setIsIntegrationOpen(true)}
             onToggleProtocol={() => setIsProtocolOpen(true)}
+            onNuke={clearThreads}
           />
         </div>
       </div>
