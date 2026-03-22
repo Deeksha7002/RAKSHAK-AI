@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useThreads } from '../context/ThreadProvider';
 import { soundManager } from '../lib/SoundManager';
-import { API_BASE_URL } from '../lib/config';
 import { MockScammerAPI } from '../lib/MockScammerAPI';
 import { RakshakAgent } from '../lib/RakshakAgent';
 import { IntelligenceService } from '../lib/IntelligenceService';
