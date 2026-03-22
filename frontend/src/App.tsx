@@ -24,7 +24,7 @@ import './index.css';
 
 import { IntelligenceService } from './lib/IntelligenceService';
 
-type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS';
+type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS' | 'COMMAND';
 
 function App() {
   const { clearThreads } = useThreads();
@@ -382,7 +382,15 @@ function App() {
           setActiveView('DASHBOARD'); 
           setSelectedThreadId(null); 
         }} 
-        onSwitchView={(view: ViewState) => { setActiveView(view); setSelectedThreadId(null); }} 
+        onSwitchView={(view: ViewState) => { 
+          if (view === 'COMMAND') {
+            setSidebarTab('COMMAND');
+          } else {
+            setActiveView(view as any); 
+            setSidebarTab('INBOX'); 
+          }
+          setSelectedThreadId(null); 
+        }} 
       />
     </>
   );

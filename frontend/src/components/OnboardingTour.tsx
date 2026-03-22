@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Shield, Target, Map as MapIcon, BarChart3, ScanEye, Database, Zap, Sparkles } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Shield, Target, Map as MapIcon, BarChart3, ScanEye, Database, Zap, Sparkles, ShieldAlert } from 'lucide-react';
 import { soundManager } from '../lib/SoundManager';
 
 interface TourStep {
@@ -7,7 +7,7 @@ interface TourStep {
     title: string;
     content: string;
     icon: React.ReactNode;
-    view?: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS';
+    view?: 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS' | 'COMMAND';
     selector?: string; // For future spotlight implementation
 }
 
@@ -59,6 +59,13 @@ const TOUR_STEPS: TourStep[] = [
         content: 'All intercepted data is automatically secured here. From here, you can file official reports directly to the Cyber Cell.',
         icon: <Database size={32} color="#ec4899" />,
         view: 'LOCKER'
+    },
+    {
+        id: 'emergency-nuke',
+        title: 'EMERGENCY DATA DISPOSAL',
+        content: 'Our ultimate failsafe. In risk-heavy compromise scenarios, trigger this panic switch to instantly wipe all volatile RAM records and protect your network footprint.',
+        icon: <ShieldAlert size={32} color="#ef4444" />,
+        view: 'COMMAND'
     }
 ];
 
