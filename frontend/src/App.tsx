@@ -4,6 +4,7 @@ import { InboxList } from './components/InboxList';
 import { LoginScreen } from './components/LoginScreen';
 import { LockScreen } from './components/LockScreen';
 import { SystemDashboard } from './components/SystemDashboard';
+import { PermissionsScreen } from './components/PermissionsScreen';
 import { LiveIntercept } from './components/LiveIntercept';
 import { IntelligenceView } from './components/views/IntelligenceView';
 import { ForensicsView } from './components/views/ForensicsView';
@@ -29,6 +30,7 @@ type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' 
 function App() {
   const { clearThreads } = useThreads();
   const { isAuthenticated, logout } = useAuth();
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
   const {
     threads,
     isMonitoring,
@@ -83,6 +85,7 @@ function App() {
   };
 
   if (!isAuthenticated) return <LoginScreen />;
+  if (!permissionsGranted) return <PermissionsScreen onGrant={() => setPermissionsGranted(true)} />;
   if (isLocked) return <LockScreen onUnlock={() => setIsLocked(false)} />;
 
   // ==========================================
