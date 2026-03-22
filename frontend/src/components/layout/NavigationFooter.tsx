@@ -28,11 +28,23 @@ export function NavigationFooter({
     };
 
     const handleNuke = () => {
-        if (confirm("🚨 WARNING: This will permanently wipe all volatile intelligence and logs from memory. This action cannot be undone. Proceed?")) {
-            MediaLogService.clearLogs();
-            IntelligenceService.clearRecords();
-            CyberCellService.clearSession();
-            alert("🔒 SECURE WIPE COMPLETE: All volatile session data has been erased.");
+        const msg1 = "🚨 EXTREME DANGER ALERT 🚨\n\n" +
+                     "You are about to trigger the NUKE PROTOCOL.\n" +
+                     "This will PERMANENTLY ERASE all recorded data in memory:\n" +
+                     "• All Deepfake Forensic Logs\n" +
+                     "• All Captured Intelligence & Analytics\n" +
+                     "• All Active Cyber Cell Session Investigations\n\n" +
+                     "This ACTION CANNOT BE UNDONE. Proceed back to main frame?";
+                     
+        if (window.confirm(msg1)) {
+            const msg2 = "🔒 FINAL SECURITY VERIFICATION 🔒\n\n" +
+                         "Are you absolutely certain? Confirming this will isolate and scrub all volatile telemetry grids now.";
+            if (window.confirm(msg2)) {
+                MediaLogService.clearLogs();
+                IntelligenceService.clearRecords();
+                CyberCellService.clearSession();
+                alert("🔒 SECURE WIPE COMPLETE: All volatile data clusters have been securely overwritten.");
+            }
         }
     };
 
