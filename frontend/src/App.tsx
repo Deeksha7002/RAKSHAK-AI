@@ -31,7 +31,6 @@ function App() {
   const { isAuthenticated, logout } = useAuth();
   const {
     threads,
-    changePersona,
     isMonitoring,
     notification,
     startMonitoring,
@@ -218,20 +217,6 @@ function App() {
                   <div style={{ fontWeight: 700, fontSize: '1rem' }}>{selectedThread.senderName}</div>
                   <div style={{ fontSize: '0.75rem', opacity: 0.6, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     {selectedThread.source}
-                    <select 
-                      value={selectedThread.isManualPersona ? (selectedThread.persona || 'ELDERLY') : 'AUTO'} 
-                      onChange={(e) => changePersona(selectedThread.id, e.target.value)}
-                      style={{ padding: '3px 6px', fontSize: '0.65rem', background: '#fbbf24', color: '#000', fontWeight: 700, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                      <option value="AUTO" style={{ background: '#fff', color: '#000' }}>🤖 Adaptive (Auto)</option>
-                      <option value="ELDERLY" style={{ background: '#fff', color: '#000' }}>👵 Elderly</option>
-                      <option value="SKEPTICAL" style={{ background: '#fff', color: '#000' }}>🤨 Dave (Skeptic)</option>
-                      <option value="INVESTOR" style={{ background: '#fff', color: '#000' }}>📈 Investor</option>
-                      <option value="CITIZEN" style={{ background: '#fff', color: '#000' }}>⚖ Citizen</option>
-                      <option value="FRIENDLY" style={{ background: '#fff', color: '#000' }}>😊 Friendly</option>
-                      <option value="EXPERT" style={{ background: '#fff', color: '#000' }}>🧠 Expert</option>
-                      <option value="GUARD" style={{ background: '#fff', color: '#000' }}>🛡️ Guard</option>
-                    </select>
                   </div>
                 </div>
               </div>
@@ -277,20 +262,6 @@ function App() {
                     </div>
                     <div className="sender-source" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {selectedThread.source}
-                      <select 
-                        value={selectedThread.isManualPersona ? (selectedThread.persona || 'ELDERLY') : 'AUTO'} 
-                        onChange={(e) => changePersona(selectedThread.id, e.target.value)}
-                        style={{ padding: '3px 6px', fontSize: '0.65rem', background: '#fbbf24', color: '#000', fontWeight: 700, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                      >
-                        <option value="AUTO" style={{ background: '#fff', color: '#000' }}>🤖 Adaptive (Auto)</option>
-                        <option value="ELDERLY" style={{ background: '#fff', color: '#000' }}>👵 Elderly</option>
-                        <option value="SKEPTICAL" style={{ background: '#fff', color: '#000' }}>🤨 Dave (Skeptic)</option>
-                        <option value="INVESTOR" style={{ background: '#fff', color: '#000' }}>📈 Investor</option>
-                        <option value="CITIZEN" style={{ background: '#fff', color: '#000' }}>⚖ Citizen</option>
-                        <option value="FRIENDLY" style={{ background: '#fff', color: '#000' }}>😊 Friendly</option>
-                        <option value="EXPERT" style={{ background: '#fff', color: '#000' }}>🧠 Expert</option>
-                        <option value="GUARD" style={{ background: '#fff', color: '#000' }}>🛡️ Guard</option>
-                      </select>
                     </div>
                   </div>
                 </div>

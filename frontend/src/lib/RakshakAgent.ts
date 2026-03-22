@@ -201,7 +201,7 @@ export class RakshakAgent {
 
     // score is passed in from ingest() to avoid a redundant analyzeBehavior() call
     private checkForPersonaSwitch(text: string, score: number) {
-        if (this.isManualPersona) return; // Skip adaptive switching if user locked it!
+
         // 1. High-sophistication scammer → deploy skeptical SysAdmin persona
         if (score > 0.7) {
             if (this.currentPersona !== 'SKEPTICAL') {
