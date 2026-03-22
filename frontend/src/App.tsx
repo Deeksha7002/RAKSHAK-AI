@@ -258,7 +258,7 @@ function App() {
           <div className="mobile-chat-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             <div className="chat-banner" style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.4)', padding: '0.75rem 1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button className="mobile-back-btn" onClick={() => { setActiveView('DASHBOARD'); }} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
+                <button className="mobile-back-btn" onClick={() => { setActiveView('DASHBOARD'); setSidebarTab('COMMAND'); }} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
                   <ChevronLeft size={24} />
                 </button>
                 <div>
