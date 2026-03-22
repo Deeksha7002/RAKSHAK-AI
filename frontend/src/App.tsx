@@ -78,12 +78,8 @@ function App() {
   const selectedThread = threads.find(t => t.id === selectedThreadId);
 
   useEffect(() => {
-    if (isMobile && selectedThreadId && selectedThread?.isIntercepted) {
-      setShowLiveAnalysis(true);
-    } else {
-      setShowLiveAnalysis(false);
-    }
-  }, [selectedThreadId, isMobile, selectedThread?.isIntercepted]);
+    setShowLiveAnalysis(false);
+  }, [selectedThreadId]);
 
   const handleLogout = () => {
     logout();
