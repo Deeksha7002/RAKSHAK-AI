@@ -212,15 +212,25 @@ export function NavigationFooter({
                         <button
                             onClick={handleNuke}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
-                                background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed rgba(239, 68, 68, 0.4)',
-                                borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', width: '100%'
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
+                                background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(127, 29, 29, 0.02) 100%)',
+                                border: '1px solid rgba(239, 68, 68, 0.15)',
+                                borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease', width: '100%',
+                                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2), inset 0 0 10px rgba(239, 68, 68, 0.05)',
+                                position: 'relative', overflow: 'hidden'
                             }}
                         >
-                            <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex' }}><ShieldAlert size={18} color="#ef4444" /></div>
-                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                <div style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 700 }}>EMERGENCY DATA DISPOSAL</div>
-                                <div style={{ color: '#ef4444', fontSize: '0.6rem', opacity: 0.8 }}>Wipe all volatile data instantly</div>
+                            <div style={{ position: 'absolute', top: '-10px', left: '-10px', width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.2)', filter: 'blur(20px)', borderRadius: '50%' }} />
+                            
+                            <div style={{ padding: '10px', borderRadius: '10px', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))', display: 'flex', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)' }}>
+                                <ShieldAlert size={18} color="#ef4444" />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
+                                <div style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px' }}>EMERGENCY DATA DISPOSAL</div>
+                                <div style={{ color: '#94a3b8', fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>Wipe all volatile data instantly</div>
+                            </div>
+                            <div style={{ color: '#ef4444', opacity: 0.3 }}>
+                                <Zap size={14} />
                             </div>
                         </button>
                     </div>
