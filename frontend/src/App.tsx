@@ -52,6 +52,7 @@ function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isInitialized, setIsInitialized] = useState(() => localStorage.getItem('rakshak_initialized') === 'true');
+  const [showLiveAnalysis, setShowLiveAnalysis] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -341,24 +342,34 @@ function App() {
               {isMobile ? (
                 <div className="mobile-chat-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '0', flexGrow: 1, overflow: 'hidden' }}>
                   {selectedThread.isIntercepted && (
-                    <div className="mobile-compact-stats" style={{
-                      display: 'flex', gap: '0.5rem', padding: '0.75rem', 
-                      background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      overflowX: 'auto', flexWrap: 'nowrap'
-                    }}>
-                      <span className="compact-badge" style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', whiteSpace: 'nowrap' }}>
-                        🚨 {selectedThread.threatScore || 0}% THREAT
-                      </span>
-                      <span className="compact-badge" style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)', whiteSpace: 'nowrap' }}>
-                        🎯 {selectedThread.intent || "ANALYZING"}
-                      </span>
-                      {selectedThread.detectedLocation?.city && (
-                        <span className="compact-badge" style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)', whiteSpace: 'nowrap' }}>
-                          📍 {selectedThread.detectedLocation.city}
-                        </span>
+                    <>
+                      <button 
+                        onClick={() => { setShowLiveAnalysis(!showLiveAnalysis); soundManager.playClick(); }} 
+                        className="btn-primary-glow" 
+                        style={{ margin: '0.75rem', padding: '0.6rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                      >
+                        📊 {showLiveAnalysis ? 'Close Analysis Details' : 'View Live Intercept Graph'}
+                      </button>
+                      
+                      {showLiveAnalysis && (
+                        <div style={{ maxHeight: '60vh', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-subtle)', padding: '0.5rem' }}>
+                          <LiveIntercept
+                            intent={selectedThread.intent || "ANALYZING..."}
+                            threatScore={selectedThread.threatScore || 0}
+                            isScanning={selectedThread.isScanning}
+                            location={selectedThread.detectedLocation}
+                            neuralMatrixHistory={selectedThread.neuralMatrixHistory}
+                            counterMeasure={
+                              selectedThread.intent === "MONEY" ? "TRACE_PAYMENT" :
+                                selectedThread.intent === "CODES" ? "INJECT_FAKE_OTP" :
+                                  selectedThread.intent === "URGENCY" ? "STALLING_PROTOCOL" : "MONITORING"
+                            }
+                          />
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
+
                   <div className="chat-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
                     <ChatWindow messages={selectedThread.messages} />
                   </div>
