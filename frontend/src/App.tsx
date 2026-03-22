@@ -204,7 +204,7 @@ function App() {
                     <select 
                       value={selectedThread.persona || 'ELDERLY'} 
                       onChange={(e) => changePersona(selectedThread.id, e.target.value)}
-                      style={{ padding: '2px 4px', fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '4px', cursor: 'pointer' }}
+                      style={{ padding: '3px 6px', fontSize: '0.65rem', background: '#fbbf24', color: '#000', fontWeight: 700, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                     >
                       <option value="ELDERLY">👵 Elderly</option>
                       <option value="SKEPTICAL">🤨 Dave (Skeptic)</option>
@@ -262,7 +262,7 @@ function App() {
                       <select 
                         value={selectedThread.persona || 'ELDERLY'} 
                         onChange={(e) => changePersona(selectedThread.id, e.target.value)}
-                        style={{ padding: '2px 4px', fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ padding: '3px 6px', fontSize: '0.65rem', background: '#fbbf24', color: '#000', fontWeight: 700, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                       >
                         <option value="ELDERLY">👵 Elderly</option>
                         <option value="SKEPTICAL">🤨 Dave (Skeptic)</option>
