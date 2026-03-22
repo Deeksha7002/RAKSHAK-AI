@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown, Eye, Settings } from 'lucide-react';
+import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown, Eye, Settings, ShieldAlert } from 'lucide-react';
 import { soundManager } from '../../lib/SoundManager';
+import { MediaLogService } from '../../lib/MediaLogService';
+import { IntelligenceService } from '../../lib/IntelligenceService';
+import { CyberCellService } from '../../lib/CyberCellService';
 
 interface NavigationFooterProps {
     activeView: string;
@@ -22,6 +25,15 @@ export function NavigationFooter({
     const toggleFolder = (folder: string) => {
         setOpenFolder(prev => prev === folder ? null : folder);
         soundManager.playClick();
+    };
+
+    const handleNuke = () => {
+        if (confirm("🚨 WARNING: This will permanently wipe all volatile intelligence and logs from memory. This action cannot be undone. Proceed?")) {
+            MediaLogService.clearLogs();
+            IntelligenceService.clearRecords();
+            CyberCellService.clearSession();
+            alert("🔒 SECURE WIPE COMPLETE: All volatile session data has been erased.");
+        }
     };
 
     return (
@@ -181,6 +193,24 @@ export function NavigationFooter({
                                 </button>
                             </div>
                         )}
+                    </div>
+                    
+                    {/* EMERGENCY PANEL */}
+                    <div style={{ padding: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '0.5rem' }}>
+                        <button
+                            onClick={handleNuke}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                                background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed rgba(239, 68, 68, 0.4)',
+                                borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', width: '100%'
+                            }}
+                        >
+                            <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex' }}><ShieldAlert size={18} color="#ef4444" /></div>
+                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                                <div style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 700 }}>EMERGENCY DATA DISPOSAL</div>
+                                <div style={{ color: '#ef4444', fontSize: '0.6rem', opacity: 0.8 }}>Wipe all volatile data instantly</div>
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
