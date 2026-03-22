@@ -380,6 +380,7 @@ function App() {
         onClose={() => { 
           setIsTourOpen(false); 
           setActiveView('DASHBOARD'); 
+          setSidebarTab('INBOX');
           setSelectedThreadId(null); 
         }} 
         onSwitchView={(view: ViewState) => { 
