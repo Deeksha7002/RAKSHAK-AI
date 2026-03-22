@@ -483,6 +483,7 @@ export function useRakshakCore() {
         const agent = agentsRef.current.get(threadId);
         if (agent) {
             agent.currentPersona = persona;
+            agent.isManualPersona = true; // Lock manual selection
         }
         setThreads((prev: Thread[]) => prev.map((t: Thread) => t.id === threadId ? { ...t, persona } : t));
     };

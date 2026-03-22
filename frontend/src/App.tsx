@@ -206,13 +206,13 @@ function App() {
                       onChange={(e) => changePersona(selectedThread.id, e.target.value)}
                       style={{ padding: '3px 6px', fontSize: '0.65rem', background: '#fbbf24', color: '#000', fontWeight: 700, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                     >
-                      <option value="ELDERLY">👵 Elderly</option>
-                      <option value="SKEPTICAL">🤨 Dave (Skeptic)</option>
-                      <option value="INVESTOR">📈 Investor</option>
-                      <option value="CITIZEN">⚖ Citizen</option>
-                      <option value="FRIENDLY">😊 Friendly</option>
-                      <option value="EXPERT">🧠 Expert</option>
-                      <option value="GUARD">🛡️ Guard</option>
+                      <option value="ELDERLY" style={{ background: '#fff', color: '#000' }}>👵 Elderly</option>
+                      <option value="SKEPTICAL" style={{ background: '#fff', color: '#000' }}>🤨 Dave (Skeptic)</option>
+                      <option value="INVESTOR" style={{ background: '#fff', color: '#000' }}>📈 Investor</option>
+                      <option value="CITIZEN" style={{ background: '#fff', color: '#000' }}>⚖ Citizen</option>
+                      <option value="FRIENDLY" style={{ background: '#fff', color: '#000' }}>😊 Friendly</option>
+                      <option value="EXPERT" style={{ background: '#fff', color: '#000' }}>🧠 Expert</option>
+                      <option value="GUARD" style={{ background: '#fff', color: '#000' }}>🛡️ Guard</option>
                     </select>
                   </div>
                 </div>
@@ -264,13 +264,13 @@ function App() {
                         onChange={(e) => changePersona(selectedThread.id, e.target.value)}
                         style={{ padding: '3px 6px', fontSize: '0.65rem', background: '#fbbf24', color: '#000', fontWeight: 700, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                       >
-                        <option value="ELDERLY">👵 Elderly</option>
-                        <option value="SKEPTICAL">🤨 Dave (Skeptic)</option>
-                        <option value="INVESTOR">📈 Investor</option>
-                        <option value="CITIZEN">⚖ Citizen</option>
-                        <option value="FRIENDLY">😊 Friendly</option>
-                        <option value="EXPERT">🧠 Expert</option>
-                        <option value="GUARD">🛡️ Guard</option>
+                        <option value="ELDERLY" style={{ background: '#fff', color: '#000' }}>👵 Elderly</option>
+                        <option value="SKEPTICAL" style={{ background: '#fff', color: '#000' }}>🤨 Dave (Skeptic)</option>
+                        <option value="INVESTOR" style={{ background: '#fff', color: '#000' }}>📈 Investor</option>
+                        <option value="CITIZEN" style={{ background: '#fff', color: '#000' }}>⚖ Citizen</option>
+                        <option value="FRIENDLY" style={{ background: '#fff', color: '#000' }}>😊 Friendly</option>
+                        <option value="EXPERT" style={{ background: '#fff', color: '#000' }}>🧠 Expert</option>
+                        <option value="GUARD" style={{ background: '#fff', color: '#000' }}>🛡️ Guard</option>
                       </select>
                     </div>
                   </div>
