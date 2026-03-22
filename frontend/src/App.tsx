@@ -43,7 +43,7 @@ function App() {
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
-  const [sidebarTab, setSidebarTab] = useState<'INBOX' | 'COMMAND'>('INBOX');
+  const [sidebarTab, setSidebarTab] = useState<'DASHBOARD' | 'INBOX' | 'COMMAND'>(window.innerWidth < 1024 ? 'DASHBOARD' : 'INBOX');
   const [isMuted, setIsMuted] = useState(false);
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
@@ -94,6 +94,14 @@ function App() {
       
       {/* TAB SWITCHER UI */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
+         {isMobile && (
+           <button 
+              onClick={() => { setSidebarTab('DASHBOARD'); soundManager.playClick(); }}
+              style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'DASHBOARD' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'DASHBOARD' ? '2px solid var(--primary)' : '2px solid transparent', color: sidebarTab === 'DASHBOARD' ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+           >
+              DASHBOARD
+           </button>
+         )}
          <button 
             onClick={() => { setSidebarTab('INBOX'); soundManager.playClick(); }}
             style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'INBOX' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'INBOX' ? '2px solid var(--primary)' : '2px solid transparent', color: sidebarTab === 'INBOX' ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -109,6 +117,15 @@ function App() {
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {sidebarTab === 'DASHBOARD' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+            <SystemDashboard
+              activeThreats={threads.filter(t => t.classification === 'scam' || t.classification === 'likely_scam').length}
+              locations={threads.filter(t => (t.classification === 'scam' || t.classification === 'likely_scam') && t.detectedLocation).map(t => t.detectedLocation!)}
+              onSimulateAttack={triggerBotnetMode}
+            />
+          </div>
+        )}
         <div style={{ flex: 1, display: sidebarTab === 'INBOX' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
           <InboxList
             threads={threads.map((t: Thread) => ({
