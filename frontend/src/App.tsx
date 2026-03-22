@@ -419,7 +419,7 @@ function App() {
         onClose={() => { 
           setIsTourOpen(false); 
           setActiveView('DASHBOARD'); 
-          setSidebarTab('INBOX');
+          setSidebarTab(isMobile ? 'DASHBOARD' : 'INBOX');
           setSelectedThreadId(null); 
         }} 
         onSwitchView={(view: ViewState) => { 
@@ -427,7 +427,7 @@ function App() {
             setSidebarTab('COMMAND');
           } else {
             setActiveView(view as any); 
-            setSidebarTab('INBOX'); 
+            setSidebarTab(isMobile ? 'DASHBOARD' : 'INBOX'); 
           }
           setSelectedThreadId(null); 
         }} 
