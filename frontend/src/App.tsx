@@ -237,14 +237,32 @@ function App() {
             </div>
 
             {selectedThread.isIntercepted && (
-              <div className="mobile-compact-stats" style={{ display: 'flex', gap: '0.5rem', padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)', overflowX: 'auto', flexWrap: 'nowrap' }}>
-                <span style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', whiteSpace: 'nowrap' }}>
-                  🚨 {selectedThread.threatScore || 0}% RISK
-                </span>
-                <span style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)', whiteSpace: 'nowrap' }}>
-                  🎯 {selectedThread.intent || "SCAN"}
-                </span>
-              </div>
+              <>
+                <button 
+                  onClick={() => { setShowLiveAnalysis(!showLiveAnalysis); soundManager.playClick(); }} 
+                  className="btn-primary-glow" 
+                  style={{ margin: '0.75rem', padding: '0.6rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  📊 {showLiveAnalysis ? 'Close Analysis Details' : 'View Live Intercept Graph'}
+                </button>
+                
+                {showLiveAnalysis && (
+                  <div style={{ maxHeight: '60vh', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-subtle)', padding: '0.5rem' }}>
+                    <LiveIntercept
+                      intent={selectedThread.intent || "ANALYZING..."}
+                      threatScore={selectedThread.threatScore || 0}
+                      isScanning={selectedThread.isScanning}
+                      location={selectedThread.detectedLocation}
+                      neuralMatrixHistory={selectedThread.neuralMatrixHistory}
+                      counterMeasure={
+                        selectedThread.intent === "MONEY" ? "TRACE_PAYMENT" :
+                          selectedThread.intent === "CODES" ? "INJECT_FAKE_OTP" :
+                            selectedThread.intent === "URGENCY" ? "STALLING_PROTOCOL" : "MONITORING"
+                      }
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <div className="chat-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
