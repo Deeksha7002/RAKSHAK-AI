@@ -30,7 +30,7 @@ type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' 
 function App() {
   const { clearThreads } = useThreads();
   const { isAuthenticated, logout } = useAuth();
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [permissionsGranted, setPermissionsGranted] = useState(() => localStorage.getItem('rakshak_permissions_granted') === 'true');
   const {
     threads,
     isMonitoring,
@@ -51,7 +51,7 @@ function App() {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(() => localStorage.getItem('rakshak_initialized') === 'true');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -85,7 +85,7 @@ function App() {
   };
 
   if (!isAuthenticated) return <LoginScreen />;
-  if (!permissionsGranted) return <PermissionsScreen onGrant={() => setPermissionsGranted(true)} />;
+  if (!permissionsGranted) return <PermissionsScreen onGrant={() => { setPermissionsGranted(true); localStorage.setItem('rakshak_permissions_granted', 'true'); }} />;
   if (isLocked) return <LockScreen onUnlock={() => setIsLocked(false)} />;
 
   // ==========================================
@@ -162,7 +162,11 @@ function App() {
           <NavigationFooter
             activeView={activeView}
             selectedThreadId={selectedThreadId}
-            onToggleView={(view) => { setActiveView(view); setSelectedThreadId(null); }}
+            onToggleView={(view) => { 
+              setActiveView(view); 
+              setSelectedThreadId(null); 
+              if (view !== 'DASHBOARD') setSidebarTab('DASHBOARD'); 
+            }}
             onToggleIntegration={() => setIsIntegrationOpen(true)}
             onToggleProtocol={() => setIsProtocolOpen(true)}
           />
@@ -189,7 +193,12 @@ function App() {
         </div>
         <h1 style={{ letterSpacing: '2px', fontWeight: 800, margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>RAKSHAK-AI SYSTEM</h1>
         <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', fontSize: '0.9rem', lineHeight: '1.5' }}>Advanced honey-token and scam interceptor defense ready for deployment setup.</p>
-        <button onClick={() => { setIsInitialized(true); setIsTourOpen(true); startMonitoring(); }} className="btn-primary-glow" style={{ padding: '0.8rem 2rem', fontSize: '1rem', fontWeight: 700, borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+        <button onClick={() => { 
+          setIsInitialized(true); 
+          localStorage.setItem('rakshak_initialized', 'true');
+          setIsTourOpen(true); 
+          startMonitoring(); 
+        }} className="btn-primary-glow" style={{ padding: '0.8rem 2rem', fontSize: '1rem', fontWeight: 700, borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
           INITIALIZE DEFENSES
         </button>
       </div>
@@ -238,6 +247,33 @@ function App() {
 
             <div className="chat-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
               <ChatWindow messages={selectedThread.messages} />
+            </div>
+          </div>
+        ) : isMobile && activeView !== 'DASHBOARD' && activeView !== 'COMMAND' ? (
+          /* ==========================================
+             MOBILE VIEWPORT TACTICAL MODULES
+             ========================================== */
+          <div className="mobile-chat-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <div className="chat-banner" style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.4)', padding: '0.75rem 1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button className="mobile-back-btn" onClick={() => { setActiveView('DASHBOARD'); }} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
+                  <ChevronLeft size={24} />
+                </button>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>{activeView.replace('_', ' ')}</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+              {activeView === 'FORENSICS' && <Suspense fallback={<div>Loading Forensic Module...</div>}><ForensicsView /></Suspense>}
+              {activeView === 'INTELLIGENCE' && <Suspense fallback={<div>Loading Intel...</div>}><IntelligenceView /></Suspense>}
+              {activeView === 'DEMO' && <Suspense fallback={<div>Loading test...</div>}><TestLabView /></Suspense>}
+              {activeView === 'HONEY_TOKENS' && <Suspense fallback={<div>Loading traps...</div>}><HoneyTokenGenerator /></Suspense>}
+              {activeView === 'LOCKER' && (
+                <Suspense fallback={<div>Loading Secure Module...</div>}>
+                  <EvidenceLockerView cases={[]} onClose={() => setActiveView('DASHBOARD')} />
+                </Suspense>
+              )}
             </div>
           </div>
         ) : (
