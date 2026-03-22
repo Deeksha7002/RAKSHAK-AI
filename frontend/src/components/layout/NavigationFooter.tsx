@@ -17,7 +17,7 @@ export function NavigationFooter({
     onToggleIntegration,
     onToggleProtocol,
 }: NavigationFooterProps) {
-    const [openFolder, setOpenFolder] = useState<string | null>('tactical');
+    const [openFolder, setOpenFolder] = useState<string | null>(null);
 
     const toggleFolder = (folder: string) => {
         setOpenFolder(prev => prev === folder ? null : folder);
