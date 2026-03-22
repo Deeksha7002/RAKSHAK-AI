@@ -481,10 +481,18 @@ export function useRakshakCore() {
     const changePersona = (threadId: string, persona: any) => {
         const agent = agentsRef.current.get(threadId);
         if (agent) {
-            agent.currentPersona = persona;
-            agent.isManualPersona = true; // Lock manual selection
+            if (persona === 'AUTO') {
+                agent.isManualPersona = false;
+            } else {
+                agent.currentPersona = persona;
+                agent.isManualPersona = true;
+            }
         }
-        setThreads((prev: Thread[]) => prev.map((t: Thread) => t.id === threadId ? { ...t, persona } : t));
+        setThreads((prev: Thread[]) => prev.map((t: Thread) => t.id === threadId ? { 
+            ...t, 
+            persona: persona === 'AUTO' ? agent?.currentPersona : persona, 
+            isManualPersona: persona !== 'AUTO' 
+        } : t));
     };
 
     const addMessageToThread = (threadId: string, msg: Message) => {

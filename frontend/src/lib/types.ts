@@ -89,6 +89,7 @@ export interface Thread {
     isBlocked?: boolean;
     autoReported?: boolean;
     isScanning: boolean;
+    isManualPersona?: boolean;
     persona?: string;
     avatar?: string;
     location?: string;

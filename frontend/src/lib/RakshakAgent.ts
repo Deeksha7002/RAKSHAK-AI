@@ -217,17 +217,19 @@ export class RakshakAgent {
         // 2. Topic-based persona triggers (only if threat isn't high enough for SKEPTICAL)
         if (lower.match(/(bitcoin|crypto|invest|yield|profit|usdt|binance|coinbase)/)) {
             if (this.currentPersona !== 'INVESTOR') {
-                // console.log(`[Persona Switch] ${this.currentPersona} -> INVESTOR (crypto keywords detected)`);
                 this.currentPersona = 'INVESTOR';
             }
         } else if (lower.match(/(police|warrant|arrest|irs|federal|jail|legal|court)/)) {
             if (this.currentPersona !== 'CITIZEN') {
-                // console.log(`[Persona Switch] ${this.currentPersona} -> CITIZEN (authority keywords detected)`);
                 this.currentPersona = 'CITIZEN';
             }
+        } else if (lower.match(/(download|remotedesktop|anydesk|teamviewer|support tool|install|remote access)/)) {
+            if (this.currentPersona !== 'EXPERT') {
+                this.currentPersona = 'EXPERT';
+            }
+        } else if (score > 0.85 && this.currentPersona !== 'GUARD') {
+             this.currentPersona = 'GUARD';
         } else if (score < 0.4 && this.currentPersona !== 'ELDERLY') {
-            // Low-threat, unrecognised pattern → confused elderly persona wastes the most time
-            // console.log(`[Persona Switch] ${this.currentPersona} -> ELDERLY (low threat score: ${score.toFixed(2)})`);
             this.currentPersona = 'ELDERLY';
         }
     }
