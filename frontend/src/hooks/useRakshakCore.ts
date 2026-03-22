@@ -172,7 +172,8 @@ export function useRakshakCore() {
 
         const spawnLoop = async () => {
             if (!isMonitoringRef.current) return;
-            const randomDelay = 8000 + Math.random() * 15000;
+            // Spontaneous simulation updates (Optimized 3-8s)
+            const randomDelay = 3000 + Math.random() * 5000;
             await new Promise(r => setTimeout(r, randomDelay));
             if (isMonitoringRef.current) {
                 spawnThread();
@@ -502,8 +503,14 @@ export function useRakshakCore() {
             if (cases.some(c => c.id === thread.id)) return;
             if (!thread.classification && !thread.isIntercepted) return;
             if (thread.classification === 'benign') return;
-            const agent = agentsRef.current.get(thread.id);
-            if (!agent) return;
+            let agent = agentsRef.current.get(thread.id);
+            if (!agent) {
+                agent = new RakshakAgent();
+                agent.senderName = thread.senderName;
+                if (thread.detectedLocation) {
+                    agent.detectedLocation = thread.detectedLocation;
+                }
+            }
             const report = agent.getReport(thread.id, thread.classification || 'likely_scam', thread.messages);
             cases.push({
                 id: thread.id,
