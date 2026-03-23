@@ -13,6 +13,10 @@ import type { Message, Thread, CaseFile, Scenario } from '../lib/types';
 
 export function useRakshakCore(isTourOpen: boolean = false) {
     const { threads, setThreads, clearThreads } = useThreads();
+    const isTourOpenRef = useRef(isTourOpen);
+    useEffect(() => {
+        isTourOpenRef.current = isTourOpen;
+    }, [isTourOpen]);
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [notification, setNotification] = useState<string | null>(null);
     const [persistentCases, setPersistentCases] = useState<CaseFile[]>([]);
@@ -118,7 +122,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
                 persona: data.persona || 'ELDERLY'
             };
             setThreads((prev: Thread[]) => [newThread, ...prev]);
-            if (!isTourOpen) soundManager.playAlert();
+            if (!isTourOpenRef.current) soundManager.playAlert();
         } else {
             setThreads((prev: Thread[]) => {
                 const existing = prev.find(t => t.id === threadId);
@@ -190,7 +194,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
             spawnBotnetThread(botnetBatch[i]);
             if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
         }
-        if (!isTourOpen) soundManager.playAlert();
+        if (!isTourOpenRef.current) soundManager.playAlert();
     };
 
     const spawnBotnetThread = (scenario: Scenario) => {
@@ -286,7 +290,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
         }
 
         if (sender === 'scammer') {
-            if (!silent && !isTourOpen) soundManager.playNotification();
+            if (!silent && !isTourOpenRef.current) soundManager.playNotification();
 
             let isMediaMalicious = false;
             if (attachments && attachments.length > 0) {
@@ -331,7 +335,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
 
             if (isMediaMalicious) {
                 setNotification("🚨 FORENSICS ALERT: DEEPFAKE DETECTED. TERMINATING CONNECTION.");
-                if (!isTourOpen) soundManager.playAlert();
+                if (!isTourOpenRef.current) soundManager.playAlert();
                 setThreads((prev: Thread[]) => prev.map(t => t.id === threadId ? { ...t, isBlocked: true, classification: 'scam' } : t));
                 addMessageToThread(threadId, {
                     id: `block-auto-${Date.now()}`,
@@ -419,7 +423,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
             setThreads((prev: Thread[]) => prev.map((t: Thread) => {
                 if (t.id !== threadId) return t;
                 if (!t.isIntercepted && isNewInterception && !silent) {
-                    if (!isTourOpen) soundManager.playAlert();
+                    if (!isTourOpenRef.current) soundManager.playAlert();
                 }
                 return {
                     ...t,
@@ -448,12 +452,12 @@ export function useRakshakCore(isTourOpen: boolean = false) {
                     content: "🛡️ INTELLIGENCE CAPTURED: All necessary credentials obtained. Connection terminated. Scammer has been blocked from further contact.",
                     timestamp: Date.now()
                 });
-                if (!isTourOpen) soundManager.playSuccess();
+                if (!isTourOpenRef.current) soundManager.playSuccess();
                 setNotification(`Mission Complete: Scammer blocked for ${senderName || 'Unknown'}`);
             }
 
             if (autoReported && !threadState?.autoReported) {
-                if (!isTourOpen) soundManager.playSuccess();
+                if (!isTourOpenRef.current) soundManager.playSuccess();
                 setNotification(`🚨 AUTO-REPORTED: High threat detected from ${senderName || 'Unknown'}. Evidence securely transmitted to Cyber Cell.`);
             }
 
