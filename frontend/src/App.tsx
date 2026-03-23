@@ -428,7 +428,7 @@ function App() {
             <>
               {activeView === 'LOCKER' && (
                 <Suspense fallback={<div>Loading Secure Module...</div>}>
-                  <EvidenceLockerView cases={getCaseFiles()} onClose={() => setActiveView('DASHBOARD')} />
+                  <EvidenceLockerView cases={getCaseFiles()} onClose={() => { setActiveView('DASHBOARD'); if (isMobile) setSidebarTab('COMMAND'); }} />
                 </Suspense>
               )}
               {activeView === 'FORENSICS' && <ForensicsView />}
