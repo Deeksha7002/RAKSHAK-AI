@@ -510,7 +510,12 @@ export function useRakshakCore() {
                 if (thread.detectedLocation) {
                     agent.detectedLocation = thread.detectedLocation;
                 }
+                // 🧠 [DEFENSE SYNC] Re-ingest transcripts to rebuild Threat profile node flaws
+                thread.messages.forEach((m: any) => {
+                    if (m.sender === 'scammer') agent!.ingest(m.content, thread.id);
+                });
             }
+            if (!agent) return cases; // TypeScript safety node flaws
             const report = agent.getReport(thread.id, thread.classification || 'likely_scam', thread.messages);
             cases.push({
                 id: thread.id,
