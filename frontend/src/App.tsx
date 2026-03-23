@@ -31,6 +31,7 @@ function App() {
   const { clearThreads } = useThreads();
   const { isAuthenticated, logout } = useAuth();
   const [permissionsGranted, setPermissionsGranted] = useState(() => localStorage.getItem('rakshak_permissions_granted') === 'true');
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const {
     threads,
     isMonitoring,
@@ -40,7 +41,7 @@ function App() {
     triggerBotnetMode,
     getCaseFiles,
     wsStatus
-  } = useRakshakCore();
+  } = useRakshakCore(isTourOpen);
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
@@ -48,7 +49,6 @@ function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
-  const [isTourOpen, setIsTourOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isInitialized, setIsInitialized] = useState(() => localStorage.getItem('rakshak_initialized') === 'true');
@@ -172,8 +172,8 @@ function App() {
               setSelectedThreadId(null); 
               if (view !== 'DASHBOARD') setSidebarTab('COMMAND'); 
             }}
-            onToggleIntegration={() => setIsIntegrationOpen(true)}
-            onToggleProtocol={() => setIsProtocolOpen(true)}
+            onToggleIntegration={() => { setIsIntegrationOpen(true); setActiveView('DASHBOARD'); }}
+            onToggleProtocol={() => { setIsProtocolOpen(true); setActiveView('DASHBOARD'); }}
             onNuke={clearThreads}
           />
         </div>

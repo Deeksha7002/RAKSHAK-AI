@@ -11,7 +11,7 @@ import { Anonymizer } from '../lib/Anonymizer';
 import { CyberCellService } from '../lib/CyberCellService';
 import type { Message, Thread, CaseFile, Scenario } from '../lib/types';
 
-export function useRakshakCore() {
+export function useRakshakCore(isTourOpen: boolean = false) {
     const { threads, setThreads, clearThreads } = useThreads();
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [notification, setNotification] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export function useRakshakCore() {
                 persona: data.persona || 'ELDERLY'
             };
             setThreads((prev: Thread[]) => [newThread, ...prev]);
-            soundManager.playAlert();
+            if (!isTourOpen) soundManager.playAlert();
         } else {
             setThreads((prev: Thread[]) => {
                 const existing = prev.find(t => t.id === threadId);
@@ -190,7 +190,7 @@ export function useRakshakCore() {
             spawnBotnetThread(botnetBatch[i]);
             if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
         }
-        soundManager.playAlert();
+        if (!isTourOpen) soundManager.playAlert();
     };
 
     const spawnBotnetThread = (scenario: Scenario) => {
@@ -286,7 +286,7 @@ export function useRakshakCore() {
         }
 
         if (sender === 'scammer') {
-            if (!silent) soundManager.playNotification();
+            if (!silent && !isTourOpen) soundManager.playNotification();
 
             let isMediaMalicious = false;
             if (attachments && attachments.length > 0) {
@@ -331,7 +331,7 @@ export function useRakshakCore() {
 
             if (isMediaMalicious) {
                 setNotification("🚨 FORENSICS ALERT: DEEPFAKE DETECTED. TERMINATING CONNECTION.");
-                soundManager.playAlert();
+                if (!isTourOpen) soundManager.playAlert();
                 setThreads((prev: Thread[]) => prev.map(t => t.id === threadId ? { ...t, isBlocked: true, classification: 'scam' } : t));
                 addMessageToThread(threadId, {
                     id: `block-auto-${Date.now()}`,
@@ -419,7 +419,7 @@ export function useRakshakCore() {
             setThreads((prev: Thread[]) => prev.map((t: Thread) => {
                 if (t.id !== threadId) return t;
                 if (!t.isIntercepted && isNewInterception && !silent) {
-                    soundManager.playAlert();
+                    if (!isTourOpen) soundManager.playAlert();
                 }
                 return {
                     ...t,
@@ -448,12 +448,12 @@ export function useRakshakCore() {
                     content: "🛡️ INTELLIGENCE CAPTURED: All necessary credentials obtained. Connection terminated. Scammer has been blocked from further contact.",
                     timestamp: Date.now()
                 });
-                soundManager.playSuccess();
+                if (!isTourOpen) soundManager.playSuccess();
                 setNotification(`Mission Complete: Scammer blocked for ${senderName || 'Unknown'}`);
             }
 
             if (autoReported && !threadState?.autoReported) {
-                soundManager.playSuccess();
+                if (!isTourOpen) soundManager.playSuccess();
                 setNotification(`🚨 AUTO-REPORTED: High threat detected from ${senderName || 'Unknown'}. Evidence securely transmitted to Cyber Cell.`);
             }
 

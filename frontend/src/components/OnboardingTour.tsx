@@ -81,7 +81,6 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ isOpen, onClose,
     useEffect(() => {
         if (isOpen) {
             setCurrentStep(0);
-            soundManager.playNotification(); 
         }
     }, [isOpen]);
 
