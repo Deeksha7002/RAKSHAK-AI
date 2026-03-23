@@ -170,7 +170,7 @@ function App() {
             onToggleView={(view) => { 
               setActiveView(view); 
               setSelectedThreadId(null); 
-              if (view !== 'DASHBOARD') setSidebarTab('DASHBOARD'); 
+              if (view !== 'DASHBOARD') setSidebarTab('COMMAND'); 
             }}
             onToggleIntegration={() => setIsIntegrationOpen(true)}
             onToggleProtocol={() => setIsProtocolOpen(true)}
@@ -426,16 +426,32 @@ function App() {
             </>
           ) : (
             <>
-              {activeView === 'LOCKER' && (
-                <Suspense fallback={<div>Loading Secure Module...</div>}>
-                  <EvidenceLockerView cases={getCaseFiles()} onClose={() => { setActiveView('DASHBOARD'); if (isMobile) setSidebarTab('COMMAND'); }} />
-                </Suspense>
-              )}
-              {activeView === 'FORENSICS' && <ForensicsView />}
-              {activeView === 'INTELLIGENCE' && <IntelligenceView />}
-              {activeView === 'DEMO' && <TestLabView />}
-              {activeView === 'HONEY_TOKENS' && <HoneyTokenGenerator />}
-              {activeView === 'DASHBOARD' && (
+              {activeView !== 'DASHBOARD' ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                    <div className="chat-banner" style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.4)', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{activeView.replace('_', ' ')}</div>
+                        </div>
+                        <button 
+                            onClick={() => { setActiveView('DASHBOARD'); if (!isMobile) setSidebarTab('INBOX'); }} 
+                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
+                        >
+                            <span>Close View</span>
+                        </button>
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                        {activeView === 'LOCKER' && (
+                            <Suspense fallback={<div>Loading Secure Module...</div>}>
+                                <EvidenceLockerView cases={getCaseFiles()} onClose={() => { setActiveView('DASHBOARD'); if (!isMobile) setSidebarTab('INBOX'); }} />
+                            </Suspense>
+                        )}
+                        {activeView === 'FORENSICS' && <ForensicsView />}
+                        {activeView === 'INTELLIGENCE' && <IntelligenceView />}
+                        {activeView === 'DEMO' && <TestLabView />}
+                        {activeView === 'HONEY_TOKENS' && <HoneyTokenGenerator />}
+                    </div>
+                </div>
+              ) : (
                 <SystemDashboard
                   activeThreats={threads.filter(t => t.classification === 'scam' || t.classification === 'likely_scam').length}
                   locations={threads.filter(t => (t.classification === 'scam' || t.classification === 'likely_scam') && t.detectedLocation).map(t => t.detectedLocation!)}
