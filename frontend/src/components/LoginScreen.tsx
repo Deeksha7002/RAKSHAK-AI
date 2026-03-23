@@ -254,9 +254,9 @@ export const LoginScreen: React.FC<any> = () => {
             } else if (lowMsg.includes('fetch') || lowMsg.includes('network') || lowMsg.includes('failed to fetch')) {
                 console.error("[RAKSHAK] CORE UNREACHABLE:", fetchUrl);
                 setError('CORE OFFLINE - CHECK NETWORK OR USE ACCESS CODE');
-            } else if (lowMsg.includes('no_assertion') || lowMsg.includes('cancel') || lowMsg.includes('notallowederror')) {
-                console.log("[RAKSHAK] Biometric Prompt Cancelled by User");
-                setError('BIOMETRIC AUTHENTICATION CANCELLED. PLEASE RETRY OR USE ACCESS CODE.');
+            } else if (lowMsg.includes('no_assertion') || lowMsg.includes('cancel') || lowMsg.includes('notallowederror') || lowMsg.includes('not allowed') || lowMsg.includes('timed out')) {
+                console.log("[RAKSHAK] Biometric Prompt Cancelled or Timed Out");
+                setError('BIOMETRIC AUTHENTICATION CANCELLED OR TIMED OUT. PLEASE RETRY OR USE ACCESS CODE.');
             }
  else {
                 console.error("[RAKSHAK] Auth Critical Failure:", msg);
