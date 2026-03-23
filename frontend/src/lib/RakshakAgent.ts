@@ -200,6 +200,8 @@ export class RakshakAgent {
     }
 
     private checkForPersonaSwitch(text: string, score: number) {
+        if (this.isManualPersona) return;
+
         const lower = text.toLowerCase();
 
         // 1. Topic-Based Keyword Overrides
@@ -220,7 +222,10 @@ export class RakshakAgent {
         } else if (score > 0.7) {
             if (this.currentPersona !== 'SKEPTICAL') this.currentPersona = 'SKEPTICAL';
         } else if (score < 0.4) {
-            if (this.currentPersona !== 'ELDERLY') this.currentPersona = 'ELDERLY';
+            const stickyPersonas = ['INVESTOR', 'CITIZEN', 'EXPERT'];
+            if (!stickyPersonas.includes(this.currentPersona)) {
+                if (this.currentPersona !== 'ELDERLY') this.currentPersona = 'ELDERLY';
+            }
         }
     }
 
