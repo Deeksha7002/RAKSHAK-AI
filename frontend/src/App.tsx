@@ -29,8 +29,15 @@ type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' 
 
 function App() {
   const { clearThreads } = useThreads();
-  const { isAuthenticated, logout } = useAuth();
-  const [permissionsGranted, setPermissionsGranted] = useState(() => localStorage.getItem('rakshak_permissions_granted') === 'true');
+  const { isAuthenticated, logout, currentUser } = useAuth();
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      const key = `rakshak_permissions_granted_${currentUser.username}`;
+      setPermissionsGranted(localStorage.getItem(key) === 'true');
+    }
+  }, [currentUser]);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const {
     threads,
@@ -65,15 +72,17 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem('rakshak_tour_shown');
+    if (!currentUser) return;
+    const tourKey = `rakshak_tour_shown_${currentUser.username}`;
+    const hasSeenTour = localStorage.getItem(tourKey) === 'true';
     if (isAuthenticated) {
       if (!isMonitoring) startMonitoring();
       if (!hasSeenTour) {
         setIsTourOpen(true);
-        localStorage.setItem('rakshak_tour_shown', 'true');
+        localStorage.setItem(tourKey, 'true');
       }
     }
-  }, [isAuthenticated, isMonitoring, startMonitoring]);
+  }, [isAuthenticated, isMonitoring, startMonitoring, currentUser]);
 
   const selectedThread = threads.find(t => t.id === selectedThreadId);
 
@@ -90,7 +99,14 @@ function App() {
   };
 
   if (!isAuthenticated) return <LoginScreen />;
-  if (!permissionsGranted) return <PermissionsScreen onGrant={() => { setPermissionsGranted(true); localStorage.setItem('rakshak_permissions_granted', 'true'); }} />;
+  if (!permissionsGranted) return (
+    <PermissionsScreen onGrant={() => { 
+      setPermissionsGranted(true); 
+      if (currentUser) {
+        localStorage.setItem(`rakshak_permissions_granted_${currentUser.username}`, 'true'); 
+      }
+    }} />
+  );
   if (isLocked) return <LockScreen onUnlock={() => setIsLocked(false)} />;
 
   // ==========================================
