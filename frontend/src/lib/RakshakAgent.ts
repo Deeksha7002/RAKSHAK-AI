@@ -199,38 +199,28 @@ export class RakshakAgent {
         return false;
     }
 
-    // score is passed in from ingest() to avoid a redundant analyzeBehavior() call
     private checkForPersonaSwitch(text: string, score: number) {
+        const lower = text.toLowerCase();
 
-        // 1. High-sophistication scammer → deploy skeptical SysAdmin persona
-        if (score > 0.7) {
-            if (this.currentPersona !== 'SKEPTICAL') {
-                // console.log(`[Persona Switch] ${this.currentPersona} -> SKEPTICAL (High Sophistication score: ${score.toFixed(2)})`);
-                this.currentPersona = 'SKEPTICAL';
-            }
-            // Persona switching logic remains intact, logs removed for terminal cleanliness
+        // 1. Topic-Based Keyword Overrides
+        if (lower.match(/(bitcoin|crypto|invest|yield|profit|usdt|binance|coinbase)/)) {
+            if (this.currentPersona !== 'INVESTOR') this.currentPersona = 'INVESTOR';
+            return;
+        } else if (lower.match(/(police|warrant|arrest|irs|federal|jail|legal|court)/)) {
+            if (this.currentPersona !== 'CITIZEN') this.currentPersona = 'CITIZEN';
+            return;
+        } else if (lower.match(/(download|remotedesktop|anydesk|teamviewer|support tool|install|remote access)/)) {
+            if (this.currentPersona !== 'EXPERT') this.currentPersona = 'EXPERT';
             return;
         }
 
-        const lower = text.toLowerCase();
-
-        // 2. Topic-based persona triggers (only if threat isn't high enough for SKEPTICAL)
-        if (lower.match(/(bitcoin|crypto|invest|yield|profit|usdt|binance|coinbase)/)) {
-            if (this.currentPersona !== 'INVESTOR') {
-                this.currentPersona = 'INVESTOR';
-            }
-        } else if (lower.match(/(police|warrant|arrest|irs|federal|jail|legal|court)/)) {
-            if (this.currentPersona !== 'CITIZEN') {
-                this.currentPersona = 'CITIZEN';
-            }
-        } else if (lower.match(/(download|remotedesktop|anydesk|teamviewer|support tool|install|remote access)/)) {
-            if (this.currentPersona !== 'EXPERT') {
-                this.currentPersona = 'EXPERT';
-            }
-        } else if (score > 0.85 && this.currentPersona !== 'GUARD') {
-             this.currentPersona = 'GUARD';
-        } else if (score < 0.4 && this.currentPersona !== 'ELDERLY') {
-            this.currentPersona = 'ELDERLY';
+        // 2. Score/Sophistication Thresholds 
+        if (score > 0.85) {
+            if (this.currentPersona !== 'GUARD') this.currentPersona = 'GUARD';
+        } else if (score > 0.7) {
+            if (this.currentPersona !== 'SKEPTICAL') this.currentPersona = 'SKEPTICAL';
+        } else if (score < 0.4) {
+            if (this.currentPersona !== 'ELDERLY') this.currentPersona = 'ELDERLY';
         }
     }
 
