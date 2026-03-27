@@ -147,28 +147,49 @@ export const LoginScreen: React.FC<any> = () => {
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
     useEffect(() => {
-        const attemptTrigger = () => {
-            if (mode === 'returning' && username && window.PublicKeyCredential && !isLoading) {
-                // Ensure we use the trimmed version for the handshake
-                const userToScan = username.trim();
-                console.log("[RAKSHAK] Auto-Trigger Attempting for:", userToScan);
+        if (mode !== 'returning' || !username || !window.PublicKeyCredential) return;
+
+        let cancelled = false;
+
+        const attemptWithWake = async () => {
+            const userToScan = username.trim();
+            if (!userToScan || cancelled) return;
+
+            // Step 1: Wake the backend (Render cold start can take 10-15s)
+            setStatusMsg('WAKING UP CORE...');
+            try {
+                for (let i = 1; i <= 3; i++) {
+                    try {
+                        const r = await fetch(`${API_BASE_URL}/health`, { method: 'GET', signal: AbortSignal.timeout(15000) });
+                        if (r.ok) break;
+                    } catch {
+                        if (i === 3) { setStatusMsg(null); return; }
+                        await new Promise(res => setTimeout(res, 3000 * i));
+                    }
+                }
+            } catch { setStatusMsg(null); return; }
+
+            // Step 2: Trigger biometric only after backend is alive
+            if (!cancelled) {
+                console.log('[RAKSHAK] Backend awake — Auto-triggering biometric for:', userToScan);
+                setStatusMsg(null);
                 triggerBiometric(userToScan);
             }
         };
 
-        // Try on mount
-        const timer = setTimeout(attemptTrigger, 1000);
+        const timer = setTimeout(attemptWithWake, 800);
 
-        // Re-trigger if the user leaves and comes back to the tab
+        // Re-trigger if user comes back to the tab
         const handleVisibility = () => {
-            if (document.visibilityState === 'visible') {
-                console.log("[RAKSHAK] Tab Focused - Re-trying Biometric Handshake");
-                attemptTrigger();
+            if (document.visibilityState === 'visible' && !isLoading) {
+                console.log('[RAKSHAK] Tab Focused - Re-trying Biometric Handshake');
+                triggerBiometric(username.trim());
             }
         };
         window.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
+            cancelled = true;
             clearTimeout(timer);
             window.removeEventListener('visibilitychange', handleVisibility);
         };
