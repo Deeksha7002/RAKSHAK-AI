@@ -212,7 +212,7 @@ def read_root():
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     """Standard health check endpoint for Render and uptime monitors."""
-    return {"status": "ok", "system": "Rakshak AI Core", "version": "2.0.2"}
+    return {"status": "ok", "system": "Rakshak AI Core", "version": "2.0.3"}
 
 if __name__ == "__main__":
     import uvicorn
