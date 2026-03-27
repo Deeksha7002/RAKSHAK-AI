@@ -1,4 +1,4 @@
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense, useEffect, useRef } from 'react';
 import { ChatWindow } from './components/ChatWindow';
 import { InboxList } from './components/InboxList';
 import { LoginScreen } from './components/LoginScreen';
@@ -139,6 +139,10 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(() => localStorage.getItem('rakshak_initialized') === 'true');
   const [showLiveAnalysis, setShowLiveAnalysis] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(() => sessionStorage.getItem('rakshak_session_authorized') === 'true');
+
+  // ── Mobile swipe gesture state ──────────────────────────────────────────────
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -348,7 +352,30 @@ function App() {
         </div>
       )}
 
-      <div className="messenger-container" data-mobile-view={selectedThreadId ? 'chat' : 'list'}>
+      <div
+        className="messenger-container"
+        data-mobile-view={selectedThreadId ? 'chat' : 'list'}
+        onTouchStart={(e) => {
+          touchStartX.current = e.touches[0].clientX;
+          touchStartY.current = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          if (!isMobile) return;
+          const dx = e.changedTouches[0].clientX - touchStartX.current;
+          const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+          if (Math.abs(dx) < 60 || dy > 60) return; // not a horizontal swipe
+          if (dx > 0) {
+            // Swipe right → go back / inbox
+            if (selectedThreadId) { setSelectedThreadId(null); setActiveView('DASHBOARD'); }
+            else if (sidebarTab === 'COMMAND') { setSidebarTab('INBOX'); soundManager.playClick(); }
+            else if (sidebarTab === 'INBOX') { setSidebarTab('DASHBOARD'); soundManager.playClick(); }
+          } else {
+            // Swipe left → command center
+            if (sidebarTab === 'DASHBOARD') { setSidebarTab('INBOX'); soundManager.playClick(); }
+            else if (sidebarTab === 'INBOX') { setSidebarTab('COMMAND'); soundManager.playClick(); }
+          }
+        }}
+      >
         {isMobile && selectedThreadId && selectedThread ? (
           /* ==========================================
              MOBILE VIEWPORT CHAT OVERLAY
@@ -368,17 +395,38 @@ function App() {
               </div>
             </div>
 
-            {selectedThread.isIntercepted && (
-              <>
-                <button 
-                  onClick={() => { setShowLiveAnalysis(!showLiveAnalysis); soundManager.playClick(); }} 
-                  className="btn-primary-glow" 
-                  style={{ margin: '0.75rem', padding: '0.6rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                >
-                  📊 {showLiveAnalysis ? 'Close Analysis Details' : 'View Live Intercept Graph'}
-                </button>
-                
-                {showLiveAnalysis && (
+            {/* Live Intercept Graph — always visible, states: MONITORING / active threat */}
+            <button
+              onClick={() => { setShowLiveAnalysis(!showLiveAnalysis); soundManager.playClick(); }}
+              className="btn-primary-glow"
+              style={{
+                margin: '0.75rem',
+                padding: '0.6rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                background: selectedThread.isIntercepted
+                  ? 'rgba(239, 68, 68, 0.1)'
+                  : 'rgba(16, 185, 129, 0.05)',
+                border: selectedThread.isIntercepted
+                  ? '1px solid rgba(239, 68, 68, 0.3)'
+                  : '1px solid rgba(16, 185, 129, 0.15)',
+                color: selectedThread.isIntercepted ? '#f87171' : '#6ee7b7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                opacity: selectedThread.isIntercepted ? 1 : 0.6
+              }}
+            >
+              📊 {showLiveAnalysis
+                ? 'Close Analysis Panel'
+                : selectedThread.isIntercepted
+                  ? 'View Live Intercept Graph'
+                  : 'Threat Analysis (Monitoring)'}
+            </button>
+
+            {showLiveAnalysis && (
                   <div style={{ maxHeight: '60vh', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-subtle)', padding: '0.5rem' }}>
                     <LiveIntercept
                       intent={selectedThread.intent || "ANALYZING..."}
@@ -394,8 +442,6 @@ function App() {
                     />
                   </div>
                 )}
-              </>
-            )}
 
             <div className="chat-viewport" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
               <ChatWindow messages={selectedThread.messages} />
