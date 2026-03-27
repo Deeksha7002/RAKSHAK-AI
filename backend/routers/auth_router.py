@@ -327,3 +327,75 @@ def login_bio_finish(response: Dict[str, Any], username: str, request: Request, 
     except Exception as e:
         logging.error(f"Biometric login failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── NUCLEAR DESTRUCTION PROTOCOLS ─────────────────────────────────────────────
+
+@router.post("/biometric/nuke/start")
+@limiter.limit("5/minute")
+def nuke_bio_start(username: str, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.username.lower() != username.lower():
+        raise HTTPException(status_code=403, detail="Unauthorized nuke attempt")
+        
+    config = get_webauthn_config(request)
+    options = generate_authentication_options(
+        rp_id=config["rp_id"],
+        allow_credentials=[
+            PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"]))
+            for c in current_user.webauthn_credentials
+        ],
+        user_verification=UserVerificationRequirement.PREFERRED,
+    )
+    store_challenge(db, "NUKE_" + username, options.challenge)
+    return json.loads(options_to_json(options))
+
+@router.post("/biometric/nuke/finish")
+def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.username.lower() != username.lower():
+        raise HTTPException(status_code=403, detail="Unauthorized nuke attempt")
+
+    challenge = get_challenge(db, "NUKE_" + username)
+    if not challenge:
+        raise HTTPException(status_code=400, detail="No active nuke challenge")
+
+    config = get_webauthn_config(request)
+    try:
+        credential_id = response.get("id")
+        cred_stored = next((c for c in current_user.webauthn_credentials if c["credential_id"] == credential_id), None)
+        if not cred_stored:
+            raise HTTPException(status_code=400, detail="Credential not found")
+
+        # 1. FINAL BIOMETRIC CHECK
+        verify_authentication_response(
+            credential=response,
+            expected_challenge=challenge,
+            expected_origin=config["origin"],
+            expected_rp_id=config["rp_id"],
+            credential_public_key=base64url_to_bytes(cred_stored["public_key"]),
+            credential_current_sign_count=cred_stored["sign_count"],
+        )
+        
+        # 2. TARGETED DESTRUCTION SEQUENCE
+        logging.warning(f"☢️ NUCLEAR PROTOCOL ACTIVATED FOR: {username}")
+        
+        # Scrub Dashboard Sync
+        from database import DashboardState
+        db.query(DashboardState).filter(DashboardState.username == username).delete()
+        
+        # Scrub Refresh Tokens
+        from database import RefreshToken
+        db.query(RefreshToken).filter(RefreshToken.username == username).delete()
+        
+        # Scrub Pending Challenges
+        from database import WebAuthnChallenge
+        db.query(WebAuthnChallenge).filter(WebAuthnChallenge.key.like(f"%_{username}")).delete()
+        
+        # DELETE THE USER ACCOUNT
+        db.delete(current_user)
+        
+        db.commit()
+        logging.info(f"💀 ACCOUNT DESTRUCTED: {username} has been purged from the system.")
+        return {"status": "purged", "message": "All data associated with this protocol has been incinerated."}
+        
+    except Exception as e:
+        logging.error(f"Nuclear verification failed: {e}")
+        raise HTTPException(status_code=400, detail="BIOMETRIC VERIFICATION FAILED: DESTRUCTION ABORTED")

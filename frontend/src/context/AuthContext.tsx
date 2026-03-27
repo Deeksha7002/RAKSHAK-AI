@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../lib/config';
+import { MediaLogService } from '../lib/MediaLogService';
+import { IntelligenceService } from '../lib/IntelligenceService';
+import { CyberCellService } from '../lib/CyberCellService';
 
 interface User {
     id: string;
@@ -12,6 +15,7 @@ interface AuthContextType {
     login: (username: string, password: string) => Promise<boolean>;
     register: (username: string, password: string, accessCode: string) => Promise<boolean>;
     logout: () => void;
+    nukeAccount: () => Promise<boolean>;
     getToken: () => string | null;
 }
 
@@ -21,6 +25,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ACCESS_TOKEN_KEY = 'rakshak_access_token';
 const REFRESH_TOKEN_KEY = 'rakshak_refresh_token';
 const SESSION_USER_KEY = 'active_session';
+
+// ── WebAuthn base64url helpers ──────────────────────────────────────────────
+function base64urlToBuffer(base64url: string): ArrayBuffer {
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+    const binary = window.atob(padded);
+    const buffer = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
+    return buffer.buffer;
+}
+
+function bufferToBase64url(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function prepareAuthenticationOptions(options: any): PublicKeyCredentialRequestOptions {
+    return {
+        ...options,
+        challenge: base64urlToBuffer(options.challenge),
+        allowCredentials: (options.allowCredentials || []).map((c: any) => ({
+            ...c,
+            id: base64urlToBuffer(c.id),
+        })),
+    };
+}
 
 // ── Decode JWT without a library ──────────────────────────────────────────────
 function decodeJwtPayload(token: string): { sub?: string; exp?: number } | null {
@@ -221,6 +253,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // ── Nuke Account (Emergency Disposal) ──────────────────────────────────
+    const nukeAccount = async (): Promise<boolean> => {
+        if (!currentUser) return false;
+        
+        try {
+            // Step 1: Start Biometric Challenge for Nuke
+            const startRes = await fetch(`${API_BASE_URL}/api/biometric/nuke/start?username=${currentUser.username}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (!startRes.ok) throw new Error('Nuke challenge failed to start');
+            const options = await startRes.json();
+
+            // Step 2: Get Biometric Proof from Browser (Native API)
+            const credential = await navigator.credentials.get({ 
+                publicKey: prepareAuthenticationOptions(options) 
+            }) as PublicKeyCredential;
+            
+            if (!credential) throw new Error('Biometric verification cancelled');
+            const authResponse = credential.response as AuthenticatorAssertionResponse;
+
+            // Step 3: Finalize Destruction on Backend
+            const finishRes = await fetch(`${API_BASE_URL}/api/biometric/nuke/finish?username=${currentUser.username}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}` 
+                },
+                body: JSON.stringify({
+                    id: credential.id,
+                    rawId: bufferToBase64url(credential.rawId),
+                    type: credential.type,
+                    response: {
+                        authenticatorData: bufferToBase64url(authResponse.authenticatorData),
+                        clientDataJSON: bufferToBase64url(authResponse.clientDataJSON),
+                        signature: bufferToBase64url(authResponse.signature),
+                        userHandle: authResponse.userHandle ? bufferToBase64url(authResponse.userHandle) : null,
+                    },
+                })
+            });
+
+            if (finishRes.ok) {
+                console.warn('☢️ [NUCLEAR] Account purged from backend. Scrubbing local environment...');
+                
+                // Step 4: Local Service Scrubbing
+                MediaLogService.clearLogs();
+                IntelligenceService.clearRecords();
+                CyberCellService.clearSession();
+
+                // Step 5: Storage Scrubbing
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear all dynamic caches 
+                setCurrentUser(null);
+                
+                // Force Reload to clear any memory-resident state
+                window.location.href = '/';
+                return true;
+            }
+        } catch (e: any) {
+            console.error('Nuclear destruction aborted or failed', e);
+            throw e;
+        }
+        return false;
+    };
+
     // ── Logout ───────────────────────────────────────────────────────────────
     const logout = async () => {
         const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -246,6 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             login,
             register,
             logout,
+            nukeAccount,
             getToken
         }}>
             {children}

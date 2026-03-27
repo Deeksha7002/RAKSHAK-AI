@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown, Eye, Settings, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { soundManager } from '../../lib/SoundManager';
-import { MediaLogService } from '../../lib/MediaLogService';
-import { IntelligenceService } from '../../lib/IntelligenceService';
-import { CyberCellService } from '../../lib/CyberCellService';
 
 interface NavigationFooterProps {
     activeView: string;
@@ -22,6 +20,7 @@ export function NavigationFooter({
     onToggleProtocol,
     onNuke,
 }: NavigationFooterProps) {
+    const { nukeAccount } = useAuth();
     const [openFolder, setOpenFolder] = useState<string | null>(null);
 
     const toggleFolder = (folder: string) => {
@@ -29,24 +28,35 @@ export function NavigationFooter({
         soundManager.playClick();
     };
 
-    const handleNuke = () => {
-        const msg1 = "🚨 EXTREME DANGER ALERT 🚨\n\n" +
-                     "You are about to trigger the NUKE PROTOCOL.\n" +
-                     "This will PERMANENTLY ERASE all recorded data in memory:\n" +
-                     "• All Deepfake Forensic Logs\n" +
-                     "• All Captured Intelligence & Analytics\n" +
-                     "• All Active Cyber Cell Session Investigations\n\n" +
-                     "This ACTION CANNOT BE UNDONE. Proceed back to main frame?";
+    const handleNuke = async () => {
+        const msg1 = "🚨 NUCLEAR DISPOSAL PROTOCOL 🚨\n\n" +
+                     "CRITICAL WARNING: You are about to PERMANENTLY DELETE your account and all associated forensic data.\n\n" +
+                     "This action will:\n" +
+                     "1. Wipe your account from the Rakshak Core server.\n" +
+                     "2. Revoke all active security tokens.\n" +
+                     "3. Scrub all local telemetry and case files.\n\n" +
+                     "THIS IS IRREVERSIBLE. Are you sure?";
                      
         if (window.confirm(msg1)) {
-            const msg2 = "🔒 FINAL SECURITY VERIFICATION 🔒\n\n" +
-                         "Are you absolutely certain? Confirming this will isolate and scrub all volatile telemetry grids now.";
-            if (window.confirm(msg2)) {
-                MediaLogService.clearLogs();
-                IntelligenceService.clearRecords();
-                CyberCellService.clearSession();
-                onNuke();
-                alert("🔒 SECURE WIPE COMPLETE: All volatile data clusters have been securely overwritten.");
+            const typedConfirm = window.prompt(
+                "🛡️ INTENT VERIFICATION 🛡️\n\n" +
+                "To confirm your absolute intent to destroy all records, please type exactly:\n\n" +
+                "AUTHORIZE DELETE"
+            );
+
+            if (typedConfirm === "AUTHORIZE DELETE") {
+                try {
+                    console.log("☢️ [NUCLEAR] Identity verification required. Requesting biometrics...");
+                    const success = await nukeAccount();
+                    if (success) {
+                        alert("🔒 SECURE WIPE COMPLETE: All volatile data clusters and account records have been incinerated.");
+                        onNuke();
+                    }
+                } catch (e: any) {
+                    alert("❌ DESTRUCTION ABORTED: " + (e.message || "Credential verification failed."));
+                }
+            } else if (typedConfirm !== null) {
+                alert("❌ INVALID AUTHORIZATION PHRASE. Protocol aborted.");
             }
         }
     };
