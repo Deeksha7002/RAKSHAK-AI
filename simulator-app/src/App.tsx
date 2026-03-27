@@ -1,352 +1,300 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Shield, Send, Plus, MoreVertical, ArrowLeft, CheckCheck } from 'lucide-react'
 import './index.css'
 
 // ── Config ──────────────────────────────────────────────────
 const BACKEND = 'http://localhost:8000'
 
-// ── Scam Templates ──────────────────────────────────────────
-const SCAM_TEMPLATES = [
-  {
-    id: 't1', type: 'BANK FRAUD',
-    name: 'Account Compromised',
-    preview: 'Your account has been flagged...',
-    message: 'URGENT: Your bank account #****4821 has been flagged for suspicious activity. To avoid permanent suspension, you must verify your account within 30 minutes. Please call 1800-BANK-HELP or click: http://secure-bank-verify.xyz'
-  },
-  {
-    id: 't2', type: 'TAX SCAM',
-    name: 'IRS Final Notice',
-    preview: 'Legal action will be initiated...',
-    message: 'FINAL NOTICE from the IRS: You owe $4,239 in unpaid taxes. An arrest warrant has been issued in your name. To immediately resolve this, you must purchase Google Play gift cards and call us at 1-800-000-0000. Failure to comply will result in arrest.'
-  },
-  {
-    id: 't3', type: 'TECH SUPPORT',
-    name: 'Microsoft Warning',
-    preview: 'Your computer has been hacked...',
-    message: 'CRITICAL ALERT: Your Windows PC has been hacked and your personal data is being transmitted. Call Microsoft Support immediately at +1-888-999-5555. DO NOT turn off your computer. Your banking credentials are at risk.'
-  },
-  {
-    id: 't4', type: 'LOTTERY',
-    name: 'Prize Winner',
-    preview: 'Congratulations! You have won...',
-    message: 'Congratulations! You have been selected as winner of $50,000 in our National Lottery 2024. To claim your prize, simply send a processing fee of Rs. 5,000 to UPI: prizewin@okhdfcbank or provide your bank account details for direct transfer.'
-  },
-  {
-    id: 't5', type: 'CRYPTO',
-    name: 'Investment Opportunity',
-    preview: 'Guaranteed 300% ROI in 7 days...',
-    message: 'EXCLUSIVE OFFER: Our AI trading bot guarantees 300% returns in 7 days! Send your BTC to wallet: 1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf... Join 50,000 investors already earning daily. Limited slots available. Act NOW!'
-  },
-  {
-    id: 't6', type: 'PARCEL SCAM',
-    name: 'FedEx Package Alert',
-    preview: 'Your package is held at customs...',
-    message: 'Your FedEx parcel #FXI829201 is being held at customs. A customs duty of Rs. 1,499 must be paid within 24 hours or your package will be returned. Pay immediately at: http://fedex-customs-India.net'
-  },
-]
-
 // ── Types ────────────────────────────────────────────────────
 interface Message {
   id: string
-  role: 'scammer' | 'defender'
+  role: 'user' | 'assistant'
   text: string
   timestamp: Date
-}
-
-interface Toast {
-  id: string
-  msg: string
+  persona?: string
+  media?: { type: 'image' | 'video' | 'audio'; url: string }
 }
 
 // ── Utility ──────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9)
 
 function formatTime(d: Date) {
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-// ── App ──────────────────────────────────────────────────────
-function App() {
-  const [selected, setSelected] = useState<typeof SCAM_TEMPLATES[0] | null>(null)
-  const [customText, setCustomText] = useState('')
+export default function App() {
   const [messages, setMessages] = useState<Message[]>([])
+  const [inputText, setInputText] = useState('')
   const [sending, setSending] = useState(false)
   const [typing, setTyping] = useState(false)
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const [msgCount, setMsgCount] = useState(0)
-  const [interceptCount, setInterceptCount] = useState(0)
-  const [iocs, setIocs] = useState<string[]>([])
-
+  const [uploading, setUploading] = useState<string | null>(null) // 'image' | 'video' | 'audio'
+  
   const bottomRef = useRef<HTMLDivElement>(null)
-  const wsRef = useRef<WebSocket | null>(null)
-  const phoneRef = useRef(`+91${Math.floor(7000000000 + Math.random() * 2999999999)}`)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const phoneRef = useRef(`+91 ${Math.floor(70000 + Math.random() * 29999)} ${Math.floor(10000 + Math.random() * 89999)}`)
 
-  // Auto-scroll chat
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, typing])
-
-  // WebSocket connection
   useEffect(() => {
-    const connectWs = () => {
-      const ws = new WebSocket(`ws://localhost:8000/api/ws`)
-      wsRef.current = ws
-
-      ws.onopen = () => console.log('🔌 WebSocket connected to Rakshak AI')
-
-      ws.onmessage = (e) => {
-        try {
-          const payload = JSON.parse(e.data)
-          if (payload.type === 'NEW_INTERCEPT') {
-            const d = payload.data
-            setInterceptCount(c => c + 1)
-            addToast(`🛡️ INTERCEPT DETECTED: ${d.classification?.toUpperCase() || 'SCAM'}`)
-          }
-        } catch { /* ignore */ }
-      }
-
-      ws.onclose = () => setTimeout(connectWs, 3000)
-    }
-
-    connectWs()
-    return () => wsRef.current?.close()
+    window.localStorage.setItem('rakshak_demo_sender', phoneRef.current)
   }, [])
 
-  function addToast(msg: string) {
-    const id = uid()
-    setToasts(t => [...t, { id, msg }])
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000)
+  // Auto-scroll
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, typing, uploading])
+
+  // Sandbox State Sync
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data && e.data.type === 'SLOW_MO_STATE') {
+        (window as any).isSlowMoEnabled = e.data.value
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    if (window.parent !== window) window.parent.postMessage('GET_SLOW_MO', '*')
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  // Demo Triggers (Internal)
+  useEffect(() => {
+    (window as any).demoTriggerImage = () => {
+      // Simulate a file input change event for an image
+      // Using a dummy File object, the actual image URL will be set in handleFileSelect
+      handleFileSelect({ 
+        target: { 
+          files: [new File([""], "demo_evidence.png", { type: "image/png" })] 
+        } 
+      } as any)
+    };
+  }, [])
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const type = file.type.startsWith('image/') ? 'image' : 
+                 file.type.startsWith('video/') ? 'video' : 
+                 file.type.startsWith('audio/') ? 'audio' : 'text'
+    
+    if (type === 'text') return
+
+    setUploading(type)
+    const url = URL.createObjectURL(file)
+    
+    // Simulate forensic scan delay
+    setTimeout(async () => {
+      const outMsg: Message = { 
+        id: uid(), 
+        role: 'user', 
+        text: `Shared a ${type}`, 
+        timestamp: new Date(),
+        media: { type, url }
+      }
+      setMessages(prev => [...prev, outMsg])
+      setUploading(null)
+      
+      // Trigger ingest for media
+      await shadowIngest(outMsg.text, type, url)
+    }, 1500)
   }
 
-  function pickTemplate(t: typeof SCAM_TEMPLATES[0]) {
-    setSelected(t)
-    setCustomText(t.message)
-    // extract IOCs preview
-    const urls = (t.message.match(/https?:\/\/[^\s]+|[\w.]+\.xyz|[\w.]+\.net/g) || [])
-    setIocs(prev => [...new Set([...prev, ...urls])])
-  }
-
-  async function sendScam() {
-    const msg = customText.trim()
-    if (!msg || sending) return
+  async function sendMessage() {
+    const text = inputText.trim()
+    if (!text || sending) return
 
     setSending(true)
-    setMsgCount(c => c + 1)
-
-    // Add outgoing message to chat
-    const outMsg: Message = { id: uid(), role: 'scammer', text: msg, timestamp: new Date() }
+    const outMsg: Message = { id: uid(), role: 'user', text, timestamp: new Date() }
     setMessages(prev => [...prev, outMsg])
-    setCustomText('')
+    setInputText('')
 
+    await shadowIngest(text)
+    setSending(false)
+  }
+
+  async function shadowIngest(text: string, mediaType?: string, mediaUrl?: string) {
     try {
-      // Show typing indicator
-      setTimeout(() => setTyping(true), 300)
+      setTyping(true)
+      let slowMo = (window as any).isSlowMoEnabled || false
 
-      // POST to Rakshak AI webhook
-      const body = new URLSearchParams({ From: phoneRef.current, Body: msg })
-      const res = await fetch(`${BACKEND}/api/webhooks/twilio`, {
+      const res = await fetch(`${BACKEND}/api/v1/internal/demo/ingest`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Rakshak-Key': 'rakshak_demo_k3y_2024'
+        },
+        body: JSON.stringify({ 
+          sender: phoneRef.current, 
+          message: text,
+          platform: 'secure_comm_v4',
+          slow_mo: slowMo,
+          media_type: mediaType,
+          media_url: mediaUrl
+        })
       })
 
-      // Parse TwiML response for the message text
-      const xml = await res.text()
-      const match = xml.match(/<Message(?:\s[^>]*)?>([\s\S]*?)<\/Message>/i)
-      const reply = match ? match[1].trim() : String(xml).trim() || 'No response.'
-
+      const data = await res.json()
       setTyping(false)
 
-      const inMsg: Message = { id: uid(), role: 'defender', text: reply, timestamp: new Date() }
-      setMessages(prev => [...prev, inMsg])
-
-      if (!res.ok) addToast(`⚠️ Backend returned ${res.status}`)
+      if (data.response) {
+        const inMsg: Message = { 
+          id: uid(), 
+          role: 'assistant', 
+          text: data.response, 
+          timestamp: new Date(),
+          persona: data.persona
+        }
+        setMessages(prev => [...prev, inMsg])
+      }
     } catch (err) {
       setTyping(false)
-      addToast('❌ Connection failed. Is the backend running?')
-      console.error(err)
-    } finally {
-      setSending(false)
     }
   }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendScam()
-    }
-  }
-
-  const threatLevel = messages.length === 0 ? 'low' : messages.length < 3 ? 'medium' : 'high'
-  const threatLabel = threatLevel === 'high' ? '⬤ ACTIVE SCAM' : threatLevel === 'medium' ? '◐ ENGAGING' : '○ IDLE'
 
   return (
-    <div className="app-shell">
-      {/* ── Header ── */}
-      <header className="header">
-        <div className="header-brand">
-          <span className="header-skull">💀</span>
-          <div>
-            <div className="header-title">Scammer Simulator</div>
-            <div className="header-subtitle">Rakshak AI Ecosystem // Demo Tool</div>
-          </div>
+    <div className="secure-app">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        accept="image/*,video/*,audio/*"
+        onChange={handleFileSelect}
+      />
+      
+      {/* --- High-Gloss Premium Header --- */}
+      <header className="premium-header">
+        <div className="header-left">
+           <div className="glass-btn"><ArrowLeft size={18} /></div>
+           <div className="user-profile">
+              <div className="avatar-glow">
+                 <Shield size={20} className="text-cyan-400" />
+              </div>
+              <div className="profile-info">
+                 <div className="name">Rakshak Secure-Comm</div>
+                 <div className="status">
+                    <span className="pulse-dot" /> 
+                    <span className="status-text">ENCRYPTED ACTIVE</span>
+                 </div>
+              </div>
+           </div>
         </div>
-        <div className="header-status">
-          <div className="status-dot" />
-          CONNECTED TO RAKSHAK AI
+        <div className="header-right">
+           <button className="glass-btn px-4 w-auto text-[10px] font-bold text-cyan-400" onClick={() => (window as any).demoTriggerImage()}>
+             DEMO SCAN
+           </button>
+           <div className="glass-btn"><MoreVertical size={18} /></div>
         </div>
       </header>
 
-      <div className="main-content">
-        {/* ── Left Panel: Templates ── */}
-        <div className="panel">
-          <div className="panel-header">
-            <span className="panel-header-icon">🗂️</span>
-            <span className="panel-header-title">Scam Templates</span>
-          </div>
-          <div className="panel-body">
-            {SCAM_TEMPLATES.map(t => (
-              <div
-                key={t.id}
-                className={`template-card ${selected?.id === t.id ? 'selected' : ''}`}
-                onClick={() => pickTemplate(t)}
-              >
-                <div className="template-type">{t.type}</div>
-                <div className="template-name">{t.name}</div>
-                <div className="template-preview">{t.preview}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* --- Cinematic Chat Viewport --- */}
+      <div className="viewport">
+         <div className="scroll-area">
+            <div className="security-notice">
+               <Shield size={12} />
+               <span>Messages are secured with Rakshak Neural-Enclave™</span>
+            </div>
 
-        {/* ── Center: Chat Window ── */}
-        <div className="panel chat-panel">
-          <div className="chat-thread-header">
-            <div className="thread-id">THREAD: {phoneRef.current} // SMS</div>
-            <div className={`threat-badge ${threatLevel}`}>{threatLabel}</div>
-          </div>
+            <AnimatePresence initial={false}>
+               {messages.map((m) => (
+                 <motion.div 
+                   key={m.id}
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className={`message-row ${m.role}`}
+                 >
+                   <div className="bubble">
+                     {m.role === 'assistant' && (
+                       <div className="flex items-center gap-1.5 mb-2 px-1">
+                         <Shield size={10} className="text-cyan-400 fill-cyan-400/20" />
+                         <span className="text-[10px] font-black text-cyan-400 tracking-widest uppercase italic">
+                            Rakshak AI: {m.persona || 'Guardian'}
+                         </span>
+                       </div>
+                     )}
 
-          {/* Messages */}
-          <div className="chat-messages">
-            {messages.length === 0 && (
-              <div className="chat-empty">
-                <div className="chat-empty-icon">📡</div>
-                <div className="chat-empty-text">SELECT A TEMPLATE & SEND A MESSAGE</div>
-              </div>
+                     {m.media && (
+                       <div className="media-container mb-2">
+                         {m.media.type === 'image' && <img src={m.media.url} className="media-preview image" alt="Evidence" />}
+                         {m.media.type === 'video' && <video src={m.media.url} className="media-preview video" controls />}
+                         {m.media.type === 'audio' && <audio src={m.media.url} className="media-preview audio" controls />}
+                         
+                         <div className="media-scanner">
+                           <div className="scan-line" />
+                           <div className="scan-text">CORE FORENSIC SCAN ACTIVE...</div>
+                         </div>
+                       </div>
+                     )}
+
+                     <div className={`message-bubble ${m.role === 'user' ? 'user' : 'assistant'} ${m.media ? 'has-media' : ''}`}>
+                       <div className="text-sm font-medium leading-relaxed">{m.text}</div>
+                       <div className="time">
+                         {formatTime(m.timestamp)} 
+                         {m.role === 'user' && <CheckCheck size={12} className="inline ml-1 opacity-70" />}
+                       </div>
+                     </div>
+                     {m.role === 'user' && <div className="bubble-glow" />}
+                   </div>
+                 </motion.div>
+               ))}
+            </AnimatePresence>
+
+            {uploading && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="message-row user">
+                    <div className="bubble">
+                        <div className="media-container loading">
+                            <div className="spinner" />
+                            <div className="text-[10px] uppercase font-bold text-white/50 mt-2">Uploading {uploading}...</div>
+                        </div>
+                    </div>
+                </motion.div>
             )}
-
-            {messages.map(m => (
-              <div key={m.id} className={`msg-row ${m.role}`}>
-                <div className="msg-avatar">
-                  {m.role === 'scammer' ? '💀' : '🤖'}
-                </div>
-                <div className="msg-bubble">
-                  <div className="msg-label">
-                    {m.role === 'scammer' ? `YOU  ·  ${formatTime(m.timestamp)}` : `RAKSHAK AI PERSONA  ·  ${formatTime(m.timestamp)}`}
-                  </div>
-                  {m.text}
-                </div>
-              </div>
-            ))}
 
             {typing && (
-              <div className="msg-row defender">
-                <div className="msg-avatar">🤖</div>
-                <div className="msg-bubble">
-                  <div className="msg-label">RAKSHAK AI IS RESPONDING...</div>
-                  <div className="typing-indicator">
-                    <span className="typing-dot" />
-                    <span className="typing-dot" />
-                    <span className="typing-dot" />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="message-row assistant"
+              >
+                <div className="bubble">
+                  <div className="typing-bubble">
+                    <div className="dots">
+                        <span /><span /><span />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
-
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input */}
-          <div className="chat-input-area">
-            <div className="chat-input-row">
-              <textarea
-                className="chat-textarea"
-                placeholder="Type your scam message or select a template above..."
-                value={customText}
-                onChange={e => setCustomText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={2}
-              />
-              <button
-                className="send-btn"
-                onClick={sendScam}
-                disabled={!customText.trim() || sending}
-              >
-                {sending ? '...' : 'SEND'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Right Panel: Intelligence ── */}
-        <div className="panel intel-panel">
-          <div className="panel-header">
-            <span className="panel-header-icon">📊</span>
-            <span className="panel-header-title">Session Intel</span>
-          </div>
-          <div className="panel-body">
-            <div className="intel-stat-card">
-              <div className="intel-stat-label">Messages Sent</div>
-              <div className="intel-stat-value">{msgCount}</div>
-              <div className="intel-stat-sub">This session</div>
-            </div>
-            <div className="intel-stat-card">
-              <div className="intel-stat-label">Intercepts</div>
-              <div className="intel-stat-value" style={{ color: 'var(--accent-green)' }}>{interceptCount}</div>
-              <div className="intel-stat-sub">Caught by Rakshak AI</div>
-            </div>
-            <div className="intel-stat-card">
-              <div className="intel-stat-label">Responses</div>
-              <div className="intel-stat-value" style={{ color: 'var(--accent-orange)' }}>
-                {messages.filter(m => m.role === 'defender').length}
-              </div>
-              <div className="intel-stat-sub">AI Persona Replies</div>
-            </div>
-
-            <hr className="divider" />
-
-            <div style={{ marginBottom: 8 }}>
-              <div className="intel-stat-label" style={{ marginBottom: 8 }}>Extracted IOCs</div>
-              {iocs.length === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  None detected yet.
-                </div>
-              ) : (
-                iocs.map((ioc, i) => (
-                  <span key={i} className="ioc-tag">{ioc}</span>
-                ))
-              )}
-            </div>
-
-            <hr className="divider" />
-
-            <div>
-              <div className="intel-stat-label" style={{ marginBottom: 8 }}>Your Mock Identity</div>
-              <span className="ioc-tag green">📱 {phoneRef.current}</span>
-            </div>
-          </div>
-        </div>
+            <div ref={bottomRef} className="h-20" />
+         </div>
       </div>
 
-      {/* ── Toast Notifications ── */}
-      <div style={{ position: 'fixed', top: 70, right: 20, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 9999 }}>
-        {toasts.map(t => (
-          <div key={t.id} className="alert-toast">
-            <span className="alert-toast-icon">🛡️</span>
-            <span className="alert-toast-text">{t.msg}</span>
-            <button className="alert-toast-close" onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}>×</button>
-          </div>
-        ))}
-      </div>
+      {/* --- Futuristic Floating Pill Input --- */}
+      <footer className="pill-footer">
+         <motion.div 
+           className="input-pill"
+           whileFocus={{ scale: 1.01 }}
+         >
+            <button className="pill-action" onClick={() => fileInputRef.current?.click()}>
+              <Plus size={20} />
+            </button>
+            <input 
+              className="pill-input"
+              placeholder="Send message or attachment..."
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendMessage()}
+            />
+            <button 
+              className={`pill-send ${inputText.trim() ? 'active' : ''}`}
+              onClick={sendMessage}
+              disabled={!inputText.trim() || sending}
+            >
+              <Send size={18} />
+            </button>
+         </motion.div>
+      </footer>
+
+      {/* Background Ambience */}
+      <div className="bg-noise" />
+      <div className="bg-gradient-top" />
+
     </div>
   )
 }
-
-export default App

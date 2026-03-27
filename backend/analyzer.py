@@ -83,9 +83,14 @@ class ScamAnalyzer:
             # OTP / Credential Harvesting
             r"(share|send|provide|give).{0,20}(otp|pin|password|code|credential|cvv|card number)",
             r"(do not share|never share).{0,20}(otp|pin|code).{0,10}(anyone|team|support|us)",
+            r"(unauthorized|suspicious).{0,20}(access|activity|login|transaction|attempt|debit).{0,20}(your|on|detected|found)",
+            r"(suspicious|unusual|pending).{0,20}(activity|login|transaction|access|debit|payment).{0,20}(detected|found|noticed|identified|authorized)",
+            r"(bank|account|card|upi).{0,20}(debit|charge|payment|transaction|blocked).{0,20}(of|amounting).{0,10}(rs|₹|\$)",
+            r"(cancel|stop|authorize|verify).{0,20}(it|this|transaction|payment){0,20}(now|at|here|link)",
+            r"http.{1,100}\.(top|xyz|club|site|online|web|info|link|app|click|work|gift|best|bid|vip|run|live|icu|cfd|shop|casa|bond|sbs|cyou|monster|buzz|quest|space|asia|tokyo|cloud|tech)\b",
             # ── Job / Earning Scams ──────────────────────────────────────────
-            r"(earn|make).{0,20}(\$|rs|income|salary|money).{0,20}(daily|today|day|week|month).{0,20}(job|work|task)",
-            r"(part.time|online|home).{0,10}(job|work|task).{0,20}(earn|salary|income)",
+            r"(earn|make).{0,20}(\$|rs|₹|income|salary|money).{0,20}(daily|today|day|week|month).{0,20}(job|work|task)",
+            r"(part.time|online|home).{0,10}(job|work|task).{0,20}(earn|salary|income|money)",
         ]
 
     def analyze(self, text, context="general", sender_name=""):
@@ -250,10 +255,17 @@ class ScamAnalyzer:
         
         self.sophistication_score = max(0.0, min(1.0, mathematical_risk + (sophistication * 0.2)))
 
+        # GUARD: If the individual message is extremely short and contains no immediate threat 
+        # (like 'hii'), force benign regardless of history-based risk.
+        if len(words) <= 2 and not any(re.search(p, full_text_check) for p in self.instant_flag_patterns):
+             mathematical_risk = 0.0
+             self.sophistication_score = 0.1
+
         # Map to Threat Classification based on rigorous threshold
         if mathematical_risk > 0.65 or self.intent in ["MALICIOUS_LINK"]:
             threat_classification = "scam"
-            self.sophistication_score = max(self.sophistication_score, 0.90)
+            self.sophistication_score = 0.98 if self.intent == "MALICIOUS_LINK" else max(self.sophistication_score, 0.90)
+            mathematical_risk = max(mathematical_risk, 0.8)
         elif mathematical_risk > 0.35:
             threat_classification = "likely_scam"
             self.sophistication_score = max(self.sophistication_score, 0.70)
@@ -279,7 +291,51 @@ class ScamAnalyzer:
         return self.sophistication_score, threat_classification, neuro_matrix, llm_verification_required
 
     def _structural_link_check(self, text):
-        link_pattern = r"(click|tap|visit|open|download|install).{0,30}(link|url|website|page|attachment|app|.apk|.exe)"
-        if re.search(link_pattern, text):
+        # 1. Extraction
+        urls = re.findall(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', text.lower())
+        if not urls:
+            return "GENERAL_INQUIRY"
+
+        # 2. Intelligence: Domain Reputation
+        trusted_domains = ["google.com", "microsoft.com", "apple.com", "amazon.com", "paypal.com", "netflix.com", "github.com", "rakshak.ai"]
+        high_risk_tlds = [".xyz", ".tk", ".ml", ".ga", ".cf", ".gq", ".click", ".link", ".buzz", ".zip"]
+        
+        is_suspicious = False
+        for url in urls:
+            # Cleanup and normalize
+            clean_url = url.replace("https://", "").replace("http://", "").split("/")[0]
+            parts = clean_url.split(".")
+            
+            # Simple Root Domain Extraction (e.g. 'sub.google.com.scam.net' -> 'scam.net')
+            if len(parts) >= 2:
+                root_domain = ".".join(parts[-2:])
+                full_domain = clean_url
+                
+                # Check TLD risk
+                if any(root_domain.endswith(tld) for tld in high_risk_tlds):
+                    is_suspicious = True
+                    break
+                
+                # Check for SUBDOMAIN PHISHING:
+                # If a trusted brand name appears in a domain that IS NOT their actual domain
+                # e.g. "google.com.security-update.xyz" or "paypal-support.verify-now.ga"
+                for brand in ["google", "microsoft", "apple", "amazon", "paypal", "netflix", "bank"]:
+                    if brand in full_domain and brand not in root_domain:
+                        is_suspicious = True
+                        break
+                
+                # Check for TYPO-SQUATTING (e.g. 'paypa1.com')
+                # If root domain is NOT in trusted list but sounds like one
+                if root_domain not in trusted_domains:
+                    if any(trusted.split(".")[0] in root_domain for trusted in trusted_domains):
+                         is_suspicious = True
+                         break
+
+        # 3. Contextual Pattern Match
+        action_pattern = r"(click|tap|visit|open|download|install).{0,30}(link|url|website|page|attachment|app|.apk|.exe)"
+        has_action = re.search(action_pattern, text.lower())
+
+        if is_suspicious or (has_action and not any(t in text.lower() for t in trusted_domains)):
             return "MALICIOUS_LINK"
+            
         return "GENERAL_INQUIRY"

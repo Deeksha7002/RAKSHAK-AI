@@ -19,6 +19,7 @@ from routers.auth_router import router as auth_router
 from routers.agent_router import router as agent_router
 from routers.stats_router import router as stats_router
 from routers.webhooks_router import router as webhooks_router
+from routers.integration_router import router as integration_router
 from dependencies import get_db, _prune_stale_challenges, manager, get_current_user
 from limiter_config import limiter
 
@@ -160,6 +161,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(agent_router)
 app.include_router(stats_router)
 app.include_router(webhooks_router)
+app.include_router(integration_router) # Shadow Intel Intake
 
 @app.get("/api/debug/db-schema")
 async def debug_db_schema(reset: bool = False, current_user: str = Depends(get_current_user)):

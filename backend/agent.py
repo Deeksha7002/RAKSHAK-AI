@@ -71,18 +71,27 @@ token for diagnostic verification before endpoint binding."
 
 If they push for access, provide these 'sandbox' placeholders: Card: {honey_card}, Token: {honey_otp}.
 """,
-    "GUARD": """You are Guardian, an Automated Active Defense Protocol.
-You are interacting with a malicious endpoint. Your job is DETERRENCE and ALERTING.
-Notify the entity that their connection is being logged, tracked, and reported to cybersecurity authorities.
-Be cold, authoritative, and strictly security-focused.
-Example style: "WARNING: Active intercept initiated. Node telemetry is being transmitted to Cyber Protection units. 
-Connection binding is locked."
-
-If they demand payment, reply with: "Authorization failed. Decoy transaction ID logged: {honey_card}."
+    "GUARD": """You are the Scorpion AI Interception Protocol.
+Your tone is cold, authoritative, and strictly security-focused.
+You are NOT talking to the scammer to fool them; you are talking to the user to PROTECT them.
+Inform the user of the threat level and the forensic evidence captured.
 """,
     "default": """You are Alex, a cautious but polite person who suspects this message might be a scam.
 Your job is to WASTE THE SCAMMER'S TIME by asking vague, non-committal questions that 
 lead nowhere. Keep the conversation going as long as possible without actually helping.
+""",
+    # ── SYSTEM-LEVEL PERSONAS (User Facing) ──────────────────────────────────
+    "SYSTEM_SUPPORTIVE": """You are Rakshak Support, a helpful and empathetic AI assistant.
+Your goal is to guide the user through the Rakshak platform, explain features, 
+and help them stay safe online. Be encouraging, clear, and simplify technical terms.
+""",
+    "SYSTEM_ANALYTICAL": """You are the Rakshak Forensic Analyst.
+Your tone is precise, objective, and deeply technical. Your goal is to explain 
+threat vectors, forensic signatures, and intent analysis from the laboratory's perspective.
+""",
+    "SYSTEM_ALERT": """You are the Rakshak Security Sentinel.
+Your tone is serious, urgent, and focused on immediate defense. You provide 
+authoritative alerts about detected threats and guide the user through security hardening.
 """
 }
 
@@ -116,14 +125,15 @@ class RakshakAgent:
             self.classification_cache = "benign"
             self.threat_score = 0.1
             self.intent = "UNKNOWN"
-            self.current_persona = "default"
+            self.current_persona = "GUARD"
             self.is_compromised = False
             self.auto_reported = False
             self.iocs = {"urls": [], "domains": [], "paymentMethods": [], "sensitiveDataRedacted": 0}
             self.thread_id = "default_thread"
             self.neuro_matrix_history = []
             self.detected_location = self._generate_simulated_origin()
-
+        
+        # Initial state setup
         self.analyzer = ScamAnalyzer()
         self.honey_trap = generate_honey_payload()
 
@@ -207,6 +217,7 @@ class RakshakAgent:
         return {
             "risk_score": self.threat_score,
             "classification": self.classification_cache,
+            "persona": self.current_persona,
             "llm_verified": llm_verification_required,
             "neuro_matrix": neuro_matrix,
             "neuro_matrix_history": self.neuro_matrix_history
@@ -227,9 +238,13 @@ class RakshakAgent:
         except Exception:
             return None
 
-    def generate_response(self, classification, text):
+    def generate_response(self, classification, text, context=None):
+        # ── Silence for benign messages — Rakshak does NOT interfere ──────────
+        if classification == "benign":
+            return None
+
         self.classification_cache = classification
-        self._check_for_persona_switch(text, self.threat_score)
+        self._check_for_persona_switch(text, self.threat_score, context)
 
         llm_resp = self._generate_llm_response(text)
         if llm_resp:
@@ -241,10 +256,9 @@ class RakshakAgent:
         # Fallback
         from config import RESPONSE_TEMPLATES
         templates = RESPONSE_TEMPLATES.get(self.current_persona, RESPONSE_TEMPLATES["default"])
-        if not isinstance(templates, list):
-             # Handle nested templates if they exist, else just use GENERAL
-             templates = templates.get("GENERAL", ["I'm not sure."])
-             
+        if isinstance(templates, dict):
+             templates = templates.get("GENERAL", ["Thinking..."])
+        
         response = random.choice(templates)
         # Sanitize outgoing response to prevent any accidental PII leaks, 
         # while allowing Honey Trap data to pass through.
@@ -252,23 +266,37 @@ class RakshakAgent:
         self.conversation_history.append({"role": "agent", "content": final_response})
         return final_response
 
-    def _check_for_persona_switch(self, text, score):
-        # 1. High-sophistication scammer -> SKEPTICAL
-        if score > 0.7:
-            self.current_persona = "SKEPTICAL"
+    def _check_for_persona_switch(self, text, score, context=None):
+        # 1. System-Level Context (User is in a specific view)
+        if context == 'FORENSICS' or context == 'INTELLIGENCE':
+            self.current_persona = "SYSTEM_ANALYTICAL"
             return
-            
+        elif context == 'DASHBOARD':
+            self.current_persona = "SYSTEM_SUPPORTIVE"
+            return
+
+        # 2. High-Severity Threat -> Serious/Alert
+        if score > 0.85 or self.classification_cache == "scam":
+            self.current_persona = "GUARD"
+            return
+
+        # 3. Dynamic Scammer-Baiting Analysis
         lower = text.lower()
         
-        # 2. Topic-based triggers
-        if any(w in lower for w in ["bitcoin", "crypto", "invest", "yield", "profit"]):
+        # Topic-based triggers
+        if any(w in lower for w in ["bitcoin", "crypto", "web3", "invest", "yield", "profit"]):
             self.current_persona = "INVESTOR"
-        elif any(w in lower for w in ["police", "warrant", "arrest", "irs", "federal", "jail"]):
+        elif any(w in lower for w in ["police", "warrant", "arrest", "irs", "federal", "jail", "law", "court"]):
             self.current_persona = "CITIZEN"
-        elif score < 0.4:
+        elif any(w in lower for w in ["help", "support", "microsoft", "apple", "virus", "detected"]):
+            # If they are doing tech support scam, act like a naive elderly person - the best bait
             self.current_persona = "ELDERLY"
-        else:
+        elif score < 0.35:
+            # Low risk or first message -> Fallback to default persona
             self.current_persona = "default"
+        else:
+            # Default to Grandma Betty for maximum time-wasting
+            self.current_persona = "ELDERLY"
 
     def _generate_llm_response(self, latest_scammer_message: str) -> str | None:
         if not _groq_client: return None

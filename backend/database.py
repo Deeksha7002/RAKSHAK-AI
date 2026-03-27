@@ -16,6 +16,7 @@ if not _db_url or _db_url.startswith("sqlite"):
     _db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rakshak_ai.db")
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_file}"
     os.makedirs(os.path.dirname(_db_file), exist_ok=True)
+    print(f"🗄️ SQLITE DATABASE PATH: {_db_file}")
 else:
     # Render issues postgres:// but SQLAlchemy 1.4+ requires postgresql://
     SQLALCHEMY_DATABASE_URL = _db_url.replace("postgres://", "postgresql://", 1)
@@ -71,6 +72,7 @@ class Case(Base):
     iocs = Column(JSON)
     transcript = Column(Text)
     auto_reported = Column(Boolean, default=True)
+    source_type = Column(String, default="user", index=True) # "user", "demo", "cybercell"
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     # New Phase 16 fields
     is_sealed = Column(Boolean, default=False)

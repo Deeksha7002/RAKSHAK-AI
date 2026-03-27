@@ -3,7 +3,7 @@ import redis
 import logging
 import asyncio
 from typing import List, Optional, Any
-from fastapi import WebSocket, Depends, HTTPException
+from fastapi import WebSocket, Depends, HTTPException, Header, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import SessionLocal, User
@@ -12,8 +12,30 @@ import security
 
 # ── Auth Helper ────────────────────────────────────────────────────────────────
 _bearer_scheme = HTTPBearer(auto_error=False)
+from config import AUTH_LOGS, INTEGRATION_API_KEY
 
-from fastapi import WebSocket, Depends, HTTPException, Header, Request
+def validate_integration_key(
+    request: Request,
+    x_rakshak_key: Optional[str] = Header(None, alias="X-Rakshak-Key")
+):
+    """Validates the internal demo/integration API key (Header or Query Param)."""
+    # 1. Check Header
+    key = x_rakshak_key
+    
+    # 2. Fallback to Query Param (essential for browser-initiated downloads)
+    if not key:
+        key = request.query_params.get("X-Rakshak-Key")
+
+    if not INTEGRATION_API_KEY:
+        # If not set, allow during development, but log a warning
+        logging.warning("⚠️ INTEGRATION_API_KEY not configured in env!")
+        return True
+        
+    if key != INTEGRATION_API_KEY:
+        logging.error(f"🚨 Integration Key Validation Failed! Received: {key}")
+        raise HTTPException(status_code=403, detail="Invalid Integration Key")
+    return True
+
 from config import AUTH_LOGS
 
 def get_current_user(

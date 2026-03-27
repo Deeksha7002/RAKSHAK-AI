@@ -11,7 +11,7 @@ import { Anonymizer } from '../lib/Anonymizer';
 import { CyberCellService } from '../lib/CyberCellService';
 import type { Message, Thread, CaseFile, Scenario } from '../lib/types';
 
-export function useRakshakCore(isTourOpen: boolean = false) {
+export function useRakshakCore(isTourOpen: boolean = false, activeView: string = 'DASHBOARD') {
     const { threads, setThreads, clearThreads } = useThreads();
     const isTourOpenRef = useRef(isTourOpen);
     useEffect(() => {
@@ -368,7 +368,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
             let result = localResult;
             try {
                 console.log(`%c🧠 [RakshakCore] Syncing with Backend... content:`, 'color: cyan', content.substring(0, 30));
-                const synced = await agent.syncWithBackend(content, threadId);
+                const synced = await agent.syncWithBackend(content, threadId, activeView);
                 console.log(`%c🧠 [RakshakCore] Backend Sync SUCCESS`, 'color: green', { synced_score: synced.score, synced_class: synced.classification });
                 // Backend result overrides local for better precision
                 result = { 
@@ -465,7 +465,7 @@ export function useRakshakCore(isTourOpen: boolean = false) {
                 const effectiveClassification = (classification === 'benign') ? 'scam' : classification;
                 console.log(`%c💬 [RakshakCore] TRIGGERING REPLY. Class: ${effectiveClassification}`);
                 try {
-                    const response = await agent.generateResponse(effectiveClassification, content);
+                    const response = await agent.generateResponse(effectiveClassification, content, activeView);
                     console.log(`%c💬 [RakshakCore] Reply Generated:`, 'color: pink', response?.substring(0, 30));
                     if (response) {
                         await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));

@@ -39,19 +39,18 @@ function App() {
     }
   }, [currentUser]);
   const [isTourOpen, setIsTourOpen] = useState(false);
-  const {
-    threads,
-    isMonitoring,
-    notification,
-    startMonitoring,
-    stopMonitoring,
-    triggerBotnetMode,
-    getCaseFiles,
-    wsStatus
-  } = useRakshakCore(isTourOpen);
-
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
+    const [activeView, setActiveView] = useState<ViewState>('DASHBOARD');
+    const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+    const {
+        threads,
+        isMonitoring,
+        notification,
+        startMonitoring,
+        stopMonitoring,
+        triggerBotnetMode,
+        getCaseFiles,
+        wsStatus
+    } = useRakshakCore(isTourOpen, activeView);
   const [sidebarTab, setSidebarTab] = useState<'DASHBOARD' | 'INBOX' | 'COMMAND'>(window.innerWidth < 1024 ? 'DASHBOARD' : 'INBOX');
   const [isMuted, setIsMuted] = useState(false);
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
@@ -356,7 +355,10 @@ function App() {
                     <span className="status-reported" style={{ marginLeft: '0.5rem', background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)' }}>
                        {selectedThread.persona === 'INVESTOR' ? '📈 INVESTOR' :
                         selectedThread.persona === 'CITIZEN' ? '⚖ CITIZEN' :
-                        selectedThread.persona === 'SKEPTICAL' ? '🤨 SKEPTICAL' : '👴 ELDERLY'}
+                        selectedThread.persona === 'SKEPTICAL' ? '🤨 SKEPTICAL' : 
+                        selectedThread.persona === 'SYSTEM_ANALYTICAL' ? '🔍 ANALYST' :
+                        selectedThread.persona === 'SYSTEM_SUPPORTIVE' ? '🤝 SUPPORT' :
+                        selectedThread.persona === 'GUARD' ? '🛡️ GUARDIAN' : '👴 ELDERLY'}
                     </span>
                 </div>
               </div>

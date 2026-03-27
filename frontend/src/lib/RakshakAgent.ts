@@ -50,7 +50,7 @@ export class RakshakAgent {
         return 'OTHER';
     }
 
-    async syncWithBackend(text: string, _threadId: string): Promise<{ score: number, classification: Classification, neuralMatrix?: NeuralMatrix, neuralMatrixHistory?: NeuralMatrix[], detectedLocation?: any }> {
+    async syncWithBackend(text: string, _threadId: string, context: string = 'general'): Promise<{ score: number, classification: Classification, neuralMatrix?: NeuralMatrix, neuralMatrixHistory?: NeuralMatrix[], detectedLocation?: any }> {
         try {
             const token = localStorage.getItem('rakshak_access_token');
             const res = await fetch(`${API_BASE_URL}/api/analyze`, {
@@ -61,7 +61,8 @@ export class RakshakAgent {
                 },
                 body: JSON.stringify({
                     text,
-                    conversation_id: _threadId
+                    conversation_id: _threadId,
+                    context
                 })
             });
 
@@ -396,14 +397,10 @@ export class RakshakAgent {
     }
 
     // ── LLM-powered response via backend ──────────────────────────────────────
-    async generateResponse(classification: Classification, incomingText?: string): Promise<string | null> {
+    async generateResponse(classification: Classification, incomingText?: string, context: string = 'general'): Promise<string | null> {
+        // Rakshak stays silent for benign messages — no interference with normal conversations
         if (classification === 'benign') {
-            const neutralResponses = [
-                "Who is this?",
-                "I think you have the wrong number.",
-                "Sorry, do I know you?"
-            ];
-            return neutralResponses[Math.floor(Math.random() * neutralResponses.length)];
+            return null;
         }
 
         const backendPersona = this.currentPersona;
@@ -430,6 +427,7 @@ export class RakshakAgent {
                     message: incomingText ?? '',
                     sender_name: this.senderName,
                     persona: backendPersona,
+                    context,
                     conversation_history: historyForLLM,
                     classification
                 }),

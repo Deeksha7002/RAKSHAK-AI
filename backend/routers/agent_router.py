@@ -45,7 +45,7 @@ async def generate_llm_response(
         agent.current_persona = payload.persona
 
     # FIX #2: Run blocking Groq I/O in a thread pool so we don't block the event loop
-    response_text = await asyncio.to_thread(agent.generate_response, payload.classification, payload.message)
+    response_text = await asyncio.to_thread(agent.generate_response, payload.classification, payload.message, payload.context)
 
     # Persist updated state
     save_agent(thread_id, agent, current_user)
@@ -66,7 +66,7 @@ async def analyze_text(payload: AnalysisRequest, current_user: str = Depends(get
     logging.info(f"🔍 [AGENT-CORE] Analyzing for thread {thread_id}: '{payload.text[:50]}...'")
     
     # Run ingestion (stateful NLP) in thread pool
-    result = await asyncio.to_thread(agent.ingest, payload.text, thread_id)
+    result = await asyncio.to_thread(agent.ingest, payload.text, thread_id, payload.context)
     
     # Persist updated state (Persona might have switched!)
     save_agent(thread_id, agent, current_user)

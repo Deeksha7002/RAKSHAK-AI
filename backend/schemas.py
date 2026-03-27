@@ -30,6 +30,7 @@ class GenerateResponseRequest(BaseModel):
     message: str                                  # Latest scammer message
     sender_name: Optional[str] = "Unknown"        # Unique sender identifier
     persona: Optional[str] = "default"            # "naive", "skeptical", "default"
+    context: Optional[str] = "general"            # "DASHBOARD", "FORENSICS", etc.
     conversation_history: Optional[List[Dict[str, str]]] = []  # [{role, content}, ...]
     classification: Optional[str] = "scam"
 

@@ -58,16 +58,36 @@ function App() {
   const [actionLog, setActionLog] = useState<LogEntry[]>([])
   const [toasts, setToasts] = useState<Toast[]>([])
   const [actioned, setActioned] = useState<Record<number, string>>({})
+  const [filter, setFilter] = useState<'case_register' | 'live' | 'locker' | 'freeze' | 'block'>('case_register')
   const [liveCount, setLiveCount] = useState(0)
   const wsRef = useRef<WebSocket | null>(null)
 
+  // ── Filtering Logic ──
+  const filteredCases = cases.filter(c => {
+    if (filter === 'freeze') return actioned[c.id] === 'frozen'
+    if (filter === 'block') return actioned[c.id] === 'blocked'
+    if (filter === 'locker') return c.iocs && (c.iocs as any).forensics
+    if (filter === 'live') return c.classification === 'scam' // Simple filter for live intercepts
+    return true
+  })
+
+  const currentTabTitle = {
+    case_register: '🗂️ Case Register',
+    live: '⚡ Live Intercepts',
+    locker: '📁 Evidence Locker',
+    freeze: '🏦 Active Freeze Requests',
+    block: '📵 Number Block Registry'
+  }[filter]
   // ── Fetch Cases ──────────────────────────────────────────────
   async function fetchCases() {
     setLoading(true)
     try {
-      const res = await fetch(`${BACKEND}/api/cases`, {
-        // Note: /api/cases is auth-protected; for the demo we fall back to demo data
-        headers: {}
+      // Use the PRIVATE Shadow Intelligence endpoint
+      const res = await fetch(`${BACKEND}/api/v1/internal/demo/intelligence`, {
+        headers: { 
+          'X-Auth-Token': '', // Clear common user auth
+          'X-Rakshak-Key': 'rakshak_demo_k3y_2024' 
+        }
       })
       if (res.ok) {
         const data: Case[] = await res.json()
@@ -79,6 +99,19 @@ function App() {
       setCases(DEMO_CASES)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function explainCase(c: Case) {
+    try {
+      const res = await fetch(`${BACKEND}/api/v1/internal/demo/explain-incident/${c.id}`, {
+        headers: { 'X-Rakshak-Key': 'rakshak_demo_k3y_2024' }
+      })
+      const data = await res.json()
+      addLog('info', `Intelligence Breakdown for #${c.id}: ${data.workflow_steps.map((s: any) => s.detail).join(' -> ')}`)
+      addToast(`🧠 AI Explained: ${data.workflow_steps[1].detail}`, 'info')
+    } catch {
+      addToast('Failed to get AI explanation', 'warning')
     }
   }
 
@@ -104,7 +137,7 @@ function App() {
               classification: d.classification || 'likely_scam',
               scam_type: d.intent || 'Unknown',
               confidence_score: 0.85,
-              iocs: {},
+              iocs: d.forensics ? { forensics: d.forensics } : {},
               transcript: '[]',
               auto_reported: true,
               created_at: new Date().toISOString()
@@ -152,7 +185,10 @@ function App() {
   const scamCases = cases.filter(c => c.classification === 'scam').length
   const actionedCount = Object.keys(actioned).length
   const avgConf = cases.length > 0
-    ? (cases.reduce((s, c) => s + (c.confidence_score || 0), 0) / cases.length * 100).toFixed(0)
+    ? (cases.reduce((s, c) => {
+        const score = c.confidence_score || 0
+        return s + (score > 1 ? score / 100 : score)
+      }, 0) / cases.length * 100).toFixed(0)
     : '0'
 
   return (
@@ -181,30 +217,31 @@ function App() {
       {/* ── Sidebar ── */}
       <nav className="sidebar">
         <div className="sidebar-section-label">Operations</div>
-        <div className="sidebar-item active">
+        <div className={`sidebar-item ${filter === 'case_register' ? 'active' : ''}`} onClick={() => setFilter('case_register')}>
           <span className="sidebar-icon">📋</span>
           Case Register
           <span className="sidebar-count red">{scamCases}</span>
         </div>
-        <div className="sidebar-item">
+        <div className={`sidebar-item ${filter === 'live' ? 'active' : ''}`} onClick={() => setFilter('live')}>
           <span className="sidebar-icon">⚡</span>
           Live Intercepts
           <span className="sidebar-count">{liveCount}</span>
         </div>
-        <div className="sidebar-item">
+        <div className={`sidebar-item ${filter === 'locker' ? 'active' : ''}`} onClick={() => setFilter('locker')}>
           <span className="sidebar-icon">📁</span>
           Evidence Locker
         </div>
 
         <div className="sidebar-section-label">Actions</div>
-        <div className="sidebar-item">
+        <div className={`sidebar-item ${filter === 'freeze' ? 'active' : ''}`} onClick={() => setFilter('freeze')}>
           <span className="sidebar-icon">🏦</span>
           Freeze Requests
-          <span className="sidebar-count">{actionedCount}</span>
+          <span className="sidebar-count">{cases.filter(c => actioned[c.id] === 'frozen').length}</span>
         </div>
-        <div className="sidebar-item">
+        <div className={`sidebar-item ${filter === 'block' ? 'active' : ''}`} onClick={() => setFilter('block')}>
           <span className="sidebar-icon">📵</span>
           Number Blocks
+          <span className="sidebar-count">{cases.filter(c => actioned[c.id] === 'blocked').length}</span>
         </div>
 
         <div className="sidebar-section-label">Reports</div>
@@ -259,9 +296,9 @@ function App() {
         {/* ── Case Register ── */}
         <div className="section">
           <div className="section-header">
-            <div className="section-title">🗂️ Case Register</div>
+            <div className="section-title">{currentTabTitle}</div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div className="filter-badge">Showing: All Cases</div>
+              <div className="filter-badge">Showing: {filter.replace('_', ' ').toUpperCase()}</div>
               <button className="refresh-btn" onClick={fetchCases}>⟳ Refresh</button>
             </div>
           </div>
@@ -281,13 +318,18 @@ function App() {
                 <div className="spinner" />
                 <div className="empty-state-text">Loading cases...</div>
               </div>
-            ) : cases.length === 0 ? (
+            ) : filteredCases.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">📂</div>
-                <div className="empty-state-text">No cases yet. Send a message from the Scammer Simulator!</div>
+                <div className="empty-state-text">
+                  {filter === 'locker' ? 'No evidence bundles found. Generated forensic items appear here.' : 
+                   filter === 'freeze' ? 'No active account freezes. Flag a case as "Scam" and click Freeze!' :
+                   filter === 'block' ? 'No blocked numbers on record.' :
+                   'No cases yet. Send a message from the Scammer Simulator!'}
+                </div>
               </div>
             ) : (
-              cases.map(c => {
+              filteredCases.map(c => {
                 const level = confLevel(c.confidence_score ?? 0)
                 const done = actioned[c.id]
                 return (
@@ -304,24 +346,55 @@ function App() {
                         {c.classification?.replace('_', ' ')}
                       </span>
                     </div>
-                    <div className="confidence-bar-wrap">
-                      <div className="confidence-bar">
+                    <div className="confidence-bar-wrap" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                      <div className="confidence-bar" style={{ width: '100%', height: 4 }}>
                         <div
                           className={`confidence-fill ${level}`}
                           style={{ width: `${Math.round((c.confidence_score ?? 0) * 100)}%` }}
                         />
                       </div>
-                      <span className="confidence-label">{Math.round((c.confidence_score ?? 0) * 100)}%</span>
+                      <span className="confidence-label" style={{ fontSize: 9 }}>{Math.round((c.confidence_score ?? 0) * 100)}% Match</span>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                      {formatDate(c.created_at)}<br />
-                      <span style={{ color: 'var(--text-muted)' }}>{formatTime(c.created_at)}</span>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.2 }}>
+                      <div className="font-semibold" style={{ fontSize: 10 }}>{formatDate(c.created_at)}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 9 }}>{formatTime(c.created_at)}</div>
                     </div>
-                    <div className="action-row">
+                    <div className="action-row" style={{ justifyContent: 'flex-end', gap: 4 }}>
                       {done === 'frozen' || done === 'blocked' ? (
                         <button className="action-btn done">✓ Done</button>
                       ) : (
                         <>
+                          <button className="action-btn explain" onClick={() => explainCase(c)} title="AI Logic Analysis">
+                            🧠 AI
+                          </button>
+                          
+                          {c.iocs && (c.iocs as any).forensics && (
+                            <>
+                              <button 
+                                className="action-btn evidence" 
+                                onClick={() => {
+                                  const url = `${BACKEND}/api/v1/internal/demo/download-report/${(c.iocs as any).forensics.pdf_report}?X-Rakshak-Key=${'rakshak_demo_k3y_2024'}`;
+                                  window.open(url, '_blank');
+                                  addToast('📄 Forensic Evidence...', 'info');
+                             }}
+                                title="Forensic PDF"
+                              >
+                                📄 PDF
+                              </button>
+                              <button 
+                                className="action-btn evidence" 
+                                onClick={() => {
+                                  const url = `${BACKEND}/api/v1/internal/demo/download-report/${(c.iocs as any).forensics.json_metadata}?X-Rakshak-Key=${'rakshak_demo_k3y_2024'}`;
+                                  window.open(url, '_blank');
+                                  addToast('💾 JSON...', 'info');
+                                }}
+                                title="Forensic JSON"
+                              >
+                                💾 JSON
+                              </button>
+                            </>
+                          )}
+
                           <button className="action-btn freeze" onClick={() => handleFreeze(c)} title="Freeze bank account / UPI">
                             🏦 Freeze
                           </button>

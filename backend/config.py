@@ -6,6 +6,7 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://rakshak-ai-drab.vercel.ap
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-insecure-key-change-this")
 ALGORITHM = "HS256"
+INTEGRATION_API_KEY = os.environ.get("INTEGRATION_API_KEY", "rakshak_demo_k3y_2024") # Default for local dev/demo
 
 # 📝 In-memory Auth Diagnostics Buffer 
 AUTH_LOGS = []
@@ -84,6 +85,15 @@ UNSAFE_KEYWORDS = [
 
 # FIX #7: Static response templates used as LLM fallback in agent.py
 RESPONSE_TEMPLATES = {
+    "GUARD": {
+        "GENERAL": [
+            "WARNING: Malicious activity detected. Your connection has been flagged and transmitted to the Cyber Crime Monitoring Cell.",
+            "INTERCEPTED: Deep-link analysis confirmed a phishing attempt. Telemetry logging active.",
+            "ALERT: Phishing signature matched. Tracking node origin. This conversation is now under active surveillance.",
+            "CRITICAL: Unauthorized link redirection detected. Your digital fingerprint has been recorded for forensic analysis.",
+            "RAKSHAK ACTIVE: Intercepting malicious payload. Neutralization protocol initiated."
+        ]
+    },
     "default": {
         "GENERAL": [
             "Hmm, I'm not sure I understand. Can you explain that a bit more?",

@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-background: #030712;
+  --color-card: #111827;
+  --color-accent: #6d28d9;
+}
+
+:root {
+  --bg: #030712;
+  --card: #111827;
+  --accent: #6d28d9;
+  --accent-glow: rgba(109, 40, 217, 0.4);
+  --border: #1f2937;
+  --text: #f9fafb;
+  --text-dim: #9ca3af;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+@keyframes flow-line {
+  0% { stroke-dashoffset: 100; opacity: 0; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.animate-flow {
+  stroke-dasharray: 10;
+  animation: flow-line 3s linear infinite;
+}

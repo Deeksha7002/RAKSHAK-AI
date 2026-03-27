@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rakshak AI | Unified Demo Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --accent: #6d28d9;
+            --accent-glow: rgba(109, 40, 217, 0.3);
+            --border: #1f2937;
+            --text: #f3f4f6;
+            --text-dim: #9ca3af;
+            --ingest: #3b82f6;
+            --analysis: #a855f7;
+            --decision: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Outfit', sans-serif; 
+            height: 100vh; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Global Header --- */
+        header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 12, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        .logo { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--accent); }
+        .controls { display: flex; gap: 1rem; align-items: center; }
+        .btn-slow { 
+            background: #111827; border: 1px solid var(--border); color: var(--text); 
+            padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: all 0.2s; font-size: 0.9rem;
+        }
+        .btn-slow.active { background: var(--accent); border-color: var(--accent); }
+
+        /* --- Dashboard Layout --- */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 400px 1fr 450px;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        .pane { background: var(--bg); position: relative; display: flex; flex-direction: column; }
+        .pane-header { 
+            padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; font-weight: 600; 
+            text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .iframe-container { flex: 1; border: none; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* --- Brain Display (Center Pane) --- */
+        .brain-pane { background: radial-gradient(circle at center, #111827 0%, #0a0a0c 100%); overflow-y: auto; }
+        .brain-viz { 
+            padding: 2rem; display: flex; flex-direction: column; gap: 2rem; align-items: center; 
+            min-height: 100%; justify-content: center;
+        }
+
+        .brain-core {
+            width: 150px; height: 150px; border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 50px var(--accent-glow);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            animation: pulse 4s infinite;
+        }
+        .brain-core svg { width: 80px; height: 80px; fill: white; }
+        
+        .brain-status { text-align: center; }
+        .current-step { font-size: 1.2rem; font-weight: 600; color: var(--accent); margin-bottom: 0.5rem; height: 1.5rem; }
+        .current-detail { color: var(--text-dim); font-size: 0.9rem; height: 1rem; }
+
+        .log-area {
+            width: 100%; max-width: 500px; background: #000; border: 1px solid var(--border); border-radius: 12px;
+            padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+            max-height: 300px; overflow-y: auto; scrollbar-width: thin;
+        }
+        .log-entry { margin-bottom: 8px; border-left: 2px solid var(--border); padding-left: 10px; animation: slideIn 0.3s ease-out; }
+        .log-entry.INGESTION { border-color: var(--ingest); }
+        .log-entry.ANALYSIS { border-color: var(--analysis); }
+        .log-entry.DECISION { border-color: var(--decision); }
+        .log-time { color: #4b5563; margin-right: 8px; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 40px var(--accent-glow); }
+            50% { transform: scale(1.05); box-shadow: 0 0 80px var(--accent-glow); }
+            100% { transform: scale(1); box-shadow: 0 0 40px var(--accent-glow); }
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .ai-radar {
+            display: flex; gap: 1rem; margin-top: 1rem;
+        }
+        .stat-card {
+            background: #111827; border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 10px;
+            text-align: center; width: 100px;
+        }
+        .stat-val { display: block; font-size: 1.25rem; font-weight: 600; color: var(--accent); }
+        .stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">🛡️ Rakshak <span>AI</span> Sandbox</div>
+    <div class="controls">
+        <button id="slowMoBtn" class="btn-slow">
+            ⏱️ Slow-Motion Mode: OFF
+        </button>
+        <span style="font-size: 0.8rem; color: var(--text-dim)">Master Key: 🔑 rakshak_demo_...</span>
+    </div>
+</header>
+
+<main>
+    <!-- Left: Simulator -->
+    <section class="pane">
+        <div class="pane-header">Input: Simulator Portal <span>DEMO_CHAT</span></div>
+        <div class="iframe-container">
+            <iframe src="http://localhost:5173" id="simulatorFrame"></iframe>
+        </div>
+    </section>
+
+    <!-- Center: Brain -->
+    <section class="pane brain-pane">
+        <div class="pane-header">Core Engine: Rakshak AI Intelligence</div>
+        <div class="brain-viz">
+            <div class="brain-core">
+                <svg viewBox="0 0 24 24"><path d="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10c5.52,0,10-4.48,10-10S17.52,2,12,2z M17,13h-4v4h-2v-4H7v-2h4V7h2v4h4V13z"/></svg>
+            </div>
+            <div class="brain-status">
+                <div id="currentStep" class="current-step">Standby</div>
+                <div id="currentDetail" class="current-detail">Waiting for user input...</div>
+            </div>
+
+            <div class="ai-radar" id="radarStats" style="opacity: 0.3;">
+                <div class="stat-card">
+                    <span class="stat-val" id="riskVal">0%</span>
+                    <span class="stat-label">Risk</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-val" id="urgencyVal">...</span>
+                    <span class="stat-label">Urgency</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-val" id="threatVal">...</span>
+                    <span class="stat-label">Threat</span>
+                </div>
+            </div>
+
+            <div class="log-area" id="logArea">
+                <div class="log-entry">[SYSTEM] AI Neural Network Initiated.</div>
+                <div class="log-entry">[SYSTEM] WebSocket Handshake with Backend Success.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Right: Cyber Cell -->
+    <section class="pane">
+        <div class="pane-header">Output: Cyber Cell Monitoring <span>AUTO_INGEST</span></div>
+        <div class="iframe-container">
+            <iframe src="http://localhost:5174" id="cyberCellFrame"></iframe>
+        </div>
+    </section>
+</main>
+
+<script>
+    const LOG_LIMIT = 20;
+    const ws = new WebSocket('ws://localhost:8000/ws');
+    const logArea = document.getElementById('logArea');
+    const slowMoBtn = document.getElementById('slowMoBtn');
+    let slowMoEnabled = false;
+
+    slowMoBtn.addEventListener('click', () => {
+        slowMoEnabled = !slowMoEnabled;
+        slowMoBtn.classList.toggle('active');
+        slowMoBtn.innerHTML = slowMoEnabled ? '⏱️ Slow-Motion Mode: ON' : '⏱️ Slow-Motion Mode: OFF';
+        // Communicate this to the Simulator frame if needed, or we just handle it globally
+        window.isSlowMo = slowMoEnabled;
+    });
+
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'BRAIN_STEP') {
+            handleBrainStep(msg.data);
+        }
+    };
+
+    function handleBrainStep(data) {
+        const { step, detail, payload } = data;
+        
+        // Update Status
+        document.getElementById('currentStep').innerText = step;
+        document.getElementById('currentStep').style.color = `var(--${step.toLowerCase()})`;
+        document.getElementById('currentDetail').innerText = detail;
+
+        // Add Log
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${step}`;
+        const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        entry.innerHTML = `<span class="log-time">${time}</span> <strong>${step}:</strong> ${detail}`;
+        logArea.prepend(entry);
+
+        if (logArea.children.length > LOG_LIMIT) logArea.removeChild(logArea.lastChild);
+
+        // Update Stats if available
+        if (step === 'ANALYSIS' && payload.analysis) {
+            document.getElementById('radarStats').style.opacity = '1';
+            document.getElementById('riskVal').innerText = payload.analysis.risk_score + '%';
+            document.getElementById('urgencyVal').innerText = payload.analysis.scam_type || 'N/A';
+            document.getElementById('threatVal').innerText = payload.analysis.classification.toUpperCase();
+        }
+
+        if (step === 'INGESTION') {
+            document.getElementById('radarStats').style.opacity = '0.3';
+            document.getElementById('riskVal').innerText = '...';
+        }
+    }
+
+    // Proxy the slow-mo flag to the Simulator iframe
+    window.addEventListener('message', (e) => {
+        if (e.data === 'GET_SLOW_MO') {
+            document.getElementById('simulatorFrame').contentWindow.postMessage({ type: 'SLOW_MO_STATE', value: window.isSlowMo }, '*');
+        }
+    });
+
+</script>
+
+</body>
+</html>
