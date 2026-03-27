@@ -45,7 +45,7 @@ export function NavigationFooter({
                 "AUTHORIZE DELETE"
             );
 
-            if (typedConfirm === "AUTHORIZE DELETE") {
+            if (typedConfirm?.trim().toUpperCase() === "AUTHORIZE DELETE") {
                 try {
                     console.log("[NUCLEAR] Primary protocol: Requesting biometric assertion...");
                     const success = await nukeAccount();
