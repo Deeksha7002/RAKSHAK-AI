@@ -250,14 +250,49 @@ class RakshakAgent:
         if _groq_client:
             self.current_persona = self._select_tactical_persona(text)
         else:
-            # Heuristic Fallback
-            lower = text.lower()
-            if any(w in lower for w in ["bitcoin", "crypto", "invest"]):
-                self.current_persona = "GULLIBLE_INVESTOR"
-            elif any(w in lower for w in ["police", "arrest", "irs"]):
-                self.current_persona = "CITIZEN"
-            else:
-                self.current_persona = "ELDERLY"
+            self.current_persona = self._heuristic_persona_select(text)
+
+    def _heuristic_persona_select(self, text: str) -> str:
+        """
+        Intent-aware persona selection using both the analyzer's detected intent
+        and keyword signals from the text. Covers all 5 tactical personas.
+        """
+        lower = text.lower()
+        intent = (self.intent or "").upper()
+
+        # Job / Task / Part-time work scams -> Excited student
+        if any(w in lower for w in ["part-time", "part time", "work from home", "task",
+                                     "earn daily", "earn money", "online job", "daily earning",
+                                     "salary", "income", "bonus"]) \
+                or any(k in intent for k in ["JOB", "TASK", "EARN"]):
+            return "GULLIBLE_STUDENT"
+
+        # Crypto / Investment scams -> Naive investor
+        if any(w in lower for w in ["bitcoin", "crypto", "invest", "usdt", "eth", "wallet",
+                                     "token", "coin", "returns", "profit", "withdrawal"]) \
+                or any(k in intent for k in ["INVEST", "CRYPTO"]):
+            return "GULLIBLE_INVESTOR"
+
+        # Authority / Legal / Government scams -> Terrified citizen
+        if any(w in lower for w in ["police", "arrest", "irs", "court", "warrant", "fbi",
+                                     "legal", "jail", "penalty", "customs", "government", "officer"]) \
+                or any(k in intent for k in ["AUTHORITY", "LEGAL", "GOVERNMENT", "COERCION"]):
+            return "CITIZEN"
+
+        # Technical phishing / OTP / credential harvesting -> Skeptical IT admin
+        if any(w in lower for w in ["otp", "pin", "password", "credential", "login",
+                                     "verify account", "2fa", "authentication", "security code"]) \
+                or any(k in intent for k in ["PHISHING", "CREDENTIAL"]):
+            return "SKEPTICAL_TECHIE"
+
+        # Tech support / virus / device scams -> Confused elderly user
+        if any(w in lower for w in ["virus", "malware", "microsoft", "apple", "support",
+                                     "infected", "hacked", "computer", "device", "anydesk", "teamviewer"]) \
+                or any(k in intent for k in ["TECH", "SUPPORT"]):
+            return "ELDERLY"
+
+        # Random variety if intent is unclear
+        return random.choice(["ELDERLY", "GULLIBLE_STUDENT", "SKEPTICAL_TECHIE"])
 
     def _select_tactical_persona(self, text: str) -> str:
         """Uses LLM to pick the most effective baiting persona for the scam type."""
@@ -281,9 +316,9 @@ class RakshakAgent:
             choice = res.choices[0].message.content.strip().upper()
             for opt in options_desc.keys():
                 if opt in choice: return opt
-            return "ELDERLY"
+            return self._heuristic_persona_select(text)
         except Exception:
-            return "ELDERLY"
+            return self._heuristic_persona_select(text)
 
     def _generate_llm_response(self, latest_scammer_message: str) -> str | None:
         if not _groq_client: return None
