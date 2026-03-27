@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, ShieldCheck, Globe, Database, MapPin, Bell, Fingerprint, ChevronRight } from 'lucide-react';
+import { Shield, ShieldCheck, Globe, Database, MapPin, Bell, Fingerprint, ChevronRight, Layers } from 'lucide-react';
 import { soundManager } from '../lib/SoundManager';
 
 interface PermissionItem {
@@ -39,6 +39,12 @@ const REQUIRED_PERMISSIONS: PermissionItem[] = [
         title: 'BIOMETRIC SECURE KEY',
         description: 'FaceID or Fingerprint access keys to lock drawer vault drawers safeguards.',
         icon: <Fingerprint size={22} color="#a78bfa" />
+    },
+    {
+        id: 'app_interaction',
+        title: 'APP INTERACTION ACCESS',
+        description: 'Allows Rakshak to monitor and intercept malicious payloads in third-party messaging apps.',
+        icon: <Layers size={22} color="#f87171" />
     }
 ];
 
