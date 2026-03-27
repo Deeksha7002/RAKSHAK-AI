@@ -2,7 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import './index.css'
 
 // ── Config ───────────────────────────────────────────────────
-const BACKEND = 'http://localhost:8000'
+const BACKEND = (() => {
+  const origin = window.location.origin;
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    return 'http://localhost:8000';
+  }
+  return 'https://scam-detection-1.onrender.com';
+})();
+
+const WS_URL = BACKEND.replace('https://', 'wss://').replace('http://', 'ws://');
 
 // ── Types ────────────────────────────────────────────────────
 interface Case {
@@ -120,7 +128,7 @@ function App() {
   // ── WebSocket ────────────────────────────────────────────────
   useEffect(() => {
     const connect = () => {
-      const ws = new WebSocket(`ws://localhost:8000/api/ws`)
+      const ws = new WebSocket(`${WS_URL}/api/ws`)
       wsRef.current = ws
 
       ws.onmessage = (e) => {
