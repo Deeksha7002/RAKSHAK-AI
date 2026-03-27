@@ -311,7 +311,7 @@ function App() {
               {activeView === 'HONEY_TOKENS' && <Suspense fallback={<div>Loading traps...</div>}><HoneyTokenGenerator /></Suspense>}
               {activeView === 'LOCKER' && (
                 <Suspense fallback={<div>Loading Secure Module...</div>}>
-                  <EvidenceLockerView cases={[]} onClose={() => setActiveView('DASHBOARD')} />
+                  <EvidenceLockerView cases={getCaseFiles()} onClose={() => setActiveView('DASHBOARD')} />
                 </Suspense>
               )}
             </div>
