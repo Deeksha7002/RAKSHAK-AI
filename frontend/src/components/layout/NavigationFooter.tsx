@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown, Eye, Settings, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { soundManager } from '../../lib/SoundManager';
+import { DEMO_ACCESS_KEY } from '../../lib/config';
+import { MediaLogService } from '../../lib/MediaLogService';
+import { IntelligenceService } from '../../lib/IntelligenceService';
+import { CyberCellService } from '../../lib/CyberCellService';
 
 interface NavigationFooterProps {
     activeView: string;
@@ -29,7 +33,7 @@ export function NavigationFooter({
     };
 
     const handleNuke = async () => {
-        const msg1 = "🚨 NUCLEAR DISPOSAL PROTOCOL 🚨\n\n" +
+        const msg1 = "NUCLEAR DISPOSAL PROTOCOL\n\n" +
                      "CRITICAL WARNING: You are about to PERMANENTLY DELETE your account and all associated forensic data.\n\n" +
                      "This action will:\n" +
                      "1. Wipe your account from the Rakshak Core server.\n" +
@@ -39,24 +43,52 @@ export function NavigationFooter({
                      
         if (window.confirm(msg1)) {
             const typedConfirm = window.prompt(
-                "🛡️ INTENT VERIFICATION 🛡️\n\n" +
+                "INTENT VERIFICATION\n\n" +
                 "To confirm your absolute intent to destroy all records, please type exactly:\n\n" +
                 "AUTHORIZE DELETE"
             );
 
             if (typedConfirm === "AUTHORIZE DELETE") {
                 try {
-                    console.log("☢️ [NUCLEAR] Identity verification required. Requesting biometrics...");
+                    console.log("[NUCLEAR] Identity verification required. Requesting biometrics...");
                     const success = await nukeAccount();
                     if (success) {
-                        alert("🔒 SECURE WIPE COMPLETE: All volatile data clusters and account records have been incinerated.");
+                        alert("SECURE WIPE COMPLETE: All volatile data clusters and account records have been incinerated.");
                         onNuke();
                     }
                 } catch (e: any) {
-                    alert("❌ DESTRUCTION ABORTED: " + (e.message || "Credential verification failed."));
+                    // ── FALLBACK: If biometric is not enrolled or fails, ask for access code ──
+                    const isBioUnavailable = !e.message || 
+                        e.message.toLowerCase().includes('no biometric') ||
+                        e.message.toLowerCase().includes('not allowed') ||
+                        e.message.toLowerCase().includes('credential') ||
+                        e.message.toLowerCase().includes('cancelled') ||
+                        e.message.toLowerCase().includes('no active');
+
+                    if (isBioUnavailable) {
+                        const accessCode = window.prompt(
+                            "BIOMETRIC UNAVAILABLE\n\n" +
+                            "Fallback: Enter your Operator Access Code to authorize disposal:"
+                        );
+                        if (accessCode && accessCode.trim().toUpperCase() === DEMO_ACCESS_KEY.toUpperCase()) {
+                            // Perform local scrub only (server has no biometric proof)
+                            MediaLogService.clearLogs();
+                            IntelligenceService.clearRecords();
+                            CyberCellService.clearSession();
+                            localStorage.clear();
+                            sessionStorage.clear();
+                            alert("LOCAL WIPE COMPLETE: All local tactical data has been scrubbed. Please contact your admin to remove server records.");
+                            onNuke();
+                            window.location.href = '/';
+                        } else if (accessCode !== null) {
+                            alert("INVALID ACCESS CODE. Destruction aborted.");
+                        }
+                    } else {
+                        alert("DESTRUCTION ABORTED: " + (e.message || "Verification failed."));
+                    }
                 }
             } else if (typedConfirm !== null) {
-                alert("❌ INVALID AUTHORIZATION PHRASE. Protocol aborted.");
+                alert("INVALID AUTHORIZATION PHRASE. Protocol aborted.");
             }
         }
     };
