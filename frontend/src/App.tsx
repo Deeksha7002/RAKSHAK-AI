@@ -19,13 +19,92 @@ import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
 import { soundManager } from './lib/SoundManager';
-import { Shield, ChevronLeft, ShieldAlert, HelpCircle, VolumeX, Volume2, LogOut } from 'lucide-react';
+import { DEMO_ACCESS_KEY } from './lib/config';
+import { Shield, ChevronLeft, ShieldAlert, HelpCircle, VolumeX, Volume2, LogOut, Lock } from 'lucide-react';
 import type { Thread } from './lib/types';
 import './index.css';
 
 import { IntelligenceService } from './lib/IntelligenceService';
 
 type ViewState = 'DASHBOARD' | 'LOCKER' | 'FORENSICS' | 'INTELLIGENCE' | 'DEMO' | 'HONEY_TOKENS' | 'COMMAND';
+
+// ── Shared Operator Gate (System Lock) ────────────────────────────────────────
+const OperatorGate: React.FC<{ onAuthorize: () => void }> = ({ onAuthorize }) => {
+    const [key, setKey] = useState('');
+    const [error, setError] = useState(false);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (key.trim().toUpperCase() === DEMO_ACCESS_KEY.toUpperCase()) {
+            soundManager.playClick();
+            onAuthorize();
+        } else {
+            setError(true);
+            setTimeout(() => setError(false), 1000);
+        }
+    };
+
+    return (
+        <div style={{
+            height: '100vh', width: '100vw', background: '#020617',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            position: 'fixed', top: 0, left: 0, zIndex: 9999, overflow: 'hidden'
+        }}>
+            <div style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%)',
+                pointerEvents: 'none'
+            }} />
+            
+            <div style={{
+                width: '320px', padding: '2rem', background: 'rgba(15, 23, 42, 0.8)',
+                border: `1px solid ${error ? '#ef4444' : 'rgba(16, 185, 129, 0.3)'}`,
+                borderRadius: '16px', backdropFilter: 'blur(20px)', textAlign: 'center',
+                boxShadow: error ? '0 0 30px rgba(239, 68, 68, 0.2)' : '0 0 40px rgba(16, 185, 129, 0.1)',
+                transition: 'all 0.3s ease'
+            }}>
+                <div style={{ 
+                    width: '60px', height: '60px', borderRadius: '12px', 
+                    background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 1.5rem auto'
+                }}>
+                    <Lock size={28} color={error ? '#ef4444' : '#10b981'} />
+                </div>
+                
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.5rem 0', letterSpacing: '2px', color: '#fff' }}>SYSTEM ACCESS</h2>
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '0 0 2rem 0', letterSpacing: '1px' }}>ENTER OPERATOR ACCESS KEY TO INITIALIZE</p>
+                
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="password"
+                        autoFocus
+                        placeholder="••••••••"
+                        value={key}
+                        onChange={(e) => setKey(e.target.value)}
+                        style={{
+                            width: '100%', padding: '12px', background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px',
+                            color: '#fff', fontSize: '1rem', textAlign: 'center',
+                            outline: 'none', marginBottom: '1rem', fontFamily: 'monospace'
+                        }}
+                    />
+                    <button type="submit" style={{
+                        width: '100%', padding: '12px', background: '#10b981', color: '#000',
+                        border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer',
+                        fontSize: '0.85rem'
+                    }}>
+                        UNLOG PROTOCOL
+                    </button>
+                </form>
+            </div>
+            
+            <div style={{ marginTop: '2rem', fontSize: '0.65rem', color: '#475569', letterSpacing: '4px', fontWeight: 600 }}>
+                RAKSHAK-AI v1.4.2 // SECURITY GRID ACTIVE
+            </div>
+        </div>
+    );
+};
 
 function App() {
   const { clearThreads } = useThreads();
@@ -59,6 +138,7 @@ function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isInitialized, setIsInitialized] = useState(() => localStorage.getItem('rakshak_initialized') === 'true');
   const [showLiveAnalysis, setShowLiveAnalysis] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(() => sessionStorage.getItem('rakshak_session_authorized') === 'true');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -120,6 +200,15 @@ function App() {
     stopMonitoring();
     setActiveView('DASHBOARD');
   };
+
+  if (!isAuthorized) {
+    return (
+      <OperatorGate onAuthorize={() => {
+        setIsAuthorized(true);
+        sessionStorage.setItem('rakshak_session_authorized', 'true');
+      }} />
+    );
+  }
 
   if (!isAuthenticated) return <LoginScreen />;
   if (!permissionsGranted) return (
