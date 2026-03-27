@@ -2,10 +2,6 @@ import { useState } from 'react';
 import { Database, ScanEye, BarChart3, Zap, Link as LinkIcon, Shield, Target, ChevronRight, ChevronDown, Eye, Settings, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { soundManager } from '../../lib/SoundManager';
-import { DEMO_ACCESS_KEY } from '../../lib/config';
-import { MediaLogService } from '../../lib/MediaLogService';
-import { IntelligenceService } from '../../lib/IntelligenceService';
-import { CyberCellService } from '../../lib/CyberCellService';
 
 interface NavigationFooterProps {
     activeView: string;
@@ -24,8 +20,9 @@ export function NavigationFooter({
     onToggleProtocol,
     onNuke,
 }: NavigationFooterProps) {
-    const { nukeAccount } = useAuth();
+    const { nukeAccount, nukeAccountWithPassword } = useAuth();
     const [openFolder, setOpenFolder] = useState<string | null>(null);
+    const [status, setStatus] = useState<string>('');
 
     const toggleFolder = (folder: string) => {
         setOpenFolder(prev => prev === folder ? null : folder);
@@ -50,41 +47,52 @@ export function NavigationFooter({
 
             if (typedConfirm === "AUTHORIZE DELETE") {
                 try {
-                    console.log("[NUCLEAR] Identity verification required. Requesting biometrics...");
+                    console.log("[NUCLEAR] Primary protocol: Requesting biometric assertion...");
                     const success = await nukeAccount();
                     if (success) {
                         alert("SECURE WIPE COMPLETE: All volatile data clusters and account records have been incinerated.");
                         onNuke();
                     }
                 } catch (e: any) {
-                    // ── FALLBACK: If biometric is not enrolled or fails, ask for access code ──
-                    const isBioUnavailable = !e.message || 
+                    // Check if biometric is unavailable, cancelled, or not enrolled
+                    const isBioIssue = !e.message || 
                         e.message.toLowerCase().includes('no biometric') ||
                         e.message.toLowerCase().includes('not allowed') ||
                         e.message.toLowerCase().includes('credential') ||
                         e.message.toLowerCase().includes('cancelled') ||
-                        e.message.toLowerCase().includes('no active');
+                        e.message.toLowerCase().includes('no active') ||
+                        e.message.toLowerCase().includes('failed to start');
 
-                    if (isBioUnavailable) {
-                        const accessCode = window.prompt(
-                            "BIOMETRIC UNAVAILABLE\n\n" +
-                            "Fallback: Enter your Operator Access Code to authorize disposal:"
+                    if (isBioIssue) {
+                        // ── FALLBACK SEQUENCE: Verify Account Password ──
+                        const passwordFallback = window.prompt(
+                            "BIOMETRIC UNAVAILABLE / CANCELLED\n\n" +
+                            "To authorize account destruction, please enter your OPERATOR PASSWORD:"
                         );
-                        if (accessCode && accessCode.trim().toUpperCase() === DEMO_ACCESS_KEY.toUpperCase()) {
-                            // Perform local scrub only (server has no biometric proof)
-                            MediaLogService.clearLogs();
-                            IntelligenceService.clearRecords();
-                            CyberCellService.clearSession();
-                            localStorage.clear();
-                            sessionStorage.clear();
-                            alert("LOCAL WIPE COMPLETE: All local tactical data has been scrubbed. Please contact your admin to remove server records.");
-                            onNuke();
-                            window.location.href = '/';
-                        } else if (accessCode !== null) {
-                            alert("INVALID ACCESS CODE. Destruction aborted.");
+                        
+                        if (passwordFallback) {
+                            try {
+                                setStatus('AUTHORIZING FULL PURGE...');
+                                const nukeSuccess = await nukeAccountWithPassword(passwordFallback);
+                                if (nukeSuccess) {
+                                    alert("SECURE WIPE COMPLETE: Proxy verification successful. All records have been incinerated.");
+                                    onNuke();
+                                }
+                            } catch (error: any) {
+                                alert("DESTRUCTION ABORTED: " + (error.message || "Password verification failed."));
+                                setStatus('DESTRUCTION ABORTED');
+                                setTimeout(() => setStatus(''), 3000);
+                            }
+                        } else {
+                            // User cancelled the password prompt as well
+                            setStatus('DESTRUCTION ABORTED BY OPERATOR');
+                            setTimeout(() => setStatus(''), 3000);
                         }
                     } else {
-                        alert("DESTRUCTION ABORTED: " + (e.message || "Verification failed."));
+                        // Something else went wrong (network error etc)
+                        alert("CRITICAL ERROR: " + (e.message || "Disposal protocol failed to initialize."));
+                        setStatus('SYSTEM ERROR');
+                        setTimeout(() => setStatus(''), 3000);
                     }
                 }
             } else if (typedConfirm !== null) {
@@ -99,6 +107,25 @@ export function NavigationFooter({
                 
                 {/* SCROLLABLE AREA FOR FOLDERS */}
                 <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '0.5rem' }}>
+                    {status && (
+                        <div style={{ 
+                            padding: '8px 12px', 
+                            margin: '8px',
+                            background: 'rgba(239, 68, 68, 0.1)', 
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: '4px',
+                            color: '#f87171',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            <ShieldAlert size={14} />
+                            {status}
+                        </div>
+                    )}
                     {/* TACTICAL MODULES FOLDER */}
                     <div className="nav-folder">
                         <button 

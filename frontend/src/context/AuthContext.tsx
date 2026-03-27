@@ -16,6 +16,7 @@ interface AuthContextType {
     register: (username: string, password: string, accessCode: string) => Promise<boolean>;
     logout: () => void;
     nukeAccount: () => Promise<boolean>;
+    nukeAccountWithPassword: (password: string) => Promise<boolean>;
     getToken: () => string | null;
 }
 
@@ -338,6 +339,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // ── Get current access token (for use in API calls) ──────────────────────
     const getToken = (): string | null => localStorage.getItem(ACCESS_TOKEN_KEY);
 
+    const nukeAccountWithPassword = async (password: string): Promise<boolean> => {
+        if (!currentUser) return false;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/auth/nuke/password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({
+                    username: currentUser.username,
+                    password: password.trim()
+                })
+            });
+
+            if (res.ok) {
+                console.warn('☢️ [NUCLEAR] Account purged via password. Scrubbing local environment...');
+                MediaLogService.clearLogs();
+                IntelligenceService.clearRecords();
+                CyberCellService.clearSession();
+                localStorage.clear();
+                sessionStorage.clear();
+                setCurrentUser(null);
+                window.location.href = '/';
+                return true;
+            } else {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'Password verification failed');
+            }
+        } catch (e: any) {
+            console.error('Password nuke failed', e);
+            throw e;
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             currentUser,
@@ -346,6 +383,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             register,
             logout,
             nukeAccount,
+            nukeAccountWithPassword,
             getToken
         }}>
             {children}

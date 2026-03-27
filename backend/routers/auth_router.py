@@ -348,6 +348,28 @@ def nuke_bio_start(username: str, request: Request, db: Session = Depends(get_db
     store_challenge(db, "NUKE_" + username, options.challenge)
     return json.loads(options_to_json(options))
 
+def _perform_nuclear_destruction(username: str, db: Session, current_user: User):
+    """Internal helper to execute the full data purge sequence."""
+    logging.warning(f"☢️ NUCLEAR PROTOCOL ACTIVATED FOR: {username}")
+    
+    # 1. Scrub Dashboard Sync
+    from database import DashboardState
+    db.query(DashboardState).filter(DashboardState.username == username).delete()
+    
+    # 2. Scrub Refresh Tokens
+    from database import RefreshToken
+    db.query(RefreshToken).filter(RefreshToken.username == username).delete()
+    
+    # 3. Scrub Pending Challenges
+    from database import WebAuthnChallenge
+    db.query(WebAuthnChallenge).filter(WebAuthnChallenge.key.like(f"%_{username}")).delete()
+    
+    # 4. DELETE THE USER ACCOUNT
+    db.delete(current_user)
+    
+    db.commit()
+    logging.info(f"💀 ACCOUNT DESTRUCTED: {username} has been purged from the system.")
+
 @router.post("/biometric/nuke/finish")
 def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.username.lower() != username.lower():
@@ -364,7 +386,7 @@ def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, d
         if not cred_stored:
             raise HTTPException(status_code=400, detail="Credential not found")
 
-        # 1. FINAL BIOMETRIC CHECK
+        # FINAL BIOMETRIC CHECK
         verify_authentication_response(
             credential=response,
             expected_challenge=challenge,
@@ -374,28 +396,27 @@ def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, d
             credential_current_sign_count=cred_stored["sign_count"],
         )
         
-        # 2. TARGETED DESTRUCTION SEQUENCE
-        logging.warning(f"☢️ NUCLEAR PROTOCOL ACTIVATED FOR: {username}")
-        
-        # Scrub Dashboard Sync
-        from database import DashboardState
-        db.query(DashboardState).filter(DashboardState.username == username).delete()
-        
-        # Scrub Refresh Tokens
-        from database import RefreshToken
-        db.query(RefreshToken).filter(RefreshToken.username == username).delete()
-        
-        # Scrub Pending Challenges
-        from database import WebAuthnChallenge
-        db.query(WebAuthnChallenge).filter(WebAuthnChallenge.key.like(f"%_{username}")).delete()
-        
-        # DELETE THE USER ACCOUNT
-        db.delete(current_user)
-        
-        db.commit()
-        logging.info(f"💀 ACCOUNT DESTRUCTED: {username} has been purged from the system.")
+        # TARGETED DESTRUCTION
+        _perform_nuclear_destruction(username, db, current_user)
         return {"status": "purged", "message": "All data associated with this protocol has been incinerated."}
         
     except Exception as e:
         logging.error(f"Nuclear verification failed: {e}")
         raise HTTPException(status_code=400, detail="BIOMETRIC VERIFICATION FAILED: DESTRUCTION ABORTED")
+
+@router.post("/auth/nuke/password")
+def nuke_with_password(creds: LoginRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fallback nuke protocol using account password instead of biometrics."""
+    if current_user.username.lower() != creds.username.lower():
+        raise HTTPException(status_code=403, detail="Unauthorized nuke attempt")
+
+    if not security.verify_password(creds.password, current_user.hashed_password):
+        logging.warning(f"🛑 FAILED NUKE: Password mismatch for {current_user.username}")
+        raise HTTPException(status_code=401, detail="INVALID PASSWORD: DESTRUCTION ABORTED")
+
+    try:
+        _perform_nuclear_destruction(current_user.username, db, current_user)
+        return {"status": "purged", "message": "Identity verified via password. All data incinerated."}
+    except Exception as e:
+        logging.error(f"Password nuke failed: {e}")
+        raise HTTPException(status_code=500, detail="Internal destruction error")
