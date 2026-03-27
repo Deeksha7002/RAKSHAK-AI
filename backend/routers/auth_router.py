@@ -60,7 +60,7 @@ def get_challenge(db: Session, key: str) -> Optional[bytes]:
     db.commit()
     return challenge
 
-from config import WEBAUTHN_RP_NAME, WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN, VALID_PRODUCTION_ORIGINS
+from config import WEBAUTHN_RP_NAME, WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN, VALID_PRODUCTION_ORIGINS, DEMO_ACCESS_KEY
 
 def get_webauthn_config(request: Request):
     # Dynamic parsing to support multiple Vercel alias subdomains securely
@@ -130,7 +130,7 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
 @limiter.limit("5/minute")
 def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # --- DEMO SECURITY SHIELD ---
-    if not creds.access_code or creds.access_code.strip().upper() != "RAKSHAK2024":
+    if not creds.access_code or creds.access_code.strip().upper() != DEMO_ACCESS_KEY.upper():
         logging.warning(f"🛑 REJECTED: Registration attempt for {creds.username} with invalid access key.")
         raise HTTPException(status_code=403, detail="INVALID OPERATOR ACCESS KEY")
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE_URL } from '../lib/config';
+import { API_BASE_URL, DEMO_ACCESS_KEY } from '../lib/config';
 import { SecurityProtocolModal } from './SecurityProtocolModal';
 import '../index.css';
 
@@ -279,7 +279,7 @@ export const LoginScreen: React.FC<any> = () => {
         }
 
         // --- DEMO SECURITY SHIELD ---
-        if (accessCode.trim().toUpperCase() !== 'RAKSHAK2024') {
+        if (accessCode.trim().toUpperCase() !== DEMO_ACCESS_KEY.upperCase?.() && accessCode.trim().toUpperCase() !== DEMO_ACCESS_KEY.toUpperCase()) {
             setError('INVALID OPERATOR ACCESS KEY');
             return;
         }

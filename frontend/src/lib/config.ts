@@ -281,3 +281,6 @@ export const UNSAFE_KEYWORDS = [
 
 // FORCE RELATIVE: Always use the Vercel proxy (/api/...) to avoid CORS issues.
 export const API_BASE_URL = '';
+
+// --- DEMO SECURITY ---
+export const DEMO_ACCESS_KEY = import.meta.env.VITE_DEMO_ACCESS_KEY || "RAKSHAK2024";
