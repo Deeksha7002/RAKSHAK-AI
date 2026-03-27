@@ -175,7 +175,7 @@ class RakshakAgent:
         # The constructor handles setting all attributes, including detected_location
         return instance
 
-    def ingest(self, text, thread_id):
+    def ingest(self, text, thread_id, context=None):
         # 1. Extract IOCs from RAW text first (to catch crypto addresses etc.)
         self._extract_iocs(text)
         
