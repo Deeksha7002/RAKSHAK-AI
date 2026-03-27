@@ -194,8 +194,10 @@ async def debug_db_schema(reset: bool = False, current_user: str = Depends(get_c
     return report
 
 @app.get("/api/debug/routes")
-async def list_routes():
-    """List all registered routes for diagnostics."""
+async def list_routes(current_user: str = Depends(get_current_user)):
+    """List all registered routes for diagnostics. Requires authentication."""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
     routes = []
     for route in app.routes:
         routes.append({
