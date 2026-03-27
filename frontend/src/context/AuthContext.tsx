@@ -10,7 +10,7 @@ interface AuthContextType {
     currentUser: User | null;
     isAuthenticated: boolean;
     login: (username: string, password: string) => Promise<boolean>;
-    register: (username: string, password: string) => Promise<boolean>;
+    register: (username: string, password: string, accessCode: string) => Promise<boolean>;
     logout: () => void;
     getToken: () => string | null;
 }
@@ -171,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // ── Register ─────────────────────────────────────────────────────────────
-    const register = async (username: string, password: string): Promise<boolean> => {
+    const register = async (username: string, password: string, accessCode: string): Promise<boolean> => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
 
@@ -180,7 +180,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const res = await fetch(`${API_BASE_URL}/api/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: cleanUser, password: password.trim() }),
+                body: JSON.stringify({ 
+                    username: cleanUser, 
+                    password: password.trim(),
+                    access_code: accessCode.trim() 
+                }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);

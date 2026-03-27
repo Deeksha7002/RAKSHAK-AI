@@ -129,6 +129,11 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
 @router.post("/register")
 @limiter.limit("5/minute")
 def register(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    # --- DEMO SECURITY SHIELD ---
+    if not creds.access_code or creds.access_code.strip().upper() != "RAKSHAK2024":
+        logging.warning(f"🛑 REJECTED: Registration attempt for {creds.username} with invalid access key.")
+        raise HTTPException(status_code=403, detail="INVALID OPERATOR ACCESS KEY")
+
     try:
         logging.info(f"📝 Attempting registration for operator: {creds.username}")
         from sqlalchemy import func

@@ -25,6 +25,7 @@ class ReportRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    access_code: Optional[str] = None
 
 class GenerateResponseRequest(BaseModel):
     message: str                                  # Latest scammer message

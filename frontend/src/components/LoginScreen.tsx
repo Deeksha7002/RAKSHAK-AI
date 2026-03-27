@@ -144,6 +144,7 @@ export const LoginScreen: React.FC<any> = () => {
     const [regUsername, setRegUsername] = useState('');
     const [regPassword, setRegPassword] = useState('');
     const [isProtocolOpen, setIsProtocolOpen] = useState(false);
+    const [accessCode, setAccessCode] = useState('');
 
     // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
     useEffect(() => {
@@ -272,8 +273,16 @@ export const LoginScreen: React.FC<any> = () => {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatusMsg(null);
-        setError(null);
-        if (!username.trim() || !password.trim()) { setError('ALL FIELDS REQUIRED'); return; }
+        if (!username.trim() || !password.trim() || !accessCode.trim()) { 
+            setError('ALL FIELDS REQUIRED'); 
+            return; 
+        }
+
+        // --- DEMO SECURITY SHIELD ---
+        if (accessCode.trim().toUpperCase() !== 'RAKSHAK2024') {
+            setError('INVALID OPERATOR ACCESS KEY');
+            return;
+        }
 
         console.log(`[RAKSHAK] Registration Start: "${username.trim()}"`);
         if (password !== confirmPassword) { setError('PASSWORDS DO NOT MATCH'); return; }
@@ -281,7 +290,7 @@ export const LoginScreen: React.FC<any> = () => {
         setIsLoading(true);
         try {
             // Step 1: Create account on backend
-            const success = await register(username, password);
+            const success = await register(username, password, accessCode);
             if (!success) throw new Error('BACKEND REJECTED REGISTRATION');
 
             console.log(`[RAKSHAK] Account Created. Transitioning to Biometric Phase.`);
@@ -586,6 +595,20 @@ export const LoginScreen: React.FC<any> = () => {
                     <Header subtitle="NEW OPERATOR ENROLLMENT" />
 
                     <form onSubmit={handleRegister}>
+                        <div style={{ marginBottom: '1.2rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>OPERATOR ACCESS KEY</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    value={accessCode}
+                                    onChange={e => { setAccessCode(e.target.value); setError(null); setStatusMsg(null); }}
+                                    style={inputStyle}
+                                    placeholder="Enter secret key..."
+                                />
+                                <ShieldCheck size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
+                            </div>
+                        </div>
+
                         <div style={{ marginBottom: '1.2rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE OPERATOR ID</label>
                             <div style={{ position: 'relative' }}>

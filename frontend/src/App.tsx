@@ -63,7 +63,31 @@ function App() {
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    // --- DEMO PROTECTION: Disable Right-Click & DevTools ---
+    const disableContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    
+    const disableDevTools = (e: KeyboardEvent) => {
+      // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+        (e.ctrlKey && e.key === 'u')
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('contextmenu', disableContextMenu);
+    window.addEventListener('keydown', disableDevTools);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('contextmenu', disableContextMenu);
+      window.removeEventListener('keydown', disableDevTools);
+    };
   }, []);
 
   useEffect(() => {
