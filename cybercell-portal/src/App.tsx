@@ -2,15 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import './index.css'
 
 // ── Config ───────────────────────────────────────────────────
-const BACKEND = (() => {
-  const origin = window.location.origin;
-  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    return 'http://localhost:8000';
-  }
-  return 'https://scam-detection-1.onrender.com';
-})();
-
-const WS_URL = BACKEND.replace('https://', 'wss://').replace('http://', 'ws://');
+// Always use the Render backend so all three portals share the
+// same WebSocket feed and database regardless of where they run.
+const BACKEND = 'https://scam-detection-1.onrender.com';
+const WS_URL = 'wss://scam-detection-1.onrender.com';
 
 // ── Types ────────────────────────────────────────────────────
 interface Case {

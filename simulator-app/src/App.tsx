@@ -4,15 +4,9 @@ import { Shield, Send, Plus, MoreVertical, ArrowLeft, CheckCheck } from 'lucide-
 import './index.css'
 
 // ── Config ──────────────────────────────────────────────────
-const BACKEND = (() => {
-  const origin = window.location.origin;
-  // If running locally, use localhost backend
-  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    return 'http://localhost:8000';
-  }
-  // In production (Vercel), use the deployed Render backend
-  return 'https://scam-detection-1.onrender.com';
-})();
+// Always use the Render backend so the simulator, main app, and
+// cybercell all share the same WebSocket feed and database.
+const BACKEND = 'https://scam-detection-1.onrender.com';
 
 // ── Types ────────────────────────────────────────────────────
 interface Message {
