@@ -103,11 +103,17 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
         const threadId = data.threadId;
         const existingThread = threadsRef.current.find(t => t.id === threadId);
 
+        // Clean up the senderName: strip 'demo_' prefix for display
+        const rawSender = data.threadId as string;
+        const cleanSenderName = rawSender.startsWith('demo_')
+            ? rawSender.replace('demo_', '') || 'Live Target'
+            : rawSender;
+
         if (!existingThread) {
             const newThread: Thread = {
                 id: threadId,
                 scenarioId: 'LIVE',
-                senderName: data.threadId,
+                senderName: cleanSenderName,  // ← clean phone number, not raw ID
                 source: 'sms',
                 messages: [],
                 classification: data.classification,
@@ -115,19 +121,27 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
                 isScanning: false,
                 location: "Unknown",
                 detectedLocation: { country: "Unknown", city: "Unknown", lat: 0, lng: 0, ip: "0.0.0.0", isp: "Carrier" },
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.threadId}`,
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${threadId}`,
                 isCompromised: false,
                 isArchived: false,
                 intent: data.intent,
-                persona: data.persona || 'ELDERLY'
+                persona: data.persona || 'ELDERLY',
+                threatScore: data.confidence_score ? Math.round(data.confidence_score * 100) : 75,
             };
+            // Always pin live intercepts to top of inbox
             setThreads((prev: Thread[]) => [newThread, ...prev]);
             if (!isTourOpenRef.current) soundManager.playAlert();
         } else {
+            // Update and re-pin to top
             setThreads((prev: Thread[]) => {
                 const existing = prev.find(t => t.id === threadId);
                 if (existing) {
-                    const updated = { ...existing, persona: data.persona || existing.persona };
+                    const updated = {
+                        ...existing,
+                        persona: data.persona || existing.persona,
+                        classification: data.classification || existing.classification,
+                        threatScore: data.confidence_score ? Math.round(data.confidence_score * 100) : existing.threatScore,
+                    };
                     return [updated, ...prev.filter(t => t.id !== threadId)];
                 }
                 return prev;
