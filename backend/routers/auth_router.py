@@ -332,16 +332,26 @@ def login_bio_finish(response: Dict[str, Any], username: str, request: Request, 
 
 @router.post("/biometric/nuke/start")
 @limiter.limit("5/minute")
-def nuke_bio_start(username: str, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.username.lower() != username.lower():
+def nuke_bio_start(username: str, request: Request, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    # current_user is a str (username) returned by get_current_user
+    if not current_user or current_user.lower() != username.lower():
         raise HTTPException(status_code=403, detail="Unauthorized nuke attempt")
-        
+
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Guard: if user has no biometric credentials, reject gracefully so frontend falls back to password
+    if not user.webauthn_credentials:
+        raise HTTPException(status_code=400, detail="No biometric credentials enrolled. Use password fallback.")
+
     config = get_webauthn_config(request)
     options = generate_authentication_options(
         rp_id=config["rp_id"],
         allow_credentials=[
             PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"]))
-            for c in current_user.webauthn_credentials
+            for c in user.webauthn_credentials
         ],
         user_verification=UserVerificationRequirement.PREFERRED,
     )
@@ -354,26 +364,36 @@ def _perform_nuclear_destruction(username: str, db: Session, current_user: User)
     
     # 1. Scrub Dashboard Sync
     from database import DashboardState
-    db.query(DashboardState).filter(DashboardState.username == username).delete()
+    db.query(DashboardState).filter(DashboardState.username == username).delete(synchronize_session='fetch')
     
     # 2. Scrub Refresh Tokens
     from database import RefreshToken
-    db.query(RefreshToken).filter(RefreshToken.username == username).delete()
+    db.query(RefreshToken).filter(RefreshToken.username == username).delete(synchronize_session='fetch')
     
     # 3. Scrub Pending Challenges
     from database import WebAuthnChallenge
-    db.query(WebAuthnChallenge).filter(WebAuthnChallenge.key.like(f"%_{username}")).delete()
+    db.query(WebAuthnChallenge).filter(WebAuthnChallenge.key.like(f"%_{username}")).delete(synchronize_session='fetch')
     
-    # 4. DELETE THE USER ACCOUNT
-    db.delete(current_user)
+    # 4. Expunge the user from the session identity map before deleting
+    db.expunge(current_user)
+    # Re-fetch a fresh reference to delete cleanly
+    fresh_user = db.query(User).filter(User.username == username).first()
+    if fresh_user:
+        db.delete(fresh_user)
     
     db.commit()
     logging.info(f"💀 ACCOUNT DESTRUCTED: {username} has been purged from the system.")
 
 @router.post("/biometric/nuke/finish")
-def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.username.lower() != username.lower():
+def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    # current_user is a str (username) returned by get_current_user
+    if not current_user or current_user.lower() != username.lower():
         raise HTTPException(status_code=403, detail="Unauthorized nuke attempt")
+
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
     challenge = get_challenge(db, "NUKE_" + username)
     if not challenge:
@@ -382,7 +402,7 @@ def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, d
     config = get_webauthn_config(request)
     try:
         credential_id = response.get("id")
-        cred_stored = next((c for c in current_user.webauthn_credentials if c["credential_id"] == credential_id), None)
+        cred_stored = next((c for c in user.webauthn_credentials if c["credential_id"] == credential_id), None)
         if not cred_stored:
             raise HTTPException(status_code=400, detail="Credential not found")
 
@@ -397,7 +417,7 @@ def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, d
         )
         
         # TARGETED DESTRUCTION
-        _perform_nuclear_destruction(username, db, current_user)
+        _perform_nuclear_destruction(username, db, user)
         return {"status": "purged", "message": "All data associated with this protocol has been incinerated."}
         
     except Exception as e:
@@ -405,17 +425,24 @@ def nuke_bio_finish(response: Dict[str, Any], username: str, request: Request, d
         raise HTTPException(status_code=400, detail="BIOMETRIC VERIFICATION FAILED: DESTRUCTION ABORTED")
 
 @router.post("/auth/nuke/password")
-def nuke_with_password(creds: LoginRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def nuke_with_password(creds: LoginRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """Fallback nuke protocol using account password instead of biometrics."""
-    if current_user.username.lower() != creds.username.lower():
+    # current_user is a str (username) returned by get_current_user
+    if not current_user or current_user.lower() != creds.username.lower():
         raise HTTPException(status_code=403, detail="Unauthorized nuke attempt")
 
-    if not security.verify_password(creds.password, current_user.hashed_password):
-        logging.warning(f"🛑 FAILED NUKE: Password mismatch for {current_user.username}")
+    # Fetch the full User object from the DB to access hashed_password
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.username) == creds.username.lower()).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not security.verify_password(creds.password, user.hashed_password):
+        logging.warning(f"🛑 FAILED NUKE: Password mismatch for {user.username}")
         raise HTTPException(status_code=401, detail="INVALID PASSWORD: DESTRUCTION ABORTED")
 
     try:
-        _perform_nuclear_destruction(current_user.username, db, current_user)
+        _perform_nuclear_destruction(user.username, db, user)
         return {"status": "purged", "message": "Identity verified via password. All data incinerated."}
     except Exception as e:
         logging.error(f"Password nuke failed: {e}")
