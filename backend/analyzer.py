@@ -3,6 +3,7 @@ import logging
 import math
 from collections import Counter
 from textblob import TextBlob
+from config import SENSITIVE_PATTERNS
 try:
     import nltk
     import os
@@ -339,3 +340,21 @@ class ScamAnalyzer:
             return "MALICIOUS_LINK"
             
         return "GENERAL_INQUIRY"
+
+    def detect_egress_violation(self, text: str) -> dict:
+        """
+        Scans outgoing AI messages for unredacted PII or sensitive patterns.
+        Returns a dict with violation details if found.
+        """
+        violations = []
+        for label, pattern in SENSITIVE_PATTERNS.items():
+            if re.search(pattern, text, re.IGNORECASE):
+                violations.append(label)
+        
+        if violations:
+            return {
+                "has_violation": True,
+                "types": violations,
+                "severity": "CRITICAL" if any(v in ["CREDIT_CARD", "SSN"] for v in violations) else "HIGH"
+            }
+        return {"has_violation": False}

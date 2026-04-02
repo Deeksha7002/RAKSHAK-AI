@@ -185,6 +185,42 @@ class SoundManager {
         osc.stop(now + 0.3);
     }
 
+    public playSiren() {
+        this.init();
+        if (!this.context || !this.masterGain || this.isMuted) return 0;
+
+        const now = this.context.currentTime;
+        
+        const osc1 = this.context.createOscillator();
+        const osc2 = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
+
+        osc1.frequency.setValueAtTime(440, now);
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+        osc1.frequency.exponentialRampToValueAtTime(440, now + 0.6);
+        
+        osc2.frequency.setValueAtTime(445, now);
+        osc2.frequency.exponentialRampToValueAtTime(885, now + 0.3);
+        osc2.frequency.exponentialRampToValueAtTime(445, now + 0.6);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
+        gain.gain.linearRampToValueAtTime(0, now + 0.6);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.6);
+        
+        return 0.6;
+    }
+
     public toggleMute() {
         this.isMuted = !this.isMuted;
         return this.isMuted;

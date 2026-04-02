@@ -313,6 +313,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Force Reload to clear any memory-resident state
                 window.location.href = '/';
                 return true;
+            } else {
+                // Biometric nuke finish failed — throw so the caller can handle
+                const errData = await finishRes.json().catch(() => ({}));
+                throw new Error(errData.detail || 'Biometric nuke verification failed');
             }
         } catch (e: any) {
             console.error('Nuclear destruction aborted or failed', e);

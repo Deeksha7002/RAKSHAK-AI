@@ -9,7 +9,7 @@ export default defineConfig({
     host: true, // Listens on all local IPs (0.0.0.0)
     proxy: {
       '/api': {
-        target: 'https://scam-defender-honeypot-1-fi61.onrender.com',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       }
     }

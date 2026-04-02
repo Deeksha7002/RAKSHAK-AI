@@ -283,4 +283,4 @@ export const UNSAFE_KEYWORDS = [
 export const API_BASE_URL = '';
 
 // --- DEMO SECURITY ---
-export const DEMO_ACCESS_KEY = import.meta.env.VITE_DEMO_ACCESS_KEY || "RAKSHAK2024";
+export const DEMO_ACCESS_KEY = import.meta.env.VITE_DEMO_ACCESS_KEY || "rakshak_demo_k3y_2024";

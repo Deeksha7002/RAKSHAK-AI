@@ -26,8 +26,13 @@ start "Cyber Cell Portal" cmd /k "cd cybercell-portal && npm run dev"
 timeout /t 5
 
 :: 4. Start the Unified Demo Portal (Sandbox)
-echo [4/4] Starting Dedicated Demo Portal (Port 3000)...
+echo [4/5] Starting Unified Demo Hub (Port 3000)...
 start "Demo Portal" cmd /k "cd demo-portal && npm run dev"
+timeout /t 5
+
+:: 5. Start the Standalone Rakshak AI App
+echo [5/5] Starting Standalone Rakshak AI (Port 5175)...
+start "Standalone App" cmd /k "cd frontend && npm run dev"
 timeout /t 5
 
 echo.
@@ -36,8 +41,9 @@ echo ✅ ECOSYSTEM READY
 echo =======================================================
 echo.
 echo 📱 Open your browser at:
-echo 🚀 DEMO PORTAL: http://localhost:3000?key=rakshak_demo_k3y_2024
+echo 🚀 DEMO HUB: http://localhost:3000?key=rakshak_demo_k3y_2024
+echo 🌐 STANDALONE: http://localhost:5175
 echo.
-echo Use the Simulator on the left and watch the Brain in the center!
+echo Use the Simulator (5173) and watch sync on Standalone (5175) and Cybercell (5174)!
 echo =======================================================
 pause

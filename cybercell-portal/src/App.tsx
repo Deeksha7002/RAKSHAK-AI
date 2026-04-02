@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import './index.css'
 
 // ── Config ───────────────────────────────────────────────────
-// Always use the Render backend so all three portals share the
-// same WebSocket feed and database regardless of where they run.
-const BACKEND = 'https://scam-detection-1.onrender.com';
-const WS_URL = 'wss://scam-detection-1.onrender.com';
+// Determine if running locally
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// Unified connection strings: automatically favor local dev environment
+const BACKEND = isLocal ? 'http://localhost:8000' : 'https://scam-defender-honeypot-1-fi61.onrender.com';
+const WS_URL = isLocal ? 'ws://localhost:8000' : 'wss://scam-defender-honeypot-1-fi61.onrender.com';
 
 // ── Types ────────────────────────────────────────────────────
 interface Case {

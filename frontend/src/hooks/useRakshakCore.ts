@@ -20,6 +20,7 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [notification, setNotification] = useState<string | null>(null);
     const [persistentCases, setPersistentCases] = useState<CaseFile[]>([]);
+    const [securityAlert, setSecurityAlert] = useState<any | null>(null);
 
     const isMonitoringRef = useRef(false);
     const apiRef = useRef(new MockScammerAPI());
@@ -51,8 +52,14 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
         let reconnectCount = 0;
 
         const connect = () => {
-            // Connect absolute to Render to bypass Vercel Proxy WebSocket 404 failures
-            const wsUrl = 'wss://scam-defender-honeypot-1-fi61.onrender.com/api/ws';
+            // --- DYNAMIC BACKEND RESOLUTION ---
+            // If running on localhost, use the local backend. Otherwise, use Render.
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const wsUrl = isLocal 
+                ? 'ws://localhost:8000/api/ws' 
+                : 'wss://scam-defender-honeypot-1-fi61.onrender.com/api/ws';
+            
+            console.log(`🔌 Attempting WebSocket connection to: ${wsUrl}`);
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
@@ -66,6 +73,15 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
                     const data = JSON.parse(event.data);
                     if (data.type === 'NEW_INTERCEPT') {
                         handleLiveIntercept(data.data);
+                    } else if (data.type === 'SECURITY_ALERT') {
+                        setSecurityAlert(data.data);
+                        // Trigger Layer 3: System Notification
+                        if (Notification.permission === 'granted') {
+                            new Notification("🚨 RAKSHAK SECURITY ALERT", {
+                                body: data.data.message,
+                                icon: "/shield-alert.png"
+                            });
+                        }
                     }
                 } catch (e) {
                     console.error('WebSocket parsing error:', e);
@@ -101,62 +117,63 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
 
     const handleLiveIntercept = (data: any) => {
         const threadId = data.threadId;
-        const existingThread = threadsRef.current.find(t => t.id === threadId);
+        const msgId = `live-s-${data.timestamp}`;
 
-        // Clean up the senderName: strip 'demo_' prefix for display
-        const rawSender = data.threadId as string;
-        const cleanSenderName = rawSender.startsWith('demo_')
-            ? rawSender.replace('demo_', '') || 'Live Target'
-            : rawSender;
-
-        if (!existingThread) {
-            const newThread: Thread = {
-                id: threadId,
-                scenarioId: 'LIVE',
-                senderName: cleanSenderName,  // ← clean phone number, not raw ID
-                source: 'sms',
-                messages: [],
-                classification: data.classification,
-                isIntercepted: true,
-                isScanning: false,
-                location: "Unknown",
-                detectedLocation: { country: "Unknown", city: "Unknown", lat: 0, lng: 0, ip: "0.0.0.0", isp: "Carrier" },
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${threadId}`,
-                isCompromised: false,
-                isArchived: false,
-                intent: data.intent,
-                persona: data.persona || 'ELDERLY',
-                threatScore: data.confidence_score ? Math.round(data.confidence_score * 100) : 75,
+        setThreads((prev: Thread[]) => {
+            const existingIdx = prev.findIndex(t => t.id === threadId);
+            const scammerMsg: Message = {
+                id: msgId,
+                sender: 'scammer',
+                senderName: data.threadId,
+                content: data.scammerText,
+                timestamp: data.timestamp,
+                isRedacted: false
             };
-            // Always pin live intercepts to top of inbox
-            setThreads((prev: Thread[]) => [newThread, ...prev]);
-            if (!isTourOpenRef.current) soundManager.playAlert();
-        } else {
-            // Update and re-pin to top
-            setThreads((prev: Thread[]) => {
-                const existing = prev.find(t => t.id === threadId);
-                if (existing) {
-                    const updated = {
-                        ...existing,
-                        persona: data.persona || existing.persona,
-                        classification: data.classification || existing.classification,
-                        threatScore: data.confidence_score ? Math.round(data.confidence_score * 100) : existing.threatScore,
-                    };
-                    return [updated, ...prev.filter(t => t.id !== threadId)];
-                }
-                return prev;
-            });
-        }
 
-        addMessageToThread(threadId, {
-            id: `live-s-${data.timestamp}`,
-            sender: 'scammer',
-            senderName: data.threadId,
-            content: data.scammerText,
-            timestamp: data.timestamp,
-            isRedacted: false
+            if (existingIdx === -1) {
+                // --- CREATE NEW THREAD ---
+                const rawSender = data.threadId as string;
+                const cleanSenderName = rawSender.startsWith('demo_') ? rawSender.replace('demo_', '') : rawSender;
+                
+                const newThread: Thread = {
+                    id: threadId,
+                    scenarioId: 'LIVE',
+                    senderName: cleanSenderName || 'Live Target',
+                    source: 'sms',
+                    messages: [scammerMsg], // ⚡ Batch included
+                    classification: data.classification,
+                    isIntercepted: true,
+                    isScanning: false,
+                    location: "Unknown",
+                    detectedLocation: { country: "Unknown", city: "Unknown", lat: 0, lng: 0, ip: "0.0.0.0", isp: "Carrier" },
+                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${threadId}`,
+                    isCompromised: false,
+                    isArchived: false,
+                    intent: data.intent,
+                    persona: data.persona || 'ELDERLY',
+                    threatScore: data.confidence_score ? Math.round(data.confidence_score * 100) : 75,
+                };
+                if (!isTourOpenRef.current) soundManager.playAlert();
+                return [newThread, ...prev];
+            } else {
+                // --- UPDATE EXISTING THREAD ---
+                const existing = prev[existingIdx];
+                // Check if message already exists to prevent duplicates from re-connects
+                const hasMsg = existing.messages.some(m => m.id === msgId);
+                const updatedMessages = hasMsg ? existing.messages : [...existing.messages, scammerMsg];
+
+                const updated: Thread = {
+                    ...existing,
+                    messages: updatedMessages, // ⚡ Batch included
+                    persona: data.persona || existing.persona,
+                    classification: data.classification || existing.classification,
+                    threatScore: data.confidence_score ? Math.round(data.confidence_score * 100) : existing.threatScore,
+                };
+                return [updated, ...prev.filter(t => t.id !== threadId)];
+            }
         });
 
+        // Agent reply still uses a timeout for "thinking" feel, which is fine
         if (data.agentReply) {
             setTimeout(() => {
                 addMessageToThread(threadId, {
@@ -166,7 +183,7 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
                     timestamp: data.timestamp + 500,
                     isRedacted: false
                 });
-            }, 1000);
+            }, 100); 
         }
     };
 
@@ -569,6 +586,8 @@ export function useRakshakCore(isTourOpen: boolean = false, activeView: string =
         stopMonitoring,
         triggerBotnetMode,
         getCaseFiles,
+        securityAlert,
+        setSecurityAlert,
         wsStatus: isMonitoring ? (notification?.includes('established') ? 'connected' : 'reconnecting') : 'idle'
     };
 }

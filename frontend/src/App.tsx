@@ -15,6 +15,7 @@ import { IntegrationGuide } from './components/IntegrationGuide';
 import { SecurityProtocolModal } from './components/SecurityProtocolModal';
 import { HoneyTokenGenerator } from './components/HoneyTokenGenerator';
 import { OnboardingTour } from './components/OnboardingTour';
+import { SecurityAlertOverlay } from './components/SecurityAlertOverlay';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
@@ -128,6 +129,8 @@ function App() {
         stopMonitoring,
         triggerBotnetMode,
         getCaseFiles,
+        securityAlert,
+        setSecurityAlert,
         wsStatus
     } = useRakshakCore(isTourOpen, activeView);
   const [sidebarTab, setSidebarTab] = useState<'DASHBOARD' | 'INBOX' | 'COMMAND'>(window.innerWidth < 1024 ? 'DASHBOARD' : 'INBOX');
@@ -167,12 +170,17 @@ function App() {
     window.addEventListener('contextmenu', disableContextMenu);
     window.addEventListener('keydown', disableDevTools);
 
+    // Initialize Notifications
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('contextmenu', disableContextMenu);
       window.removeEventListener('keydown', disableDevTools);
     };
-  }, []);
+}, []);
 
   useEffect(() => {
     IntelligenceService.init();
@@ -659,6 +667,9 @@ function App() {
           setSelectedThreadId(null); 
         }} 
       />
+      {securityAlert && (
+          <SecurityAlertOverlay alert={securityAlert} onClose={() => setSecurityAlert(null)} />
+      )}
     </>
   );
 }

@@ -61,7 +61,9 @@ export function NavigationFooter({
                         e.message.toLowerCase().includes('credential') ||
                         e.message.toLowerCase().includes('cancelled') ||
                         e.message.toLowerCase().includes('no active') ||
-                        e.message.toLowerCase().includes('failed to start');
+                        e.message.toLowerCase().includes('failed to start') ||
+                        e.message.toLowerCase().includes('enrolled') ||
+                        e.message.toLowerCase().includes('biometric nuke');
 
                     if (isBioIssue) {
                         // ── FALLBACK SEQUENCE: Verify Account Password ──

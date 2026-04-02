@@ -10,7 +10,7 @@ export const IntegrationGuide: React.FC<IntegrationGuideProps> = ({ isOpen, onCl
     const [copied, setCopied] = useState<string | null>(null);
 
     // Hardcode the production backend URL for clarity in the guide
-    const backendUrl = "https://rakshak-ai-backend.onrender.com";
+    const backendUrl = "https://scam-defender-honeypot-1-fi61.onrender.com";
 
     const integrations = [
         {

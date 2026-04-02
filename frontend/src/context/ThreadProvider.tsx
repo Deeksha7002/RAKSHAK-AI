@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import type { Thread } from '../lib/types';
 
@@ -13,11 +13,12 @@ interface ThreadContextType {
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
 
-const MAX_THREADS = 50;
+
 
 export const ThreadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
     const [threads, setThreads] = useState<Thread[]>([]);
+    const saveTimeoutRef = useRef<any>(null);
 
     const storageKey = currentUser ? `threads_${currentUser.id}` : null;
 
@@ -40,9 +41,12 @@ export const ThreadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [storageKey]);
 
-    // Save threads when they change with Quota Protection
+    // Save threads when they change with DEBOUNCED Quota Protection
     useEffect(() => {
         if (!storageKey) return;
+
+        // Clear existing debounce timer
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
         const saveToStorage = (data: Thread[]) => {
             try {
@@ -53,42 +57,37 @@ export const ThreadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
                 return true;
             } catch (e) {
-                if (e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-                    console.warn("⚠️ LocalStorage quota exceeded. Attempting to prune threads...");
-                    return false;
-                }
-                console.error("❌ Failed to save threads to storage", e);
-                return true; // Stop loop if it's not a quota error
+                // Silently handle quota errors - don't crash the app
+                return false;
             }
         };
 
-        // 1. Enforce Hard Cap First
-        let currentThreads = [...threads];
-        if (currentThreads.length > MAX_THREADS) {
-            currentThreads = currentThreads.slice(-MAX_THREADS);
-            setThreads(currentThreads); // Update state to match cap
-        }
+        // 1-Second Debounce to keep UI buttery smooth 🧈
+        saveTimeoutRef.current = setTimeout(() => {
+            // 1. Enforce Hard Cap (Demo Optimized: 25 Threads)
+            let currentThreads = [...threads];
+            if (currentThreads.length > 25) {
+                currentThreads = currentThreads.slice(-25);
+            }
 
-        // 2. Initial Save Attempt
-        if (!saveToStorage(currentThreads)) {
-            // 3. Auto-Cleanup Strategy (2nd one)
-            // Priority 1: Clear archived threads
-            let pruned = currentThreads.filter(t => !t.isArchived);
-            if (saveToStorage(pruned)) {
-                console.info("✅ Space cleared by removing archived threads.");
-                setThreads(pruned);
-            } else {
-                // Priority 2: Keep only the 20 most recent threads
-                pruned = pruned.slice(-20);
-                if (saveToStorage(pruned)) {
-                    console.info("✅ Space cleared by keeping only the 20 most recent threads.");
-                    setThreads(pruned);
-                } else {
-                    console.error("💀 Storage still full after pruning. Clearing all local threads.");
-                    localStorage.removeItem(storageKey); // Catastrophic Fallback
+            // 2. Optimized Save Attempt
+            if (!saveToStorage(currentThreads)) {
+                console.warn("⚠️ LocalStorage full. Attempting aggressive pruning...");
+                // Step 1: Remove archived threads
+                let pruned = currentThreads.filter(t => !t.isArchived);
+                if (!saveToStorage(pruned)) {
+                    // Step 2: Keep only 10 most recent
+                    pruned = pruned.slice(-10);
+                    if (!saveToStorage(pruned)) {
+                        console.error("💀 Storage critically full. Using RAM-only persistence.");
+                    }
                 }
             }
-        }
+        }, 1000);
+
+        return () => {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
     }, [threads, storageKey]);
 
     const clearThreads = () => {

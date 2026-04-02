@@ -6,10 +6,13 @@ import {
   ShieldAlert, Gavel, Layout, ShieldCheck 
 } from 'lucide-react'
 
-// Constants
-const BACKEND = 'http://localhost:8000'
-const BACKEND_WS = 'ws://localhost:8000/api/ws'
-const MASTER_KEY = 'rakshak_demo_k3y_2024'
+// Determine if running locally
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// Unified connection strings: automatically favor local dev environment
+const BACKEND = isLocal ? 'http://localhost:8000' : 'https://scam-defender-honeypot-1-fi61.onrender.com';
+const BACKEND_WS = isLocal ? 'ws://localhost:8000/api/ws' : 'wss://scam-defender-honeypot-1-fi61.onrender.com/api/ws';
+const MASTER_KEY = 'rakshak_demo_k3y_2024';
 
 type ActiveTab = 'SIMULATOR' | 'NEURAL' | 'AUTHORITY'
 
@@ -44,7 +47,6 @@ export default function App() {
   const [slowMo, setSlowMo] = useState(false)
   const [activeTab, setActiveTab] = useState<ActiveTab>('SIMULATOR')
   const [logs, setLogs] = useState<BrainStep[]>([])
-  const [currentStep, setCurrentStep] = useState<BrainStep | null>(null)
   const [classification, setClassification] = useState<string | null>(null)
   const [interceptData, setInterceptData] = useState<{ agent_reply?: string; forensics?: any } | null>(null)
   const [threatScore, setThreatScore] = useState<number>(0)
@@ -86,7 +88,6 @@ export default function App() {
           timestamp: new Date().toLocaleTimeString([], { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' })
         }
         
-        setCurrentStep(step)
         setLogs(prev => [step, ...prev].slice(0, 15))
 
         // Persist threat score across steps - normalize to 0.0-1.0
@@ -144,7 +145,6 @@ export default function App() {
     try {
       await fetch(`${BACKEND}/api/v1/internal/demo/reset?X-Rakshak-Key=${MASTER_KEY}`, { method: 'POST' })
       setLogs([])
-      setCurrentStep(null)
       setClassification(null)
       setInterceptData(null)
       setTypedReply('')

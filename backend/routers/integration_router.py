@@ -45,8 +45,8 @@ async def shadow_ingest(
                 }
             })
             await manager.broadcast(msg)
-            if slow_mo:
-                await asyncio.sleep(1.5)
+            if (slow_mo):
+                await asyncio.sleep(0.1) # 🚀 Reduced from 1.5s for instant feel
 
         # 1. Start Ingestion
         ingest_msg = f"Message received from {sender} via {platform}"
@@ -57,7 +57,7 @@ async def shadow_ingest(
         # 1.5 Media Forensics (Pre-processing)
         if media_type:
             await broadcast_step("FORENSICS", f"Analyzing {media_type.upper()} for manipulation signatures...")
-            if slow_mo: await asyncio.sleep(1)
+            if (slow_mo): await asyncio.sleep(0.1) # 🚀 Reduced from 1s for instant feel
             await broadcast_step("FORENSICS", "Running Deepfake Detection & Metadata Extraction...")
 
         # 2. Load agent & Analyze
@@ -84,14 +84,44 @@ async def shadow_ingest(
         # 3. Decision & Response: Neural Logic
         response_body = None
         
-        if classification in ["scam", "likely_scam"]:
-            await broadcast_step("DECISION", f"Classification: {classification.upper()}. Initiating Silent Intercept...")
-            # We still generate the response for the Demo Portal/Logs, but we won't send it to the simulator
-            response_body = await asyncio.to_thread(agent.generate_response, classification, body)
-        else:
-            await broadcast_step("DECISION", f"Classification: {classification.upper()}. Active monitoring maintained.")
-        
-        # ── Automated Forensic Bundle Generation (PDF/JSON Mock) ─────────────────────
+        # Generate a response for ALL classifications (not just scam).
+        # This ensures the main app sees Rakshak reply via WebSocket,
+        # and the simulator chat also shows the reply.
+        await broadcast_step("DECISION", f"Classification: {classification.upper() if classification else 'UNKNOWN'}. Generating adaptive response...")
+        response_body = await asyncio.to_thread(agent.generate_response, classification or 'benign', body)
+
+        # ── NEW: Security Alert Logic (Tri-Layer System) ─────────────────────
+        # 1. Check for Egress Violations (PII Leaks)
+        violation = analyzer.detect_egress_violation(response_body)
+        if violation.get("has_violation"):
+            alert_msg = json.dumps({
+                "type": "SECURITY_ALERT",
+                "data": {
+                    "alertType": "LEAK",
+                    "severity": violation["severity"],
+                    "message": f"CRITICAL: Potential leak of {', '.join(violation['types'])} detected in outgoing response.",
+                    "threadId": thread_id,
+                    "timestamp": int(time.time() * 1000)
+                }
+            })
+            await manager.broadcast(alert_msg)
+            logging.warning(f"🚨 [SECURITY_ALERT] Egress violation ({violation['types']}) blocked and alerted for {thread_id}")
+
+        # 2. Check for High-Risk Coercion (Threat Level)
+        if risk_score > 0.9 and classification == "scam":
+            alert_msg = json.dumps({
+                "type": "SECURITY_ALERT",
+                "data": {
+                    "alertType": "THREAT",
+                    "severity": "HIGH",
+                    "message": "URGENT: High-pressure manipulation detected. Scammer is attempting aggressive coercion.",
+                    "threadId": thread_id,
+                    "timestamp": int(time.time() * 1000)
+                }
+            })
+            await manager.broadcast(alert_msg)
+
+        # ── Automated Forensic Bundle Generation (PDF/JSON Mock) ──────────────
         forensic_bundle = None
         if classification in ["scam", "likely_scam"]:
             await broadcast_step("FORENSICS", "Generating automated evidence bundle (PDF + JSON)...")
@@ -104,7 +134,7 @@ async def shadow_ingest(
                 "timestamp": int(time.time() * 1000)
             }
             # Simulate processing time for the demo
-            if slow_mo: await asyncio.sleep(2)
+            if (slow_mo): await asyncio.sleep(0.2) # 🚀 Reduced from 2s for instant feel
 
         if not classification:
             classification = "safe"
@@ -146,12 +176,10 @@ async def shadow_ingest(
 
         save_agent(thread_id, agent)
 
-        # Return EMPTY response to Simulator (Silent Intercept)
-        # The simulator will only see the user's message, Rakshak stays invisible there.
+        # Return only status for the simulator; the actual response is handled by Rakshak Standalone via WebSockets.
         return {
             "status": "processed",
             "classification": classification,
-            "response": None, 
             "forensics": forensic_bundle
         }
     except Exception as e:

@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Shield, Send, Plus, MoreVertical, ArrowLeft, CheckCheck } from 'lucide-react'
 import './index.css'
 
-// ── Config ──────────────────────────────────────────────────
-// Always use the Render backend so the simulator, main app, and
-// cybercell all share the same WebSocket feed and database.
-const BACKEND = 'https://scam-detection-1.onrender.com';
+// Determine if running locally
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// Unified connection string: automatically favor local dev environment
+const BACKEND = isLocal ? 'http://localhost:8000' : 'https://scam-defender-honeypot-1-fi61.onrender.com';
 
 // ── Types ────────────────────────────────────────────────────
 interface Message {
@@ -29,7 +30,6 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [sending, setSending] = useState(false)
-  const [typing, setTyping] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null) // 'image' | 'video' | 'audio'
   
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -41,7 +41,7 @@ export default function App() {
   }, [])
 
   // Auto-scroll
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, typing, uploading])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, uploading])
 
   // Sandbox State Sync
   useEffect(() => {
@@ -113,7 +113,6 @@ export default function App() {
 
   async function shadowIngest(text: string, mediaType?: string, mediaUrl?: string) {
     try {
-      setTyping(true)
       let slowMo = (window as any).isSlowMoEnabled || false
 
       const res = await fetch(`${BACKEND}/api/v1/internal/demo/ingest`, {
@@ -132,26 +131,48 @@ export default function App() {
         })
       })
 
-      const data = await res.json()
-      setTyping(false)
+      await res.json();
 
-      if (data.response) {
-        const inMsg: Message = { 
-          id: uid(), 
-          role: 'assistant', 
-          text: data.response, 
-          timestamp: new Date(),
-          persona: data.persona
-        }
-        setMessages(prev => [...prev, inMsg])
-      }
+      // Response is handled by the Rakshak Standalone App via real-time sync
+      // No longer displaying replies here as per user requirement.
     } catch (err) {
-      setTyping(false)
+      // Quiet fail for simulator
+    }
+  }
+
+  const [showMenu, setShowMenu] = useState(false)
+
+  async function clearChat() {
+    if (!window.confirm('☢️ ACTIVATE PROTOCOL: PURGE CONVERSATION HISTORY?')) return;
+    setShowMenu(false);
+    
+    try {
+        setMessages([]);
+        await fetch(`${BACKEND}/api/v1/internal/demo/reset`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Rakshak-Key': 'rakshak_demo_k3y_2024'
+            },
+            body: JSON.stringify({ threadId: `demo_${phoneRef.current}` })
+        });
+    } catch (err) {
+        console.error('Reset failed', err);
+    }
+  }
+
+  const changeNumber = () => {
+    setShowMenu(false);
+    const newNum = window.prompt('Enter New Operator Phone Number (e.g. +91 99999 88888):', phoneRef.current);
+    if (newNum && newNum.trim()) {
+        phoneRef.current = newNum.trim();
+        window.localStorage.setItem('rakshak_demo_sender', phoneRef.current);
+        setMessages([]); 
     }
   }
 
   return (
-    <div className="secure-app">
+    <div className="secure-app" onClick={() => setShowMenu(false)}>
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -160,7 +181,7 @@ export default function App() {
         onChange={handleFileSelect}
       />
       
-      {/* --- High-Gloss Premium Header --- */}
+      {/* ── High-Gloss Premium Header ────────────────────────────────────── */}
       <header className="premium-header">
         <div className="header-left">
            <div className="glass-btn"><ArrowLeft size={18} /></div>
@@ -169,7 +190,7 @@ export default function App() {
                  <Shield size={20} className="text-cyan-400" />
               </div>
               <div className="profile-info">
-                 <div className="name">Rakshak Secure-Comm</div>
+                 <div className="name">Secure-Comm: {phoneRef.current}</div>
                  <div className="status">
                     <span className="pulse-dot" /> 
                     <span className="status-text">ENCRYPTED ACTIVE</span>
@@ -178,10 +199,28 @@ export default function App() {
            </div>
         </div>
         <div className="header-right">
-           <button className="glass-btn px-4 w-auto text-[10px] font-bold text-cyan-400" onClick={() => (window as any).demoTriggerImage()}>
+           <button className="glass-btn px-4 w-auto text-[10px] font-bold text-cyan-400" onClick={(e) => { e.stopPropagation(); (window as any).demoTriggerImage(); }}>
              DEMO SCAN
            </button>
-           <div className="glass-btn"><MoreVertical size={18} /></div>
+           <div className="menu-container">
+              <button 
+                className={`glass-btn ${showMenu ? 'active' : ''}`} 
+                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+              >
+                <MoreVertical size={18} />
+              </button>
+              
+              {showMenu && (
+                <div className="actions-dropdown">
+                    <button onClick={changeNumber} className="menu-item">
+                       CHANGE IDENTITY
+                    </button>
+                    <button onClick={clearChat} className="menu-item red">
+                       RESET PROTOCOL (CLEAR)
+                    </button>
+                </div>
+              )}
+           </div>
         </div>
       </header>
 
@@ -199,22 +238,22 @@ export default function App() {
                    key={m.id}
                    initial={{ opacity: 0, y: 10 }}
                    animate={{ opacity: 1, y: 0 }}
-                   className={`message-row ${m.role}`}
+                   className={`bubble-row ${m.role}`}
                  >
                    <div className="bubble">
                      {m.role === 'assistant' && (
-                       <div className="flex items-center gap-1.5 mb-2 px-1">
-                         <Shield size={10} className="text-cyan-400 fill-cyan-400/20" />
-                         <span className="text-[10px] font-black text-cyan-400 tracking-widest uppercase italic">
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '0 4px' }}>
+                         <Shield size={10} style={{ color: '#22d3ee' }} />
+                         <span style={{ fontSize: '10px', fontWeight: 900, color: '#22d3ee', letterSpacing: '0.1em', textTransform: 'uppercase', fontStyle: 'italic' }}>
                             Rakshak AI: {m.persona || 'Guardian'}
                          </span>
                        </div>
                      )}
 
                      {m.media && (
-                       <div className="media-container mb-2">
-                         {m.media.type === 'image' && <img src={m.media.url} className="media-preview image" alt="Evidence" />}
-                         {m.media.type === 'video' && <video src={m.media.url} className="media-preview video" controls />}
+                       <div className="media-container" style={{ marginBottom: '8px' }}>
+                         {m.media.type === 'image' && <img src={m.media.url} className="media-preview" alt="Evidence" />}
+                         {m.media.type === 'video' && <video src={m.media.url} className="media-preview" controls />}
                          {m.media.type === 'audio' && <audio src={m.media.url} className="media-preview audio" controls />}
                          
                          <div className="media-scanner">
@@ -224,12 +263,10 @@ export default function App() {
                        </div>
                      )}
 
-                     <div className={`message-bubble ${m.role === 'user' ? 'user' : 'assistant'} ${m.media ? 'has-media' : ''}`}>
-                       <div className="text-sm font-medium leading-relaxed">{m.text}</div>
-                       <div className="time">
-                         {formatTime(m.timestamp)} 
-                         {m.role === 'user' && <CheckCheck size={12} className="inline ml-1 opacity-70" />}
-                       </div>
+                     <div style={{ fontSize: '15px', lineHeight: '1.6', marginBottom: '6px' }}>{m.text}</div>
+                     <div className="meta">
+                       <span>{formatTime(m.timestamp)}</span>
+                       {m.role === 'user' && <CheckCheck size={12} style={{ opacity: 0.7 }} />}
                      </div>
                      {m.role === 'user' && <div className="bubble-glow" />}
                    </div>
@@ -238,31 +275,16 @@ export default function App() {
             </AnimatePresence>
 
             {uploading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="message-row user">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bubble-row user">
                     <div className="bubble">
                         <div className="media-container loading">
                             <div className="spinner" />
-                            <div className="text-[10px] uppercase font-bold text-white/50 mt-2">Uploading {uploading}...</div>
+                            <div style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>Uploading {uploading}...</div>
                         </div>
                     </div>
                 </motion.div>
             )}
 
-            {typing && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="message-row assistant"
-              >
-                <div className="bubble">
-                  <div className="typing-bubble">
-                    <div className="dots">
-                        <span /><span /><span />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
             <div ref={bottomRef} className="h-20" />
          </div>
       </div>

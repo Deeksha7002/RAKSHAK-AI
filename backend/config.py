@@ -9,7 +9,7 @@ ALGORITHM = "HS256"
 INTEGRATION_API_KEY = os.environ.get("INTEGRATION_API_KEY", "rakshak_demo_k3y_2024") # Default for local dev/demo
 
 # ── Demo Security ─────────────────────────────────────────────────────────────
-DEMO_ACCESS_KEY = os.environ.get("DEMO_ACCESS_KEY", "RAKSHAK2024")
+DEMO_ACCESS_KEY = os.environ.get("DEMO_ACCESS_KEY", "rakshak_demo_k3y_2024")
 
 # 📝 In-memory Auth Diagnostics Buffer 
 AUTH_LOGS = []
