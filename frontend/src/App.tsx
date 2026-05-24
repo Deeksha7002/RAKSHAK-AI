@@ -16,6 +16,7 @@ import { SecurityProtocolModal } from './components/SecurityProtocolModal';
 import { HoneyTokenGenerator } from './components/HoneyTokenGenerator';
 import { OnboardingTour } from './components/OnboardingTour';
 import { SecurityAlertOverlay } from './components/SecurityAlertOverlay';
+import { NotificationToast } from './components/NotificationToast';
 import { useAuth } from './context/AuthContext';
 import { useThreads } from './context/ThreadProvider';
 import { useRakshakCore } from './hooks/useRakshakCore';
@@ -125,6 +126,7 @@ function App() {
         threads,
         isMonitoring,
         notification,
+        setNotification,
         startMonitoring,
         stopMonitoring,
         triggerBotnetMode,
@@ -354,10 +356,10 @@ function App() {
   return (
     <>
       {notification && (
-        <div className="notification-toast">
-          <Shield className="shrink-0" size={20} />
-          {notification}
-        </div>
+        <NotificationToast
+          message={notification}
+          onDismiss={() => setNotification(null)}
+        />
       )}
 
       <div
