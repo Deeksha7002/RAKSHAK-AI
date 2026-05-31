@@ -2,7 +2,7 @@
 TITLE Rakshak AI Ecosystem - Startup Manager
 
 echo =======================================================
-echo 🔥 RAKSHAK AI: DUAL-SYSTEM ECOSYSTEM STARTUP 🔥
+echo 🔥 RAKSHAK AI: FULL ECOSYSTEM STARTUP 🔥
 echo =======================================================
 echo.
 echo [0/4] Cleaning up zombie processes...
@@ -31,19 +31,25 @@ start "Demo Portal" cmd /k "cd demo-portal && npm run dev"
 timeout /t 5
 
 :: 5. Start the Standalone Rakshak AI App
-echo [5/5] Starting Standalone Rakshak AI (Port 5175)...
+echo [5/6] Starting Standalone Rakshak AI (Port 5175)...
 start "Standalone App" cmd /k "cd frontend && npm run dev"
+timeout /t 5
+
+:: 6. Start the SecureChat Simulator (WhatsApp-like Test Environment)
+echo [6/6] Starting SecureChat Simulator (Port 5176)...
+start "SecureChat Simulator" cmd /k "cd securechat-simulator && npm install && npm run dev"
 timeout /t 5
 
 echo.
 echo =======================================================
-echo ✅ ECOSYSTEM READY
+echo ✅ FULL ECOSYSTEM READY
 echo =======================================================
 echo.
 echo 📱 Open your browser at:
-echo 🚀 DEMO HUB: http://localhost:3000?key=rakshak_demo_k3y_2024
-echo 🌐 STANDALONE: http://localhost:5175
+echo 🚀 DEMO HUB:         http://localhost:3000?key=rakshak_demo_k3y_2024
+echo 🌐 STANDALONE:       http://localhost:5175
+echo 💬 SECURECHAT SIM:   http://localhost:5176
 echo.
-echo Use the Simulator (5173) and watch sync on Standalone (5175) and Cybercell (5174)!
+echo Use SecureChat (5176) to test Rakshak AI with WhatsApp-style conversations!
 echo =======================================================
 pause

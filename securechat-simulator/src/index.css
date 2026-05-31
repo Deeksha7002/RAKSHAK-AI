@@ -1,0 +1,78 @@
+/* Custom Reset and Variables */
+:root {
+  --wa-bg: #0b141a;
+  --wa-panel: #111b21;
+  --wa-header: #202c33;
+  --wa-active: #2a3942;
+  --wa-bubble-out: #005c4b;
+  --wa-bubble-in: #202c33;
+  --wa-text: #e9edef;
+  --wa-text-muted: #8696a0;
+  --wa-green: #00a884;
+  --cyber-primary: #3b82f6;
+  --cyber-danger: #ef4444;
+  --cyber-warning: #f59e0b;
+  --cyber-success: #10b981;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--wa-bg);
+  color: var(--wa-text);
+  font-family: 'Outfit', sans-serif;
+  overflow: hidden;
+}
+
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Utilities */
+.cyber-glow {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.danger-glow {
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.warning-glow {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.success-glow {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Custom animations */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2.5s infinite ease-in-out;
+}
