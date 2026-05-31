@@ -5,6 +5,7 @@ import { MediaLogService } from '../lib/MediaLogService';
 import { IntelligenceService } from '../lib/IntelligenceService';
 import { CyberCellService } from '../lib/CyberCellService';
 import { CryptoUtils } from '../lib/CryptoUtils';
+import { PDFGenerator } from '../lib/PDFGenerator';
 import { ConsensusEngine } from '../lib/ConsensusEngine';
 import type { ConsensusResult } from '../lib/ConsensusEngine';
 import { IntelligenceGrid } from './IntelligenceGrid';
@@ -112,6 +113,43 @@ export const DeepfakeAnalyzer: React.FC = () => {
             setIsSealing(false);
         }
     };
+
+    const handleExportPDF = () => {
+        if (!result) return;
+        
+        const tempCaseFile: CaseFile = {
+            id: `FX-${result.timestamp.toString().slice(-6)}`,
+            scammerName: `Forensic Subject ${result.timestamp.toString().slice(-4)}`,
+            platform: selectedType,
+            status: 'closed',
+            threatLevel: result.authenticityScore < 60 ? 'scam' : 'benign',
+            iocs: {
+                urls: [],
+                domains: [],
+                paymentMethods: [],
+                sensitiveDataRedacted: 0
+            },
+            transcript: [
+                {
+                    id: '1',
+                    sender: 'system',
+                    content: `Forensic analysis of ${selectedType} initiated.`,
+                    timestamp: result.timestamp
+                },
+                {
+                    id: '2',
+                    sender: 'agent',
+                    content: `Analysis complete. Authenticity Score: ${result.authenticityScore}%. Details: ${result.reasoning}`,
+                    timestamp: Date.now()
+                }
+            ],
+            timestamp: new Date(result.timestamp).toISOString(),
+            isSealed: isSealed
+        };
+
+        PDFGenerator.generateCaseReport(tempCaseFile, tempCaseFile.transcript);
+    };
+
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
 
     const fileRef = useRef<HTMLInputElement>(null);
@@ -577,8 +615,39 @@ export const DeepfakeAnalyzer: React.FC = () => {
                                         <FileCheck size={14} /> SECURITY SEAL: VERIFIED-HASH-AX92
                                     </div>
                                     <div style={{ display: 'flex', gap: '1rem' }}>
-                                        <button style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #334155', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', color: '#fff' }}>EXPORT PDF</button>
-                                        <button style={{ padding: '8px 16px', background: 'var(--primary)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', color: '#000', fontWeight: 'bold' }}>SAVE TO CASE FILE</button>
+                                        <button 
+                                            onClick={handleExportPDF}
+                                            style={{ 
+                                                padding: '8px 16px', 
+                                                background: 'transparent', 
+                                                border: '1px solid #334155', 
+                                                borderRadius: '4px', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.8rem', 
+                                                color: '#fff',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            EXPORT PDF
+                                        </button>
+                                        <button 
+                                            onClick={handleSeal}
+                                            disabled={isSealing || isSealed}
+                                            style={{ 
+                                                padding: '8px 16px', 
+                                                background: isSealed ? 'rgba(16, 185, 129, 0.2)' : 'var(--primary)', 
+                                                border: isSealed ? '1px solid #10b981' : 'none', 
+                                                borderRadius: '4px', 
+                                                cursor: isSealed ? 'default' : 'pointer', 
+                                                fontSize: '0.8rem', 
+                                                color: isSealed ? '#10b981' : '#000', 
+                                                fontWeight: 'bold',
+                                                transition: 'all 0.3s',
+                                                opacity: isSealing ? 0.6 : 1
+                                            }}
+                                        >
+                                            {isSealing ? 'SAVING...' : isSealed ? 'SAVED TO CASE' : 'SAVE TO CASE FILE'}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
