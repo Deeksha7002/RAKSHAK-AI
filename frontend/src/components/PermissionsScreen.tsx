@@ -63,6 +63,11 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({ onGrant })
     };
 
     const handleInitialize = async () => {
+        if (!allGranted) {
+            soundManager.playScanError();
+            return;
+        }
+        
         setIsInitializing(true);
         soundManager.playNotification();
         
@@ -153,6 +158,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({ onGrant })
 
                         <button
                             onClick={handleInitialize}
+                            disabled={!allGranted}
                             style={{
                                 width: '100%', padding: '14px', background: allGranted ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
                                 color: allGranted ? '#000' : '#475569', border: 'none', borderRadius: '12px',
