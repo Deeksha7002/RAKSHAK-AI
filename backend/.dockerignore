@@ -1,0 +1,35 @@
+# ── Python Cache Directories ──────────────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ── Local Secret Configuration (CRITICAL FOR SECURITY) ────────────────────────
+.env
+.env.*
+secrets.json
+
+# ── Local Database & Migration Files ──────────────────────────────────────────
+*.db
+*.sqlite
+rakshak_ai.db
+scam_honeypot.db
+alembic/versions/
+
+# ── Temporary & System Bloat ──────────────────────────────────────────────────
+*.log
+logs/
+tmp/
+.git/
+.github/
+.gitignore
+.dockerignore
+Dockerfile
+
+# ── Developer Scratchpads ─────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+tests/
