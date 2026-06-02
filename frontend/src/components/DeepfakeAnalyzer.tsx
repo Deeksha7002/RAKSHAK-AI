@@ -610,6 +610,16 @@ export const DeepfakeAnalyzer: React.FC = () => {
                                     <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5', color: '#cbd5e1', fontStyle: 'italic' }}>"{result.reasoning}"</p>
                                 </div>
 
+                                {result.threatClassification && (
+                                    <div style={{ padding: '1.5rem', background: (result.threatScore ?? 0) > 49 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: `1px solid ${(result.threatScore ?? 0) > 49 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}` }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                            <h4 style={{ margin: 0, fontSize: '0.8rem', color: (result.threatScore ?? 0) > 49 ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><ShieldAlert size={16} /> THREAT INTELLIGENCE: {result.threatClassification.toUpperCase()}</h4>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: (result.threatScore ?? 0) > 49 ? '#ef4444' : '#10b981' }}>THREAT SCORE: {result.threatScore}%</span>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5', color: '#cbd5e1' }}>{result.securityWarning}</p>
+                                    </div>
+                                )}
+
                                 <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
                                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
                                         <FileCheck size={14} /> SECURITY SEAL: VERIFIED-HASH-AX92

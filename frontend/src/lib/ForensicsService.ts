@@ -48,6 +48,130 @@ export class ForensicsService {
         }
     }
 
+    private static calculateEntropy(buffer: ArrayBuffer): number {
+        const view = new Uint8Array(buffer);
+        const frequencies = new Array(256).fill(0);
+        for (let i = 0; i < view.length; i++) {
+            frequencies[view[i]]++;
+        }
+        let entropy = 0;
+        const total = view.length;
+        if (total === 0) return 0;
+        for (let i = 0; i < 256; i++) {
+            if (frequencies[i] > 0) {
+                const p = frequencies[i] / total;
+                entropy -= p * Math.log2(p);
+            }
+        }
+        return entropy;
+    }
+
+    private static async scanThreats(file: File): Promise<{
+        threatClassification: 'Safe' | 'Suspicious' | 'Dangerous' | 'Malicious';
+        threatScore: number;
+        securityWarning: string;
+        threatFindings: string[];
+    }> {
+        const buffer = await file.arrayBuffer();
+        const view = new Uint8Array(buffer);
+        const findings: string[] = [];
+        let riskScore = 0;
+
+        let actualMime = 'unknown';
+        const hexSignature = Array.from(view.slice(0, 4)).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+        
+        if (hexSignature.startsWith('FF D8 FF')) actualMime = 'image/jpeg';
+        else if (hexSignature.startsWith('89 50 4E 47')) actualMime = 'image/png';
+        else if (hexSignature.startsWith('47 49 46 38')) actualMime = 'image/gif';
+        else if (hexSignature.startsWith('52 49 46 46')) actualMime = 'image/webp'; // RIFF
+        else if (hexSignature.startsWith('25 50 44 46')) actualMime = 'application/pdf';
+        else if (hexSignature.startsWith('4D 5A')) actualMime = 'application/x-msdownload'; // MZ (EXE)
+        else if (hexSignature.startsWith('50 4B 03 04')) actualMime = 'application/zip'; // PK (ZIP)
+
+        if (actualMime === 'unknown') {
+            findings.push(`Unknown file signature (${hexSignature})`);
+            riskScore += 20;
+        } else if (!file.type.includes(actualMime) && file.type !== '') {
+            findings.push(`MIME mismatch: Claimed '${file.type}', but detected '${actualMime}'`);
+            riskScore += 40;
+        }
+
+        if (['application/x-msdownload', 'application/zip', 'application/pdf'].includes(actualMime)) {
+            findings.push(`Executable/Archive signature detected within media upload!`);
+            riskScore += 60;
+        }
+
+        const sampleSize = Math.min(view.length, 10240); 
+        const headerText = new TextDecoder('ascii').decode(view.slice(0, sampleSize));
+        
+        if (/<script|eval\(|javascript:|vbscript:/i.test(headerText)) {
+            findings.push('Embedded script detected in header metadata');
+            riskScore += 70;
+        }
+
+        if (/[A-Za-z0-9+/]{200,}={0,2}/.test(headerText)) {
+            findings.push('Suspicious large Base64 payload detected in metadata');
+            riskScore += 30;
+        }
+
+        const entropy = this.calculateEntropy(buffer);
+        if (entropy > 7.95) {
+            findings.push(`Extremely high entropy (${entropy.toFixed(2)}/8.00): Strong indicator of encrypted steganography payload or packed archive.`);
+            riskScore += 50;
+        } else if (entropy > 7.8) {
+            findings.push(`High entropy (${entropy.toFixed(2)}/8.00): Possible hidden data or heavy compression.`);
+            riskScore += 20;
+        }
+
+        if (actualMime === 'image/jpeg') {
+            let eofIndex = -1;
+            for (let i = view.length - 2; i >= 0; i--) {
+                if (view[i] === 0xFF && view[i+1] === 0xD9) {
+                    eofIndex = i + 2;
+                    break;
+                }
+            }
+            if (eofIndex !== -1 && eofIndex < view.length - 100) { 
+                const trailingSize = view.length - eofIndex;
+                findings.push(`Suspicious trailing data appended after EOF marker (${trailingSize} bytes)`);
+                riskScore += 40;
+                
+                const trailingEntropy = this.calculateEntropy(buffer.slice(eofIndex));
+                if (trailingEntropy > 7.5) {
+                    findings.push(`Trailing data has high entropy (${trailingEntropy.toFixed(2)}), suggesting encrypted payload.`);
+                    riskScore += 30;
+                }
+            }
+        }
+
+        riskScore = Math.min(100, Math.max(0, riskScore));
+        
+        let classification: 'Safe' | 'Suspicious' | 'Dangerous' | 'Malicious';
+        let warning = '';
+
+        if (riskScore >= 80) {
+            classification = 'Malicious';
+            warning = 'CRITICAL: Severe threat vectors detected. Immediate quarantine required.';
+        } else if (riskScore >= 50) {
+            classification = 'Dangerous';
+            warning = 'WARNING: Multiple high-risk indicators found. Execution or rendering is unsafe.';
+        } else if (riskScore >= 20) {
+            classification = 'Suspicious';
+            warning = 'CAUTION: Anomalous structural patterns detected. Proceed with care.';
+        } else {
+            classification = 'Safe';
+            warning = 'No active threat payloads identified. Complete safety cannot be guaranteed (Confidence: 85%).';
+        }
+
+        return {
+            threatClassification: classification,
+            threatScore: riskScore,
+            securityWarning: warning,
+            threatFindings: findings
+        };
+    }
+
+
     public static async analyzeMedia(file: File, type: MediaType): Promise<MediaAnalysisResult> {
         console.log(`%c[Forensics Lab] Starting ${type} Analysis...`, 'color: #3b82f6; font-weight: bold;');
 
@@ -340,6 +464,9 @@ export class ForensicsService {
             authenticityScore = Math.max(0, Math.min(100, authenticityScore));
             const isManipulated = authenticityScore < 70;
 
+            const threatReport = await this.scanThreats(file);
+            keyFindings.push(...threatReport.threatFindings.map(f => `[THREAT INTEL] ${f}`));
+
             return {
                 mediaType: 'IMAGE',
                 authenticityScore,
@@ -350,6 +477,9 @@ export class ForensicsService {
                 technicalIndicators,
                 recommendation: isManipulated ? 'Manipulated' : 'Authentic',
                 reasoning,
+                threatClassification: threatReport.threatClassification,
+                threatScore: threatReport.threatScore,
+                securityWarning: threatReport.securityWarning,
                 timestamp: Date.now(),
                 privacyMetadata: { isLocalAnalysis: true, piiScrubbed: true }
             };
@@ -428,6 +558,9 @@ export class ForensicsService {
                 reasoning: gates.semantic < 0.5
                     ? 'Semantic Integrity check failed. While internally consistent, the scene contains physical violations (impossible gravity/context) which is a high-confidence hallmark of Generative AI.'
                     : `Heuristic Ensemble Audit failed. The media triggered ${failurePoints} forensic gates. Statistical anomalies in pixel density and lighting vectors confirm synthetic origin.`,
+                threatClassification: 'Suspicious',
+                threatScore: 40,
+                securityWarning: 'Heuristic fallback activated. Unable to run deep binary inspection.',
                 timestamp: Date.now(),
                 privacyMetadata: { isLocalAnalysis: true, piiScrubbed: true }
             };
@@ -449,6 +582,9 @@ export class ForensicsService {
             ],
             recommendation: 'Authentic',
             reasoning: 'Media successfully passed the Heuristic Neural Audit. No patterns of synthetic generation or adversarial masking were identified.',
+            threatClassification: 'Safe',
+            threatScore: 0,
+            securityWarning: 'No active threat payloads identified (Heuristic Only).',
             timestamp: Date.now()
         };
     }

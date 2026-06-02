@@ -146,6 +146,8 @@ export interface IntelligenceSummary {
 
 export type MediaType = 'IMAGE' | 'AUDIO' | 'VIDEO';
 
+export type ThreatClassification = 'Safe' | 'Suspicious' | 'Dangerous' | 'Malicious';
+
 export interface MediaAnalysisResult {
     mediaType: MediaType;
     authenticityScore: number; // 0-100
@@ -157,6 +159,9 @@ export interface MediaAnalysisResult {
     anomalyScore?: number; // 0-100 (Unseen patterns)
     generalizationConfidence?: number; // 0-100
     isAdversarial?: boolean;
+    threatClassification?: ThreatClassification;
+    threatScore?: number; // 0-100
+    securityWarning?: string;
     timestamp: number;
     privacyMetadata?: {
         isLocalAnalysis: boolean;
