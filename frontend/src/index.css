@@ -1,49 +1,42 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* BACKGROUNDS - Truecaller Dark Theme Adaptation */
-  --bg-app: #0a101d;
-  /* Deep Blue-Black */
-  --bg-sidebar: #121b2e;
-  /* Slightly lighter blue-black */
-  --bg-surface: #121b2e;
-  --bg-hover: #1e2a45;
-  --bg-active: #253355;
+  /* BACKGROUNDS - Clean Minimal Dark */
+  --bg-app: #000000;
+  --bg-sidebar: #09090b;
+  --bg-surface: #121214;
+  --bg-hover: #27272a;
+  --bg-active: #3f3f46;
 
   /* BORDERS */
-  --border-color: #2a3a5a;
-  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.05);
 
   /* TEXT */
-  --text-primary: #ffffff;
-  --text-secondary: #aab8d1;
-  --text-muted: #6e7f9e;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
-  /* TRUECALLER BRAND COLORS */
-  --primary: #0087FF;
-  /* Truecaller Blue */
-  --primary-hover: #0076e0;
-  --primary-subtle: rgba(0, 135, 255, 0.15);
+  /* COLORS */
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-subtle: rgba(59, 130, 246, 0.15);
 
   /* STATUS COLORS */
-  --status-danger: #FF4141;
-  /* Truecaller Spam Red */
-  --status-warning: #FFB300;
-  --status-success: #00D06C;
-  /* Truecaller Verified Green */
-  --status-info: #0087FF;
+  --status-danger: #ef4444;
+  --status-warning: #f59e0b;
+  --status-success: #10b981;
+  --status-info: #3b82f6;
 
   /* TYPOGRAPHY */
   --font-main: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* LAYOUT */
-  --sidebar-width: 320px;
-  /* Slightly wider for "List" feel */
-  --header-height: 70px;
-  /* Taller header for "Caller ID" feel */
-  --radius-xl: 16px;
-  --radius-lg: 12px;
+  --sidebar-width: 300px;
+  --header-height: 64px;
+  --radius-xl: 12px;
+  --radius-lg: 10px;
   --radius-md: 8px;
   --radius-sm: 4px;
 }
@@ -51,6 +44,20 @@
 /* GLOBAL RESET & BASE STYLES */
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 3px solid #38bdf8;
+  outline-offset: 3px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #38bdf8;
+  outline-offset: 3px;
 }
 
 body {
@@ -559,179 +566,90 @@ body {
   }
 }
 
-/* Cards (Dashboard) - Premium Overhaul with 3D Effects */
+/* Cards (Dashboard) - Premium Overhaul with Simple Clean Look */
 .vitals-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
-  perspective: 1200px;
-  /* Fundamental for 3D */
 }
 
 .sys-card {
-  background: rgba(18, 27, 46, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   position: relative;
-  backdrop-filter: blur(12px);
   overflow: hidden;
-  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, background 0.3s ease;
-  transform-style: preserve-3d;
-  /* Allows children to use 3D space */
-  will-change: transform;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .sys-card:hover {
-  background: rgba(30, 42, 69, 0.5);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--bg-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
-/* Inner 3D Content Layers - Enhanced Realism */
+/* Inner 3D Content Layers - Removed */
 .sys-card-header,
 .sys-card-value,
 .sys-progress-bg,
 .sys-card-sub {
-  transform: translateZ(30px);
-  transform-style: preserve-3d;
-  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.4));
-  /* Internal shadows for depth */
 }
 
 .sys-card-header span:first-child {
-  transform: translateZ(50px);
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
 }
 
 .sys-card-value {
-  transform: translateZ(70px);
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1),
-    0 15px 15px rgba(0, 0, 0, 0.5);
-  /* Cast shadow onto glass */
 }
 
-/* High-tech Lighting Overlay */
+/* High-tech Lighting Overlay - Removed */
 .sys-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(255, 255, 255, 0.12) 0%,
-      transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 10;
+  display: none !important;
 }
 
 .sys-card:hover::before {
-  opacity: 1;
 }
 
-/* Holographic Overlay */
+/* Holographic Overlay - Removed */
 .hologram-overlay {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg,
-      rgba(255, 255, 255, 0.03) 0px,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px,
-      transparent 2px);
-  pointer-events: none;
-  z-index: 5;
-  opacity: 0.5;
-  animation: scanline 10s linear infinite;
+  display: none !important;
 }
 
 @keyframes scanline {
-  from {
-    background-position: 0 0;
-  }
-
-  to {
-    background-position: 0 100%;
-  }
 }
 
-/* Dynamic Glare / Reflection System */
+/* Dynamic Glare / Reflection System - Removed */
 .glare-surface {
-  position: absolute;
-  inset: -50%;
-  background: linear-gradient(135deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.05) 45%,
-      rgba(255, 255, 255, 0.15) 50%,
-      rgba(255, 255, 255, 0.05) 55%,
-      transparent 100%);
-  transform: translate(calc(var(--mouse-x, 50%) * 0.2% - 10%), calc(var(--mouse-y, 50%) * 0.2% - 10%));
-  pointer-events: none;
-  z-index: 15;
-  mix-blend-mode: overlay;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  display: none !important;
 }
 
 .sys-card:hover .glare-surface {
-  opacity: 1;
 }
 
-/* Material Texture */
+/* Material Texture - Removed */
 .material-grain {
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.03;
-  mix-blend-mode: soft-light;
-  pointer-events: none;
-  z-index: 1;
+  display: none !important;
 }
 
-/* Idle Bobbing Animation */
+/* Idle Bobbing Animation - Removed */
 @keyframes float-idle {
-
-  0%,
-  100% {
-    transform: translateY(0) rotateX(var(--idle-x, 0deg)) rotateY(var(--idle-y, 0deg));
-  }
-
-  50% {
-    transform: translateY(-5px) rotateX(calc(var(--idle-x, 0deg) + 2deg));
-  }
 }
 
 .sys-card-idle {
-  animation: float-idle 6s ease-in-out infinite;
 }
 
-/* Cyber Corner Accents */
+/* Cyber Corner Accents - Removed */
 .sys-card::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 1px solid var(--primary);
-  opacity: 0.3;
-  pointer-events: none;
-  bottom: 12px;
-  right: 12px;
-  border-left: none;
-  border-top: none;
-  z-index: 5;
+  display: none !important;
 }
 
 /* Specific accent for top-left (merged into pseudo-element logic elsewhere or kept simple) */
 .sys-card-accent-tl {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 10px;
-  height: 10px;
-  border-top: 1px solid var(--primary);
-  border-left: 1px solid var(--primary);
-  opacity: 0.3;
+  display: none !important;
 }
 
 .sys-card-header {

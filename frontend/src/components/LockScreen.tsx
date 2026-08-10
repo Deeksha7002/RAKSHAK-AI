@@ -32,28 +32,28 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
                     <div className="lock-icon-circle">
                         <Lock size={32} className={status === 'granted' ? 'text-green' : 'text-primary'} />
                     </div>
-                    <h1>SECURE MAINFRAME ACCESS</h1>
-                    <p>Identity Verification Required</p>
+                    <h1>Secure Access</h1>
+                    <p>Unlock to view your dashboard</p>
                 </div>
 
                 <div className="lock-body">
                     {status === 'idle' && (
                         <button onClick={handleAccess} className="auth-btn">
                             <Fingerprint size={24} />
-                            <span>AUTHENTICATE SESSION</span>
+                            <span>Unlock Account</span>
                             <ChevronRight size={18} className="arrow" />
                         </button>
                     )}
 
                     {status === 'scanning' && (
                         <div className="scanning-ui">
-                            <div className="scan-text">VERIFYING BIOMETRICS...</div>
+                            <div className="scan-text">Verifying...</div>
                             <div className="scan-bar-bg">
                                 <div className="scan-bar-fill" style={{ width: `${progress}%` }}></div>
                             </div>
                             <div className="scan-details">
-                                <span>ENCRYPTION: AES-256</span>
-                                <span>HANDSHAKE: ACTIVE</span>
+                                <span>Encryption: Secure</span>
+                                <span>Status: Active</span>
                             </div>
                         </div>
                     )}
@@ -61,18 +61,18 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
                     {status === 'granted' && (
                         <div className="access-granted">
                             <ShieldCheck size={48} className="text-green animate-bounce-subtle" />
-                            <div className="granted-text">ACCESS GRANTED</div>
-                            <div className="granted-sub">Initializing Dashboard...</div>
+                            <div className="granted-text">UNLOCKED</div>
+                            <div className="granted-sub">Opening Dashboard...</div>
                         </div>
                     )}
                 </div>
 
                 <div className="lock-footer">
                     <div className="footer-item">
-                        <ShieldCheck size={14} /> RESTRICTED ENVIRONMENT
+                        <ShieldCheck size={14} /> Protected Space
                     </div>
                     <div className="footer-item">
-                        <AlertCircle size={14} /> UNAUTHORIZED ACCESS LOGGED
+                        <AlertCircle size={14} /> Security check active
                     </div>
                 </div>
             </div>

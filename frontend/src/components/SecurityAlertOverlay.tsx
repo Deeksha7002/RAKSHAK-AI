@@ -37,7 +37,7 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
         try {
             await nukeAccountWithPassword(password);
         } catch (e) {
-            window.alert('Nuke protocol failed: Invalid credentials');
+            window.alert('Clear session failed: Invalid password');
         }
     };
 
@@ -54,7 +54,7 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
             justifyContent: 'center',
             backdropFilter: 'blur(10px)',
             color: '#fff',
-            fontFamily: 'monospace'
+            fontFamily: 'sans-serif'
         }}>
             <div className={`alert-pulse-${alert.severity.toLowerCase()}`} style={{
                 width: '90%',
@@ -71,11 +71,11 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
                     <h1 style={{ 
                         fontSize: '1.75rem', 
                         fontWeight: 900, 
-                        letterSpacing: '4px', 
+                        letterSpacing: '1px', 
                         margin: 0,
                         color: alert.severity === 'CRITICAL' ? '#ff0000' : '#fff' 
                     }}>
-                        {alert.severity === 'CRITICAL' ? 'CRITICAL SYSTEM BREACH' : 'SECURITY ALERT'}
+                        {alert.severity === 'CRITICAL' ? 'CRITICAL THREAT DETECTED' : 'SECURITY NOTICE'}
                     </h1>
                 </div>
 
@@ -94,7 +94,7 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
                         textTransform: 'uppercase'
                     }}>
                         <Zap size={14} />
-                        {alert.alertType} DETECTED
+                        NOTICE: {alert.alertType}
                     </div>
                     <p style={{ 
                         fontSize: '1rem', 
@@ -105,7 +105,7 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
                         {alert.message}
                     </p>
                     <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: 0 }}>
-                        INCIDENT REF: {alert.threadId.toUpperCase()} • T+{new Date(alert.timestamp).toLocaleTimeString()}
+                        Reference ID: {alert.threadId.toUpperCase()} • Detected: {new Date(alert.timestamp).toLocaleTimeString()}
                     </p>
                 </div>
 
@@ -128,7 +128,7 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
                                     justifyContent: 'center',
                                     gap: '0.5rem'
                                 }}>
-                                <XCircle size={18} /> ACKNOWLEDGE RISK
+                                <XCircle size={18} /> Acknowledge & Close
                             </button>
                             <button 
                                 onClick={() => setShowNukeConfirm(true)}
@@ -147,17 +147,17 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
                                     justifyContent: 'center',
                                     gap: '0.5rem'
                                 }}>
-                                <Trash2 size={18} /> PANIC: NUKE SESSION
+                                <Trash2 size={18} /> CLEAR SESSION & CLOSE
                             </button>
                         </>
                     ) : (
                         <div style={{ background: '#1a1a1a', padding: '1.5rem', borderRadius: '4px', border: '1px solid #7f1d1d' }}>
                             <p style={{ fontSize: '0.8rem', color: '#f87171', marginBottom: '1rem', fontWeight: 'bold' }}>
-                                WARNING: This will permanently shred all session data and log you out.
+                                Warning: This will clear your current session history and sign you out.
                             </p>
                             <input 
                                 type="password" 
-                                placeholder="Operator Password"
+                                placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 style={{
@@ -180,7 +180,7 @@ export const SecurityAlertOverlay: React.FC<SecurityAlertOverlayProps> = ({ aler
                                 <button 
                                     onClick={handleNuke}
                                     style={{ flex: 1, background: '#ef4444', border: 'none', color: '#fff', padding: '0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                    SHRED ALL
+                                    CONFIRM CLEAR
                                 </button>
                             </div>
                         </div>
