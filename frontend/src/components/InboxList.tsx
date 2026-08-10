@@ -134,7 +134,7 @@ export const InboxList: React.FC<InboxListProps> = ({ threads, selectedThreadId,
 
                                 <div className="thread-preview">
                                     {t.isIntercepted && <span className="ai-prefix">⚠ AI • </span>}
-                                    {t.isCompromised && <span className="compromised-prefix" style={{ color: 'var(--status-danger)', fontWeight: 'bold' }}>[COMPROMISED] </span>}
+                                    {t.isCompromised && <span className="compromised-prefix" style={{ color: 'var(--status-danger)', fontWeight: 'bold' }}>[Unsafe] </span>}
                                     {t.lastMessage}
                                 </div>
 

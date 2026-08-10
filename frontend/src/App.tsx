@@ -153,25 +153,6 @@ function App() {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', handleResize);
 
-    // --- DEMO PROTECTION: Disable Right-Click & DevTools ---
-    const disableContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
-    
-    const disableDevTools = (e: KeyboardEvent) => {
-      // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-      if (
-        e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
-        (e.ctrlKey && e.key === 'u')
-      ) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener('contextmenu', disableContextMenu);
-    window.addEventListener('keydown', disableDevTools);
-
     // Initialize Notifications
     if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
@@ -179,8 +160,6 @@ function App() {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('contextmenu', disableContextMenu);
-      window.removeEventListener('keydown', disableDevTools);
     };
 }, []);
 
@@ -257,12 +236,12 @@ function App() {
          >
             INBOX
          </button>
-         <button 
-            onClick={() => { setSidebarTab('COMMAND'); soundManager.playClick(); }}
-            style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'COMMAND' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'COMMAND' ? '2px solid #ec4899' : '2px solid transparent', color: sidebarTab === 'COMMAND' ? '#ec4899' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
-         >
-            COMMAND CENTER
-         </button>
+          <button 
+             onClick={() => { setSidebarTab('COMMAND'); soundManager.playClick(); }}
+             style={{ flex: 1, padding: '14px 0', background: sidebarTab === 'COMMAND' ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', borderBottom: sidebarTab === 'COMMAND' ? '2px solid #ec4899' : '2px solid transparent', color: sidebarTab === 'COMMAND' ? '#ec4899' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+             Safety Hub
+          </button>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -272,6 +251,11 @@ function App() {
               activeThreats={threads.filter(t => t.classification === 'scam' || t.classification === 'likely_scam').length}
               locations={threads.filter(t => (t.classification === 'scam' || t.classification === 'likely_scam') && t.detectedLocation).map(t => t.detectedLocation!)}
               onSimulateAttack={triggerBotnetMode}
+              threads={threads}
+              onReviewThreat={(threadId) => {
+                setSelectedThreadId(threadId);
+                setSidebarTab('INBOX');
+              }}
             />
           </div>
         )}
@@ -339,15 +323,15 @@ function App() {
         <div className="glowing-orb" style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(56, 189, 248, 0.3)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
           <Shield size={40} className="animate-pulse" color="#38bdf8" />
         </div>
-        <h1 style={{ letterSpacing: '2px', fontWeight: 800, margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>RAKSHAK-AI SYSTEM</h1>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', fontSize: '0.9rem', lineHeight: '1.5' }}>Advanced honey-token and scam interceptor defense ready for deployment setup.</p>
+        <h1 style={{ letterSpacing: '2px', fontWeight: 800, margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>🛡️ Rakshak</h1>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', fontSize: '0.9rem', lineHeight: '1.5' }}>Stay safe from online scams. Rakshak helps detect scam messages, fake websites, and phishing links.</p>
         <button onClick={() => { 
           setIsInitialized(true); 
           localStorage.setItem('rakshak_initialized', 'true');
           setIsTourOpen(true); 
           startMonitoring(); 
         }} className="btn-primary-glow" style={{ padding: '0.8rem 2rem', fontSize: '1rem', fontWeight: 700, borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
-          INITIALIZE DEFENSES
+          Start Protection
         </button>
       </div>
     );
@@ -516,7 +500,7 @@ function App() {
                   {selectedThread.isScanning && <span className="status-scanning">Scanning...</span>}
                   {!selectedThread.isScanning && selectedThread.classification === 'benign' && !selectedThread.isIntercepted && <span className="status-safe">✓ Verified Safe</span>}
                   {!selectedThread.isScanning && (selectedThread.classification === 'scam' || selectedThread.classification === 'likely_scam') && (
-                    <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>🔴 HIGH RISK</span>
+                    <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>🔴 High Risk — Do Not Respond</span>
                   )}
                   {selectedThread.autoReported && (
                     <span className="status-reported">AUTO-REPORTED ✅</span>
@@ -539,7 +523,7 @@ function App() {
                       <ShieldAlert size={18} />
                     </div>
                     <div>
-                      <div className="compromise-alert-title">KNOWN CONTACT COMPROMISED</div>
+                      <div className="compromise-alert-title">This contact may be unsafe</div>
                       <div className="compromise-alert-desc">Behavior anomaly detected for {selectedThread.senderName}.</div>
                     </div>
                   </div>
@@ -643,6 +627,11 @@ function App() {
                   activeThreats={threads.filter(t => t.classification === 'scam' || t.classification === 'likely_scam').length}
                   locations={threads.filter(t => (t.classification === 'scam' || t.classification === 'likely_scam') && t.detectedLocation).map(t => t.detectedLocation!)}
                   onSimulateAttack={triggerBotnetMode}
+                  threads={threads}
+                  onReviewThreat={(threadId) => {
+                    setSelectedThreadId(threadId);
+                    setSidebarTab('INBOX');
+                  }}
                 />
               )}
             </>

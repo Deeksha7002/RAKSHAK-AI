@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Lock, Fingerprint, EyeOff, Eye, AlertTriangle, UserPlus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL, DEMO_ACCESS_KEY } from '../lib/config';
@@ -46,78 +46,12 @@ function prepareAuthenticationOptions(options: any): PublicKeyCredentialRequestO
     };
 }
 
-// â”€â”€ Enroll biometrics for a newly-registered user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Enroll biometrics for a newly-registered user ───────────────────────────
 /*
 async function enrollBiometrics(username: string): Promise<void> {
     // ... code omitted for brevity but commented out in file
 }
 */
-// â”€â”€ Matrix Digital Rain Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const MatrixRain: React.FC = () => {
-    const canvasRef = React.useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        };
-        resize();
-        window.addEventListener('resize', resize);
-
-        const CHARS = '01ã‚¢ã‚¤ã‚¦ã‚¨ã‚ªã‚«ã‚­ã‚¯ã‚±ã‚³ã‚µã‚·ã‚¹ã‚»ã‚½ã‚¿ãƒãƒ„ãƒ†ãƒˆãƒŠãƒ‹ãƒŒãƒãƒŽ';
-        const FONT_SIZE = 14;
-        let cols = Math.floor(canvas.width / FONT_SIZE);
-        const drops: number[] = Array(cols).fill(1);
-
-        let animId: number;
-        const draw = () => {
-            cols = Math.floor(canvas.width / FONT_SIZE);
-            // Fade trail
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            for (let i = 0; i < drops.length; i++) {
-                const char = CHARS[Math.floor(Math.random() * CHARS.length)];
-                // Brighter head, dimmer trail
-                const brightness = Math.random() > 0.02 ? 0.45 : 1;
-                ctx.fillStyle = `rgba(16, 185, 129, ${brightness})`;
-                ctx.font = `${FONT_SIZE}px monospace`;
-                ctx.fillText(char, i * FONT_SIZE, drops[i] * FONT_SIZE);
-
-                if (drops[i] * FONT_SIZE > canvas.height && Math.random() > 0.975) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
-            }
-            animId = requestAnimationFrame(draw);
-        };
-        animId = requestAnimationFrame(draw);
-
-        return () => {
-            cancelAnimationFrame(animId);
-            window.removeEventListener('resize', resize);
-        };
-    }, []);
-
-    return (
-        <canvas
-            ref={canvasRef}
-            style={{
-                position: 'fixed',
-                top: 0, left: 0,
-                width: '100%', height: '100%',
-                zIndex: 0,
-                pointerEvents: 'none',
-                opacity: 0.7,
-            }}
-        />
-    );
-};
 
 export const LoginScreen: React.FC<any> = () => {
     const { login, register } = useAuth();
@@ -145,56 +79,7 @@ export const LoginScreen: React.FC<any> = () => {
     const [regPassword, setRegPassword] = useState('');
     const [isProtocolOpen, setIsProtocolOpen] = useState(false);
 
-    // ── Biometric auto-trigger on arrival (PhonePe style) ──────────────────
-    useEffect(() => {
-        if (mode !== 'returning' || !username || !window.PublicKeyCredential) return;
-
-        let cancelled = false;
-
-        const attemptWithWake = async () => {
-            const userToScan = username.trim();
-            if (!userToScan || cancelled) return;
-
-            // Step 1: Wake the backend (Render cold start can take 10-15s)
-            setStatusMsg('WAKING UP CORE...');
-            try {
-                for (let i = 1; i <= 3; i++) {
-                    try {
-                        const r = await fetch(`${API_BASE_URL}/health`, { method: 'GET', signal: AbortSignal.timeout(15000) });
-                        if (r.ok) break;
-                    } catch {
-                        if (i === 3) { setStatusMsg(null); return; }
-                        await new Promise(res => setTimeout(res, 3000 * i));
-                    }
-                }
-            } catch { setStatusMsg(null); return; }
-
-            // Step 2: Trigger biometric only after backend is alive
-            if (!cancelled) {
-                console.log('[RAKSHAK] Backend awake — Auto-triggering biometric for:', userToScan);
-                setStatusMsg(null);
-                triggerBiometric(userToScan);
-            }
-        };
-
-        const timer = setTimeout(attemptWithWake, 800);
-
-        // Re-trigger if user comes back to the tab
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible' && !isLoading) {
-                console.log('[RAKSHAK] Tab Focused - Re-trying Biometric Handshake');
-                triggerBiometric(username.trim());
-            }
-        };
-        window.addEventListener('visibilitychange', handleVisibility);
-
-        return () => {
-            cancelled = true;
-            clearTimeout(timer);
-            window.removeEventListener('visibilitychange', handleVisibility);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode, username]);
+    // Biometric auto-trigger disabled for human-centric UX
 
     const triggerBiometric = async (rawUser: string) => {
         setIsLoading(true);
@@ -269,19 +154,19 @@ export const LoginScreen: React.FC<any> = () => {
 
             // DEFINITIVE ERROR VISIBILITY: Always show the detail if it's a server rejection
             if (lowMsg.includes('no biometric credentials') || lowMsg.includes('not enrolled')) {
-                setError('BIOMETRIC NOT ENROLLED FOR THIS ACCOUNT. USE ACCESS CODE.');
+                setError('Biometric not set up for this account. Use your Password / PIN.');
             } else if (lowMsg.includes('user not found')) {
-                setError(`OPERATOR ID "${user}" NOT FOUND. CHECK SPELLING.`);
+                setError(`Username "${user}" not found. Check spelling.`);
             } else if (lowMsg.includes('fetch') || lowMsg.includes('network') || lowMsg.includes('failed to fetch')) {
                 console.error("[RAKSHAK] CORE UNREACHABLE:", fetchUrl);
-                setError('CORE OFFLINE - CHECK NETWORK OR USE ACCESS CODE');
+                setError('Server Offline - Check connection or use Password / PIN');
             } else if (lowMsg.includes('no_assertion') || lowMsg.includes('cancel') || lowMsg.includes('notallowederror') || lowMsg.includes('not allowed') || lowMsg.includes('timed out')) {
                 console.log("[RAKSHAK] Biometric Prompt Cancelled or Timed Out");
-                setError('BIOMETRIC AUTHENTICATION CANCELLED OR TIMED OUT. PLEASE RETRY OR USE ACCESS CODE.');
+                setError('Biometric authentication cancelled or timed out. Please retry or use Password / PIN.');
             }
  else {
                 console.error("[RAKSHAK] Auth Critical Failure:", msg);
-                setError(`SECURE CORE REJECTION: ${msg.toUpperCase()}`);
+                setError(`Security check failed: ${msg.toUpperCase()}`);
             }
         }
         finally {
@@ -556,8 +441,7 @@ export const LoginScreen: React.FC<any> = () => {
                         padding: '1.25rem',
                         borderRadius: '12px',
                         marginBottom: '1.5rem',
-                        textAlign: 'left',
-                        animation: 'glow 2s infinite alternate'
+                        textAlign: 'left'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                             <div style={{ width: '32px', height: '32px', background: 'rgba(6,182,212,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -600,18 +484,17 @@ export const LoginScreen: React.FC<any> = () => {
     };
 
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', color: '#e0e0e0', fontFamily: 'monospace', position: 'relative', overflowY: 'auto', paddingTop: '2rem', paddingBottom: '2rem' }}>
-            <MatrixRain />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-main)', position: 'relative', overflowY: 'auto', paddingTop: '2rem', paddingBottom: '2rem' }}>
 
             {/* ── MODE: REGISTER (PHASE: FORM) ── */}
             {mode === 'register' && regPhase === 'form' && (
                 <div key="reg-form" style={cardStyle}>
-                    <Header subtitle="NEW OPERATOR ENROLLMENT" />
+                    <Header subtitle="Create Account" />
 
                     <form onSubmit={handleRegister}>
 
                         <div style={{ marginBottom: '1.2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE OPERATOR ID</label>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>Username</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="text"
@@ -625,7 +508,7 @@ export const LoginScreen: React.FC<any> = () => {
                         </div>
 
                         <div style={{ marginBottom: '1.2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CREATE ACCESS CODE</label>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>Password / PIN</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -642,7 +525,7 @@ export const LoginScreen: React.FC<any> = () => {
                         </div>
 
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>CONFIRM ACCESS CODE</label>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>Confirm Password / PIN</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="password"
@@ -658,13 +541,13 @@ export const LoginScreen: React.FC<any> = () => {
                         <StatusBar />
 
                         <button type="submit" disabled={isLoading} style={{ ...btnPrimary, background: isLoading ? '#334155' : '#10b981', color: isLoading ? '#94a3b8' : '#000', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                            {isLoading ? <span>ESTABLISHING ACCOUNT...</span> : <><UserPlus size={18} /><span>CREATE NEW ACCOUNT</span></>}
+                            {isLoading ? <span>Creating Account...</span> : <><UserPlus size={18} /><span>Create Account</span></>}
                         </button>
                     </form>
 
                     {!isLoading && (
                         <button type="button" onClick={() => { localStorage.setItem('scam_registered', 'true'); setMode('returning'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.25)', marginTop: '0.75rem', fontSize: '0.75rem' }}>
-                            USE EXISTING ACCOUNT
+                            Use Existing Account
                         </button>
                     )}
                 </div>
@@ -739,19 +622,19 @@ export const LoginScreen: React.FC<any> = () => {
                 </div>
             )}
 
-            {/* ── MODE: RETURNING (PhonePe style) ── */}
+            {/* ── MODE: RETURNING ── */}
             {mode === 'returning' && (
                 <div style={cardStyle}>
-                    <Header subtitle="AUTHORIZED PERSONNEL ONLY" />
+                    <Header subtitle="Secure Access" />
 
                     {lastUser ? (
                         <div style={{ textAlign: 'center', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(16,185,129,0.06)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.15)' }}>
-                            <p style={{ color: '#94a3b8', fontSize: '0.7rem', letterSpacing: '2px', marginBottom: '0.5rem', fontWeight: 600 }}>OPERATOR RECOGNIZED</p>
+                            <p style={{ color: '#94a3b8', fontSize: '0.7rem', letterSpacing: '2px', marginBottom: '0.5rem', fontWeight: 600 }}>USER RECOGNIZED</p>
                             <p style={{ color: '#10b981', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '3px', margin: 0 }}>{username.toUpperCase()}</p>
                         </div>
                     ) : (
                         <div style={{ marginBottom: '1.2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>OPERATOR ID</label>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>Username</label>
                             <div style={{ position: 'relative' }}>
                                 <input type="text" value={username} onChange={e => setUsername(e.target.value)} style={inputStyle} placeholder="Enter username..." />
                                 <Fingerprint size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
@@ -761,7 +644,7 @@ export const LoginScreen: React.FC<any> = () => {
 
                     <form onSubmit={handlePasswordLogin}>
                         <div style={{ marginBottom: '1.2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>ACCESS CODE</label>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>Password / PIN</label>
                             <div style={{ position: 'relative' }}>
                                 <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} style={{ ...inputStyle, paddingRight: 40 }} placeholder="••••••••" autoFocus={!!lastUser} />
                                 <Lock size={18} color="#64748b" style={{ position: 'absolute', left: 12, top: 12 }} />
@@ -773,23 +656,33 @@ export const LoginScreen: React.FC<any> = () => {
 
                         <StatusBar />
 
-                        <div style={{ marginTop: '1.5rem' }}>
+                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <button
                                 type="submit"
                                 disabled={isLoading}
                                 style={btnPrimary}
                             >
-                                {isLoading ? <span>AUTHORIZING...</span> : <><ShieldCheck size={18} /> VERIFY & ACCESS</>}
+                                {isLoading ? <span>Verifying...</span> : <><ShieldCheck size={18} /> Verify & Access</>}
                             </button>
+                            {window.PublicKeyCredential && (
+                                <button
+                                    type="button"
+                                    onClick={() => triggerBiometric(username)}
+                                    disabled={isLoading || !username.trim()}
+                                    style={{ ...btnGhost, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', border: '1px solid #10b981', color: '#10b981' }}
+                                >
+                                    <Fingerprint size={18} /> Unlock with Fingerprint / Face ID
+                                </button>
+                            )}
                         </div>
                     </form>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
                         <button type="button" onClick={() => { localStorage.removeItem('scam_last_user'); setUsername(''); }} style={{ ...btnGhost, color: '#64748b', border: 'none', fontSize: '0.7rem' }}>
-                            SWITCH OPERATOR
+                            Switch User
                         </button>
                         <button type="button" onClick={() => { localStorage.removeItem('scam_registered'); setMode('register'); }} style={{ ...btnGhost, color: '#475569', border: '1px solid rgba(71,85,105,0.15)', fontSize: '0.7rem' }}>
-                            NEW ENROLLMENT? CREATE ACCOUNT
+                            New here? Create Account
                         </button>
                     </div>
 

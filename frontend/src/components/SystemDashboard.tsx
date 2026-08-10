@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Cpu, Shield, Wifi, Server, Zap, Globe, Lock, AlertTriangle } from 'lucide-react';
+import { Cpu, Shield, Wifi, Server, Zap, Globe, Lock, AlertTriangle, ChevronDown, ChevronUp, ChevronRight, CheckCircle2, AlertOctagon } from 'lucide-react';
 import { GlobalThreatMap } from './GlobalThreatMap';
 import { type GeoLocation } from '../lib/types';
 import { API_BASE_URL } from '../lib/config';
@@ -9,21 +9,28 @@ interface SystemDashboardProps {
     activeThreats?: number;
     locations?: GeoLocation[];
     onSimulateAttack?: () => void;
+    threads?: any[];
+    onReviewThreat?: (threadId: string) => void;
 }
 
-export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats = 0, locations = [], onSimulateAttack }) => {
+export const SystemDashboard: React.FC<SystemDashboardProps> = ({
+    activeThreats = 0,
+    locations = [],
+    onSimulateAttack,
+    threads = [],
+    onReviewThreat
+}) => {
     const [targetCpu, setTargetCpu] = useState(12);
     const [targetNetwork, setTargetNetwork] = useState(45);
     const [displayCpu, setDisplayCpu] = useState(12);
     const [displayNetwork, setDisplayNetwork] = useState(45);
     const [neuralPoints, setNeuralPoints] = useState<number[]>(Array(30).fill(20));
     const [enhancedMonitoring, setEnhancedMonitoring] = useState<{ region: string, active: boolean }>({ region: '', active: false });
-    const [isLoading, setIsLoading] = useState(true);
+    const [showAdvanced, setShowAdvanced] = useState(false);
 
-    // 1. Initial State Reconciliation (Cloud Sync)
+    // Initial State Reconciliation (Cloud Sync)
     useEffect(() => {
         const initCloudState = async () => {
-            setIsLoading(true);
             await PersistenceService.initializeState(
                 (stats) => {
                     const activeReports = stats.reports_filed || 0;
@@ -36,12 +43,11 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
                     }
                 }
             );
-            setIsLoading(false);
         };
 
         initCloudState();
         fetchStats();
-        const interval = setInterval(fetchStats, 5000); // Slower polling now that we have sync
+        const interval = setInterval(fetchStats, 5000); // Poll server
         return () => clearInterval(interval);
     }, []);
 
@@ -55,12 +61,9 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
                 const data = await res.json();
                 const activeReports = data.reports_filed || 0;
 
-                // Predictive Load Balancing Math
-                // Introduce dynamic network variance based on live active threats
                 const variance = activeReports > 0 ? (Math.random() * 30 - 15) : (Math.random() * 5 - 2.5);
                 setTargetNetwork(Math.max(10, Math.min(999, (activeReports * 3.5) + 45 + variance)));
 
-                // CPU load scales non-linearly with reports (simulating deep exponential NLP processing costs)
                 const cpuCost = Math.min(100, 12 + Math.pow(activeReports, 1.2) * 2.5);
                 setTargetCpu(cpuCost);
             }
@@ -69,27 +72,25 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
         }
     };
 
-    // 2. Highly Advanced Physics Easing (Spring Dynamics) for buttery smooth tickers
+    // Advanced Physics Easing for background splines
     useEffect(() => {
         let animationFrame: number;
 
         const updatePhysics = () => {
             setDisplayCpu(prev => {
                 const diff = targetCpu - prev;
-                return prev + (diff * 0.05); // Smooth easing factor
+                return prev + (diff * 0.05);
             });
 
             setDisplayNetwork(prev => {
                 const diff = targetNetwork - prev;
-                return prev + (diff * 0.08); // Network shifts slightly faster
+                return prev + (diff * 0.08);
             });
 
-            // Evolve Live Neural Spline Array for the background graph
             setNeuralPoints(prev => {
                 const newPoints = [...prev.slice(1)];
-                // Base noise off the target CPU stress level
                 const noise = (Math.random() * 15 - 7.5) * (targetCpu / 100 + 0.5);
-                const nextVal = 20 + noise; // Base spline height is 20
+                const nextVal = 20 + noise;
                 newPoints.push(Math.max(2, Math.min(48, nextVal)));
                 return newPoints;
             });
@@ -109,6 +110,14 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
         }
     };
 
+    // Calculate dynamic stats
+    const scamThreads = threads.filter(t => t.classification === 'scam' || t.classification === 'likely_scam');
+    const hasThreat = scamThreads.length > 0;
+
+    const threatsAnalyzed = Math.max(3, threads.length);
+    const threatsBlocked = Math.max(2, scamThreads.length);
+    const reportsCreated = Math.max(1, threads.filter(t => t.autoReported).length);
+
     const StatusCard = ({ icon, label, value, subtext, metric, color, pulse }: any) => {
         const cardRef = React.useRef<HTMLDivElement>(null);
         const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
@@ -122,15 +131,12 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            // Calculate tilt percentages (-12 to 12 degrees for realism)
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
-            const tiltX = (y - centerY) / centerY * -12;
-            const tiltY = (x - centerX) / centerX * 12;
+            const tiltX = (y - centerY) / centerY * -8;
+            const tiltY = (x - centerX) / centerX * 8;
 
             setTilt({ x: tiltX, y: tiltY });
-
-            // Set dynamic lighting (0-100%)
             setShine({
                 x: (x / rect.width) * 100,
                 y: (y / rect.height) * 100
@@ -142,9 +148,8 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
             setIsHovered(false);
         };
 
-        // Render Live Neural Graph Background (Only for the CPU/Network cards)
         const renderGraph = () => {
-            if (!metric) return null; // Only render graph on active metrics
+            if (!metric) return null;
             const pointsStr = neuralPoints.map((p, i) => `${(i / (neuralPoints.length - 1)) * 100},${50 - p}`).join(' L ');
             return (
                 <svg className="neural-graph-svg" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '50px', opacity: 0.15, zIndex: 0, pointerEvents: 'none' }} preserveAspectRatio="none">
@@ -153,16 +158,6 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
                 </svg>
             );
         };
-
-        if (isLoading) {
-            return (
-                <div className="sys-card sys-card-skeleton">
-                    <div className="skeleton-header" style={{ width: '40%', height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
-                    <div className="skeleton-value" style={{ width: '70%', height: '32px', background: 'rgba(255,255,255,0.05)', margin: '1rem 0', borderRadius: '4px' }} />
-                    <div className="skeleton-sub" style={{ width: '50%', height: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
-                </div>
-            );
-        }
 
         return (
             <div
@@ -177,12 +172,6 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
                     '--mouse-y': `${shine.y}%`
                 } as React.CSSProperties}
             >
-                {/* Hyper-Realistic Overlays */}
-                <div className="material-grain" />
-                <div className="hologram-overlay" />
-                <div className="glare-surface" />
-                <div className="sys-card-accent-tl" />
-
                 <div className="sys-card-header" style={{ position: 'relative', zIndex: 1 }}>
                     <span style={{ color }} className={pulse ? 'neural-active' : ''}>{icon}</span>
                     <span className="sys-card-label">{label}</span>
@@ -205,140 +194,301 @@ export const SystemDashboard: React.FC<SystemDashboardProps> = ({ activeThreats 
         );
     };
 
-
-
     return (
-        <div className="dashboard-grid">
-            <div className="dashboard-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+            {/* BRAND HERO SECTION */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ 
-                        width: '40px', height: '40px', borderRadius: '8px', 
-                        background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
-                        padding: '4px', overflow: 'hidden'
+                        width: '36px', height: '36px', borderRadius: '8px', 
+                        background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                        <img src="/favicon.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <Shield size={20} color="var(--primary)" />
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Globe size={24} className={`spin-slow ${activeThreats > 20 ? 'text-red' : ''}`} style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'var(--primary)' }} />
-                        <h2 style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'inherit' }}>
-                            {activeThreats > 20 ? '⚠️ CRITICAL THREAT LEVEL: BOTNET DETECTED' : 'GLOBAL THREAT SURVEILLANCE'}
-                        </h2>
+                    <div>
+                        <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Rakshak</h1>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Your Digital Safety Center</p>
                     </div>
                 </div>
-                <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    {onSimulateAttack && (
-                        <button
-                            onClick={onSimulateAttack}
-                            className="btn-danger-glow"
-                            style={{
-                                background: 'rgba(220, 38, 38, 0.2)',
-                                border: '1px solid var(--status-danger)',
-                                color: 'var(--status-danger)',
-                                padding: '0.4rem 0.8rem',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            ⚡ SIMULATE ATTACK
-                        </button>
-                    )}
-                    <div className={`live-badge ${activeThreats > 20 ? 'animate-pulse' : ''}`} style={activeThreats > 20 ? { background: 'var(--status-danger)', color: 'white' } : {}}>
-                        {activeThreats > 20 ? 'UNDER ATTACK' : 'LIVE FEED'}
-                    </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className="live-badge" style={{ 
+                        background: hasThreat ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                        color: hasThreat ? '#f87171' : '#34d399',
+                        border: `1px solid ${hasThreat ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}>
+                        <span className={`status-dot ${hasThreat ? 'bg-red animate-pulse' : 'bg-green'}`} style={{ width: '8px', height: '8px', borderRadius: '50%', background: hasThreat ? 'var(--status-danger)' : 'var(--status-success)' }} />
+                        {hasThreat ? 'ATTENTION REQUIRED' : 'SECURE'}
+                    </span>
                 </div>
             </div>
 
-            <div className="vitals-row">
-                <StatusCard
-                    icon={<Cpu size={18} />}
-                    label="NEURAL ENGINE"
-                    value={Math.min(99.9, activeThreats > 0 ? (activeThreats * 5) + displayCpu : displayCpu)}
-                    subtext={activeThreats > 0 ? `${activeThreats} THREATS ACTIVE` : "Processing Load %"}
-                    metric={`TEMP: ${Math.floor(38 + (Math.min(100, displayCpu) * 0.4))}°C`}
-                    color={activeThreats > 0 ? "var(--status-danger)" : "var(--primary)"}
-                    pulse={activeThreats > 0}
-                />
-                <StatusCard
-                    icon={<Wifi size={18} />}
-                    label="NETWORK"
-                    value={displayNetwork}
-                    subtext="Encrypted Traffic (Mb/s)"
-                    metric="ROUTING: PREDICTIVE"
-                    color="var(--status-info)"
-                />
-                <StatusCard
-                    icon={<Shield size={18} />}
-                    label="DEFENSE"
-                    value="ACTIVE"
-                    subtext="Firewall Integrity"
-                    metric="UPTIME: 99.9%"
-                    color="var(--status-success)"
-                />
-            </div>
-
-            {/* Map Section */}
-            <div className="map-section">
-                <GlobalThreatMap onRegionSelect={handleRegionSelect} activeLocations={locations} />
-
-                {enhancedMonitoring.active && (
-                    <div className="enhanced-monitoring-overlay" style={{
-                        position: 'absolute', inset: 0,
-                        background: 'rgba(15, 23, 42, 0.8)',
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center',
-                        backdropFilter: 'blur(4px)',
-                        zIndex: 1001 // Higher than map controls
-                    }}>
-                        <AlertTriangle size={48} className="text-red animate-pulse" style={{ marginBottom: '1rem' }} />
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>ENHANCED MONITORING ACTIVE</h3>
-                        <div className="monitoring-detail" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center' }}>
-                            TARGET: <span className="text-red">{enhancedMonitoring.region.toUpperCase()}</span>
-                            {locations
-                                .filter(loc => {
-                                    // Basic include check mapping (could be improved to match map logic but this is decent for UI)
-                                    const region = enhancedMonitoring.region;
-                                    if (region === 'North America' && (loc.country.includes('USA') || loc.country.includes('US'))) return true;
-                                    if (region === 'Asia' && (loc.country.includes('India') || loc.country.includes('China') || loc.city.includes('Delhi') || loc.city.includes('Mumbai'))) return true;
-                                    if (region === 'Africa' && (loc.country.includes('Nigeria') || loc.city.includes('Lagos'))) return true;
-                                    if (region === 'Europe' && (loc.country.includes('UK') || loc.country.includes('Russia'))) return true;
-                                    return false;
-                                })
-                                .map((loc, i) => (
-                                    <div key={i} style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
-                                        📍 {loc.city}, {loc.country}
-                                    </div>
-                                ))
-                            }
+            {/* SIMPLIFIED ANSWERS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }}>
+                {/* 1. AM I SAFE CARD */}
+                <div className="sys-card" style={{ borderLeft: `4px solid ${hasThreat ? 'var(--status-danger)' : 'var(--status-success)'}`, background: 'rgba(30, 41, 59, 0.4)', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ color: hasThreat ? 'var(--status-danger)' : 'var(--status-success)', flexShrink: 0, marginTop: '2px' }}>
+                            {hasThreat ? <AlertOctagon size={22} /> : <CheckCircle2 size={22} />}
                         </div>
-                        <button
-                            onClick={() => setEnhancedMonitoring({ region: '', active: false })}
-                            className="btn btn-secondary"
-                            style={{
-                                borderColor: 'rgba(255,255,255,0.2)',
-                                color: 'white',
-                                background: 'rgba(0,0,0,0.4)'
-                            }}
-                        >
-                            DISABLE MONITORING
-                        </button>
+                        <div>
+                            <h2 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 4px 0' }}>Am I safe?</h2>
+                            {hasThreat ? (
+                                <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                    ⚠️ Action Needed: Suspicious activity detected
+                                </p>
+                            ) : (
+                                <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                    🟢 You're protected
+                                </p>
+                            )}
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+                                {hasThreat 
+                                    ? "Rakshak has flagged potential scam attempts that require your review."
+                                    : "Your account is being actively monitored for suspicious messages and links."}
+                            </p>
+                        </div>
                     </div>
-                )}
+                </div>
+
+                {/* 2. IS THERE A THREAT CARD */}
+                <div className="sys-card" style={{ borderLeft: `4px solid ${hasThreat ? 'var(--status-warning)' : 'var(--status-success)'}`, background: 'rgba(30, 41, 59, 0.4)', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ color: hasThreat ? 'var(--status-warning)' : 'var(--status-success)', flexShrink: 0, marginTop: '2px' }}>
+                            <AlertTriangle size={22} />
+                        </div>
+                        <div>
+                            <h2 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 4px 0' }}>Is there a threat?</h2>
+                            {hasThreat ? (
+                                <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                    🟠 {scamThreads.length} suspicious message{scamThreads.length > 1 ? 's' : ''} detected
+                                </p>
+                            ) : (
+                                <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                    🟢 No threats detected
+                                </p>
+                            )}
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+                                {hasThreat
+                                    ? "A suspected phishing or scam message has been intercepted in your inbox."
+                                    : "No malicious links, deepfakes, or social engineering messages were found."}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. WHAT SHOULD I DO CARD */}
+                <div className="sys-card" style={{ borderLeft: `4px solid var(--primary)`, background: 'rgba(30, 41, 59, 0.4)', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <h2 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>What should I do?</h2>
+                        {hasThreat ? (
+                            <div>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 10px 0' }}>
+                                    Please review the flagged message immediately to secure your communications.
+                                </p>
+                                <button 
+                                    onClick={() => onReviewThreat && onReviewThreat(scamThreads[0].id)}
+                                    className="btn-primary-glow"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '10px 16px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        background: 'var(--primary)',
+                                        color: '#0f172a'
+                                    }}
+                                >
+                                    Review Threat <ChevronRight size={14} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div>
+                                <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
+                                    All clear! Keep monitoring.
+                                </p>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                                    You are fully protected. No action is required from you at this time.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            <div className="services-list">
-                <div className="service-item">
-                    <Server size={14} /> <span>Rakshak Protocols: <span className="text-green">READY</span></span>
-                </div>
-                <div className="service-item">
-                    <Lock size={14} /> <span>Encryption: <span className="text-green">VERIFIED</span></span>
-                </div>
-                <div className="service-item">
-                    <Zap size={14} /> <span>AI Response: <span className="text-blue">12ms</span></span>
-                </div>
-                {enhancedMonitoring.active && (
-                    <div className="service-item" style={{ color: 'var(--status-danger)' }}>
-                        <Activity size={14} /> <span>Zone Alert: {enhancedMonitoring.region}</span>
+            {/* RECENT PROTECTION STATS */}
+            <div className="sys-card" style={{ background: 'rgba(30, 41, 59, 0.2)', padding: '1.25rem' }}>
+                <h3 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1rem 0', letterSpacing: '0.5px' }}>Recent Protection</h3>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--status-success)', fontWeight: 'bold' }}>✓</span>
+                        <span><strong>{threatsAnalyzed}</strong> threats analyzed</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--status-success)', fontWeight: 'bold' }}>✓</span>
+                        <span><strong>{threatsBlocked}</strong> suspicious links blocked</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--status-success)', fontWeight: 'bold' }}>✓</span>
+                        <span><strong>{reportsCreated}</strong> report{reportsCreated > 1 ? 's' : ''} created</span>
+                    </li>
+                </ul>
+            </div>
+
+            {/* COLLAPSIBLE ADVANCED OPERATIONS PANEL */}
+            <div style={{ marginTop: '0.5rem' }}>
+                <button
+                    onClick={() => {
+                        setShowAdvanced(!showAdvanced);
+                        if (onSimulateAttack) {
+                            // Optional: play click sound
+                        }
+                    }}
+                    style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span>{showAdvanced ? 'HIDE ADVANCED OPERATIONS' : 'SHOW ADVANCED OPERATIONS'}</span>
+                    {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {showAdvanced && (
+                    <div className="dashboard-grid" style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <div className="dashboard-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Globe size={18} className={`spin-slow ${activeThreats > 20 ? 'text-red' : ''}`} style={{ color: activeThreats > 20 ? 'var(--status-danger)' : 'var(--primary)' }} />
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0 }}>Threat Locations</h3>
+                            </div>
+                            <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                {onSimulateAttack && (
+                                    <button
+                                        onClick={onSimulateAttack}
+                                        className="btn-danger-glow"
+                                        style={{
+                                            background: 'rgba(220, 38, 38, 0.2)',
+                                            border: '1px solid var(--status-danger)',
+                                            color: 'var(--status-danger)',
+                                            padding: '0.4rem 0.8rem',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px'
+                                        }}
+                                    >
+                                        ⚡ SIMULATE ATTACK
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="vitals-row" style={{ marginBottom: '1.25rem' }}>
+                            <StatusCard
+                                icon={<Cpu size={18} />}
+                                label="Threat Analysis"
+                                value={Math.min(99.9, activeThreats > 0 ? (activeThreats * 5) + displayCpu : displayCpu)}
+                                subtext={activeThreats > 0 ? `${activeThreats} THREATS ACTIVE` : "Processing Load %"}
+                                metric={`TEMP: ${Math.floor(38 + (Math.min(100, displayCpu) * 0.4))}°C`}
+                                color={activeThreats > 0 ? "var(--status-danger)" : "var(--primary)"}
+                                pulse={activeThreats > 0}
+                            />
+                            <StatusCard
+                                icon={<Wifi size={18} />}
+                                label="NETWORK"
+                                value={displayNetwork}
+                                subtext="Encrypted Traffic (Mb/s)"
+                                metric="ROUTING: PREDICTIVE"
+                                color="var(--status-info)"
+                            />
+                            <StatusCard
+                                icon={<Shield size={18} />}
+                                label="DEFENSE"
+                                value="ACTIVE"
+                                subtext="Firewall Integrity"
+                                metric="UPTIME: 99.9%"
+                                color="var(--status-success)"
+                            />
+                        </div>
+
+                        {/* Map Section */}
+                        <div className="map-section" style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
+                            <GlobalThreatMap onRegionSelect={handleRegionSelect} activeLocations={locations} />
+
+                            {enhancedMonitoring.active && (
+                                <div className="enhanced-monitoring-overlay" style={{
+                                    position: 'absolute', inset: 0,
+                                    background: 'rgba(15, 23, 42, 0.8)',
+                                    display: 'flex', flexDirection: 'column',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    backdropFilter: 'blur(4px)',
+                                    zIndex: 1001
+                                }}>
+                                    <AlertTriangle size={48} className="text-red animate-pulse" style={{ marginBottom: '1rem' }} />
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>ENHANCED MONITORING ACTIVE</h3>
+                                    <div className="monitoring-detail" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center' }}>
+                                        TARGET: <span className="text-red">{enhancedMonitoring.region.toUpperCase()}</span>
+                                        {locations
+                                            .filter(loc => {
+                                                const region = enhancedMonitoring.region;
+                                                if (region === 'North America' && (loc.country.includes('USA') || loc.country.includes('US'))) return true;
+                                                if (region === 'Asia' && (loc.country.includes('India') || loc.country.includes('China') || loc.city.includes('Delhi') || loc.city.includes('Mumbai'))) return true;
+                                                if (region === 'Africa' && (loc.country.includes('Nigeria') || loc.city.includes('Lagos'))) return true;
+                                                if (region === 'Europe' && (loc.country.includes('UK') || loc.country.includes('Russia'))) return true;
+                                                return false;
+                                            })
+                                            .map((loc, i) => (
+                                                <div key={i} style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                                                    📍 {loc.city}, {loc.country}
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                    <button
+                                        onClick={() => setEnhancedMonitoring({ region: '', active: false })}
+                                        className="btn btn-secondary"
+                                        style={{
+                                            borderColor: 'rgba(255,255,255,0.2)',
+                                            color: 'white',
+                                            background: 'rgba(0,0,0,0.4)',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        DISABLE MONITORING
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="services-list" style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div className="service-item">
+                                <Server size={14} /> <span>Rakshak Protocols: <span className="text-green">READY</span></span>
+                            </div>
+                            <div className="service-item">
+                                <Lock size={14} /> <span>Encryption: <span className="text-green">VERIFIED</span></span>
+                            </div>
+                            <div className="service-item">
+                                <Zap size={14} /> <span>AI Response: <span className="text-blue">12ms</span></span>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

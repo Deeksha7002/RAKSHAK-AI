@@ -283,12 +283,12 @@ export const DeepfakeAnalyzer: React.FC = () => {
     };
 
     const handleNuke = () => {
-        if (confirm("🚨 WARNING: This will permanently wipe all intelligence and logs from memory. This action cannot be undone. Proceed?")) {
+        if (confirm("🚨 WARNING: This will permanently wipe all analysis history and logs from memory. This action cannot be undone. Proceed?")) {
             MediaLogService.clearLogs();
             IntelligenceService.clearRecords();
             CyberCellService.clearSession();
             setResult(null);
-            alert("🔒 SECURE WIPE COMPLETE: All volatile session data has been erased.");
+            alert("🔒 Session reset complete: All volatile data has been cleared.");
         }
     };
 
@@ -706,8 +706,8 @@ export const DeepfakeAnalyzer: React.FC = () => {
                     </div>
                     <div className="sys-card" style={{ padding: '2rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed #ef4444' }}>
                         <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem' }} />
-                        <h3>EMERGENCY DATA DISPOSAL</h3>
-                        <button onClick={handleNuke} style={{ padding: '12px 32px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>INITIATE NUKE PROTOCOL</button>
+                        <h3>EMERGENCY DATA RESET</h3>
+                        <button onClick={handleNuke} style={{ padding: '12px 32px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>RESET ALL DATA</button>
                     </div>
                 </div>
             )}

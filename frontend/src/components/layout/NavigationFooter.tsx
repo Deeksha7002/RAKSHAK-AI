@@ -30,31 +30,30 @@ export function NavigationFooter({
     };
 
     const handleNuke = async () => {
-        const msg1 = "NUCLEAR DISPOSAL PROTOCOL\n\n" +
-                     "CRITICAL WARNING: You are about to PERMANENTLY DELETE your account and all associated forensic data.\n\n" +
+        const msg1 = "CLEAR ALL DATA\n\n" +
+                     "Warning: You are about to permanently delete your account and all saved reports/settings.\n\n" +
                      "This action will:\n" +
-                     "1. Wipe your account from the Rakshak Core server.\n" +
-                     "2. Revoke all active security tokens.\n" +
-                     "3. Scrub all local telemetry and case files.\n\n" +
-                     "THIS IS IRREVERSIBLE. Are you sure?";
+                     "1. Remove your account from the server.\n" +
+                     "2. Revoke active login sessions.\n" +
+                     "3. Delete all local safety logs and files.\n\n" +
+                     "This cannot be undone. Are you sure?";
                      
         if (window.confirm(msg1)) {
             const typedConfirm = window.prompt(
-                "INTENT VERIFICATION\n\n" +
-                "To confirm your absolute intent to destroy all records, please type exactly:\n\n" +
-                "AUTHORIZE DELETE"
+                "CONFIRM ACTION\n\n" +
+                "To confirm that you want to delete all records, please type exactly:\n\n" +
+                "DELETE ALL"
             );
 
-            if (typedConfirm?.trim().toUpperCase() === "AUTHORIZE DELETE") {
+            if (typedConfirm?.trim().toUpperCase() === "DELETE ALL") {
                 try {
-                    console.log("[NUCLEAR] Primary protocol: Requesting biometric assertion...");
+                    console.log("[CLEAR] Requesting biometric assertion...");
                     const success = await nukeAccount();
                     if (success) {
-                        alert("SECURE WIPE COMPLETE: All volatile data clusters and account records have been incinerated.");
+                        alert("Data cleared. All account records and local files have been deleted.");
                         onNuke();
                     }
                 } catch (e: any) {
-                    // Check if biometric is unavailable, cancelled, or not enrolled
                     const isBioIssue = !e.message || 
                         e.message.toLowerCase().includes('no biometric') ||
                         e.message.toLowerCase().includes('not allowed') ||
@@ -66,39 +65,36 @@ export function NavigationFooter({
                         e.message.toLowerCase().includes('biometric nuke');
 
                     if (isBioIssue) {
-                        // ── FALLBACK SEQUENCE: Verify Account Password ──
                         const passwordFallback = window.prompt(
-                            "BIOMETRIC UNAVAILABLE / CANCELLED\n\n" +
-                            "To authorize account destruction, please enter your OPERATOR PASSWORD:"
+                            "Biometric Unlock Unavailable\n\n" +
+                            "To authorize data deletion, please enter your password:"
                         );
                         
                         if (passwordFallback) {
                             try {
-                                setStatus('AUTHORIZING FULL PURGE...');
+                                setStatus('CLEARING ALL DATA...');
                                 const nukeSuccess = await nukeAccountWithPassword(passwordFallback);
                                 if (nukeSuccess) {
-                                    alert("SECURE WIPE COMPLETE: Proxy verification successful. All records have been incinerated.");
+                                    alert("Data cleared. Proxy verification successful. All records have been deleted.");
                                     onNuke();
                                 }
                             } catch (error: any) {
-                                alert("DESTRUCTION ABORTED: " + (error.message || "Password verification failed."));
-                                setStatus('DESTRUCTION ABORTED');
+                                alert("Deletion aborted: " + (error.message || "Password verification failed."));
+                                setStatus('DELETION ABORTED');
                                 setTimeout(() => setStatus(''), 3000);
                             }
                         } else {
-                            // User cancelled the password prompt as well
-                            setStatus('DESTRUCTION ABORTED BY OPERATOR');
+                            setStatus('DELETION CANCELLED');
                             setTimeout(() => setStatus(''), 3000);
                         }
                     } else {
-                        // Something else went wrong (network error etc)
-                        alert("CRITICAL ERROR: " + (e.message || "Disposal protocol failed to initialize."));
+                        alert("Error: " + (e.message || "Could not clear data."));
                         setStatus('SYSTEM ERROR');
                         setTimeout(() => setStatus(''), 3000);
                     }
                 }
             } else if (typedConfirm !== null) {
-                alert("INVALID AUTHORIZATION PHRASE. Protocol aborted.");
+                alert("Invalid confirmation phrase. Deletion aborted.");
             }
         }
     };
@@ -136,7 +132,7 @@ export function NavigationFooter({
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Eye size={16} color="var(--primary)" />
-                                <span>TACTICAL MODULES</span>
+                                <span>SAFETY MODULES</span>
                             </div>
                             {openFolder === 'tactical' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
@@ -155,7 +151,7 @@ export function NavigationFooter({
                                 >
                                     <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.1)', display: 'flex' }}><BarChart3 size={18} color="#a78bfa" /></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>INTELLIGENCE GRAPH</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>THREAT ANALYSIS</div>
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem', opacity: 0.7 }}>Threat vector analytics</div>
                                     </div>
                                 </button>
@@ -172,7 +168,7 @@ export function NavigationFooter({
                                 >
                                     <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex' }}><ScanEye size={18} color="#60a5fa" /></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>FORENSICS LAB</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>EVIDENCE INVESTIGATOR</div>
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem', opacity: 0.7 }}>Inspect scam evidence</div>
                                     </div>
                                 </button>
@@ -206,7 +202,7 @@ export function NavigationFooter({
                                 >
                                     <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex' }}><Zap size={18} color="#fbbf24" /></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>THREAT LAB</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>SIMULATION LAB</div>
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem', opacity: 0.7 }}>Simulate attacks</div>
                                     </div>
                                 </button>
@@ -223,7 +219,7 @@ export function NavigationFooter({
                                 >
                                     <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(236, 72, 153, 0.1)', display: 'flex' }}><Database size={18} color="#f472b6" /></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>EVIDENCE VAULT</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>EVIDENCE LOCKER</div>
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem', opacity: 0.7 }}>Manage case files</div>
                                     </div>
                                 </button>
@@ -239,7 +235,7 @@ export function NavigationFooter({
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Settings size={16} color="#94a3b8" />
-                                <span>SYSTEM & POLICIES</span>
+                                <span>SETTINGS & PROTECTION</span>
                             </div>
                             {openFolder === 'system' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
@@ -257,7 +253,7 @@ export function NavigationFooter({
                                 >
                                     <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex' }}><Shield size={18} color="#34d399" /></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>SECURITY PROTOCOLS</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>PROTECTION POLICIES</div>
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem', opacity: 0.7 }}>Review defense rules</div>
                                     </div>
                                 </button>
@@ -273,7 +269,7 @@ export function NavigationFooter({
                                 >
                                     <div style={{ padding: '8px', borderRadius: '6px', background: 'rgba(161, 161, 170, 0.1)', display: 'flex' }}><LinkIcon size={18} color="#d4d4d8" /></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>API INTEGRATIONS</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>DEVICE UPLINKS</div>
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem', opacity: 0.7 }}>Uplink node status</div>
                                     </div>
                                 </button>
@@ -300,8 +296,8 @@ export function NavigationFooter({
                                 <ShieldAlert size={18} color="#ef4444" />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                <div style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px' }}>EMERGENCY DATA DISPOSAL</div>
-                                <div style={{ color: '#94a3b8', fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>Wipe all volatile data instantly</div>
+                                <div style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px' }}>CLEAR ALL DATA</div>
+                                <div style={{ color: '#94a3b8', fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>Erase local safety logs and settings</div>
                             </div>
                             <div style={{ color: '#ef4444', opacity: 0.3 }}>
                                 <Zap size={14} />

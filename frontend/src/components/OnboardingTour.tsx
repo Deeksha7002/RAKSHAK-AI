@@ -14,56 +14,56 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
     {
         id: 'welcome',
-        title: 'WELCOME TO RAKSHAK AI',
-        content: 'Your state-of-the-art defense against social engineering and digital fraud. Let’s take a quick tour of your new arsenal.',
+        title: 'Welcome to Rakshak AI',
+        content: 'Your friendly guide against social engineering and digital fraud. Let’s take a quick tour of your safety tools.',
         icon: <Shield size={32} color="var(--primary)" />
     },
     {
         id: 'dashboard',
-        title: 'MISSION CONTROL',
-        content: 'Monitor live system health and neural processing levels. The background splines represent real-time AI computational load.',
+        title: 'Protection Dashboard',
+        content: 'View the overall safety status of your accounts and devices at a glance.',
         icon: <Zap size={32} color="#fbbf24" />,
         view: 'DASHBOARD'
     },
     {
         id: 'threat-map',
-        title: 'GLOBAL THREAT RADAR',
-        content: 'Visualize scam origins in real-time. Each pulse on this map represents a verified intercept from high-risk global hubs.',
+        title: 'Safety Activity Map',
+        content: 'See where incoming scam attempts were detected and trace their source locations.',
         icon: <MapIcon size={32} color="#10b981" />,
         view: 'DASHBOARD'
     },
     {
         id: 'honey-tokens',
-        title: 'HONEY-TOKEN PAYLOADS',
-        content: 'The ultimate offensive tool. Generate weaponized assets to bait, track, and unmask scammers wherever they hide.',
+        title: 'Honey Tokens',
+        content: 'Generate safe, tracked files or links to send to suspected scammers, helping to identify their general location.',
         icon: <Target size={32} color="#ef4444" />,
         view: 'HONEY_TOKENS'
     },
     {
         id: 'intelligence',
-        title: 'PREDICTIVE INTENT GRAPH',
-        content: 'Our Neuro-Matrix analyzes scammer psychology to predict their next move before they even make it.',
+        title: 'Threat Analysis',
+        content: 'Review automated security trends and identify common pattern profiles of fraud attempts.',
         icon: <BarChart3 size={32} color="#8b5cf6" />,
         view: 'INTELLIGENCE'
     },
     {
         id: 'forensics',
-        title: 'DEEPFAKE ANALYSIS',
-        content: 'Is that image real? Use our forensics lab to scan for AI-generated media and synthetic voice anomalies.',
+        title: 'Media Verification',
+        content: 'Upload suspicious images, audio, or video files to verify if they have been generated or modified by AI.',
         icon: <ScanEye size={32} color="#3b82f6" />,
         view: 'FORENSICS'
     },
     {
         id: 'locker',
-        title: 'EVIDENCE VAULT',
-        content: 'All intercepted data is automatically secured here. From here, you can file official reports directly to the Cyber Cell.',
+        title: 'Evidence Locker',
+        content: 'Review details of caught scams and safely download reports to share with authority bodies.',
         icon: <Database size={32} color="#ec4899" />,
         view: 'LOCKER'
     },
     {
         id: 'emergency-nuke',
-        title: 'EMERGENCY DATA DISPOSAL',
-        content: 'Our ultimate failsafe. In risk-heavy compromise scenarios, trigger this panic switch to instantly wipe all volatile RAM records and protect your network footprint.',
+        title: 'Emergency Data Reset',
+        content: 'Reset all volatile session data and log out in one click if you ever need to clear your active workspaces.',
         icon: <ShieldAlert size={32} color="#ef4444" />,
         view: 'COMMAND'
     }

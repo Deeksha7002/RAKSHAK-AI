@@ -83,8 +83,8 @@ export const HoneyTokenGenerator: React.FC = () => {
                     <Target size={24} color="#fff" />
                 </div>
                 <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, letterSpacing: '1px' }}>HONEY-TOKEN GENERATOR</h1>
-                    <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>Offensive Tracker Payload Deployment</p>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, letterSpacing: '1px' }}>Honey Tokens</h1>
+                    <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>Embed active trackers in documents or links to identify scam sources</p>
                 </div>
             </div>
 
@@ -93,7 +93,7 @@ export const HoneyTokenGenerator: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div className="sys-card" style={{ padding: '1.5rem' }}>
                         <h3 style={{ fontSize: '0.9rem', color: '#fca5a5', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Cpu size={16} /> PAYLOAD TYPE
+                            <Cpu size={16} /> TRACKER TYPE
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                             <button
@@ -109,7 +109,7 @@ export const HoneyTokenGenerator: React.FC = () => {
                                 }}
                             >
                                 <FileText size={24} />
-                                <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>WEAPONIZED PDF</span>
+                                <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>SAFE TRACKED PDF</span>
                             </button>
                             <button
                                 onClick={() => setTokenType('LINK')}
@@ -144,7 +144,7 @@ export const HoneyTokenGenerator: React.FC = () => {
                             }}
                         >
                             {isGenerating ? <Activity className="spin-slow" size={18} /> : <Target size={18} />}
-                            {isGenerating ? 'MINTING PAYLOAD...' : 'GENERATE TRACKER'}
+                            {isGenerating ? 'CREATING TRACKER...' : 'GENERATE TRACKER'}
                         </button>
                     </div>
 
@@ -152,8 +152,8 @@ export const HoneyTokenGenerator: React.FC = () => {
                         <div className="sys-card" style={{ padding: '1.5rem', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)', animation: 'slideDown 0.3s ease-out' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                 <div>
-                                    <h4 style={{ margin: '0 0 0.25rem 0', color: '#fca5a5', fontSize: '0.9rem' }}>DEPLOYMENT READY</h4>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Send this asset to the suspect. It contains a zero-click IP logger.</p>
+                                    <h4 style={{ margin: '0 0 0.25rem 0', color: '#fca5a5', fontSize: '0.9rem' }}>TRACKER READY</h4>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Share this file or link with the sender. If they access it, their general location and network details will be recorded.</p>
                                 </div>
                                 <ShieldAlert color="#ef4444" size={24} />
                             </div>
@@ -163,7 +163,7 @@ export const HoneyTokenGenerator: React.FC = () => {
                                     readOnly 
                                     value={tokenUrl} 
                                     style={{ flex: 1, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px', borderRadius: '6px', fontSize: '0.8rem', fontFamily: 'monospace' }}
-                                />
+                                Desk-Readability={true} />
                                 <button onClick={handleCopy} style={{ padding: '10px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#fff' }}>
                                     {copied ? <CheckCircle size={18} color="#10b981" /> : <Copy size={18} />}
                                 </button>
@@ -184,7 +184,7 @@ export const HoneyTokenGenerator: React.FC = () => {
                                     }}
                                 >
                                     {simulating ? <Radio className="spin-slow" size={16} /> : <Activity size={16} />}
-                                    {simulating ? 'SIMULATING DEVICE COMPROMISE...' : 'SIMULATE SCAMMER CLICK'}
+                                    {simulating ? 'SIMULATING SCAM TRACE...' : 'SIMULATE SENDER CLICK'}
                                 </button>
                             </div>
                         </div>
@@ -195,21 +195,21 @@ export const HoneyTokenGenerator: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div className="sys-card" style={{ flex: 1, padding: '1.5rem', background: 'rgba(0,0,0,0.2)' }}>
                         <h3 style={{ fontSize: '0.9rem', color: 'var(--primary)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Radio size={16} /> LIVE INFECTION RADAR
+                            <Radio size={16} /> ACTIVE TRACKER FEED
                         </h3>
                         
                         {!simulating && !breachData && (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', opacity: 0.3 }}>
                                 <Radio size={64} style={{ marginBottom: '1rem' }} />
-                                <p style={{ fontFamily: 'monospace' }}>AWAITING PAYLOAD DETONATION</p>
+                                <p style={{ fontFamily: 'monospace' }}>AWAITING SCAM TRACE TRIGGER</p>
                             </div>
                         )}
 
                         {simulating && (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#fca5a5' }}>
                                 <Activity size={64} className="spin-slow" style={{ marginBottom: '1rem' }} />
-                                <p style={{ fontFamily: 'monospace' }}>ESTABLISHING REVERSE SHELL...</p>
-                                <p style={{ fontSize: '0.75rem', opacity: 0.7 }}>Extracting hardware signatures & geolocation data</p>
+                                <p style={{ fontFamily: 'monospace' }}>TRACING LOCATION...</p>
+                                <p style={{ fontSize: '0.75rem', opacity: 0.7 }}>Retrieving network region and location details</p>
                             </div>
                         )}
 
@@ -218,25 +218,25 @@ export const HoneyTokenGenerator: React.FC = () => {
                                 <div style={{ background: '#ef4444', color: '#fff', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <ShieldAlert size={32} />
                                     <div>
-                                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>TARGET COMPROMISED</h2>
-                                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>Payload execution confirmed. Extracting telemetry.</p>
+                                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>SCAM SOURCE TRACED</h2>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>Tracker opened successfully. Location identified.</p>
                                     </div>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
-                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.2rem' }}>EXTRACTED IP ADDRESS</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.2rem' }}>TRACED NETWORK ADDRESS</div>
                                         <div style={{ fontSize: '1.1rem', color: '#fca5a5', fontFamily: 'monospace', fontWeight: 'bold' }}>{breachData.ip}</div>
                                     </div>
                                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
-                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.2rem' }}>GEO-LOCATION CONFIDENCE</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.2rem' }}>LOCATION ACCURACY</div>
                                         <div style={{ fontSize: '1.1rem', color: '#10b981', fontWeight: 'bold' }}>98.4% (GPS MATCH)</div>
                                     </div>
                                 </div>
 
                                 <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
                                     <div style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.05)', fontSize: '0.8rem', fontWeight: 'bold', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Fingerprint size={14} /> HARDWARE / LOCATION FINGERPRINT
+                                        <Fingerprint size={14} /> LOCATION PROFILE
                                     </div>
                                     <div style={{ padding: '1rem', display: 'grid', gap: '0.75rem', fontSize: '0.85rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
@@ -260,7 +260,7 @@ export const HoneyTokenGenerator: React.FC = () => {
                                 
                                 <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                                     <p style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                        <CheckCircle size={16} /> TARGET AUTOMATICALLY ADDED TO GLOBAL THREAT MAP
+                                        <CheckCircle size={16} /> INCIDENT AUTOMATICALLY ADDED TO GLOBAL SAFETY MAP
                                     </p>
                                 </div>
                             </div>
