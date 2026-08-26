@@ -33,7 +33,6 @@ async def generate_llm_response(
     # Create or load a thread based on the message content and sender
     thread_key = f"{payload.sender_name}:{payload.message}"
     thread_id = hashlib.sha256(thread_key.encode()).hexdigest()[:12]
-    # FIX #3: current_user is already the username string, not a dict
     agent = load_agent(thread_id, current_user)
 
     # Sync history from frontend if it exists
@@ -44,7 +43,7 @@ async def generate_llm_response(
     if payload.persona:
         agent.current_persona = payload.persona
 
-    # FIX #2: Run blocking Groq I/O in a thread pool so we don't block the event loop
+    # Run blocking Groq I/O in a thread pool so we don't block the event loop
     response_text = await asyncio.to_thread(agent.generate_response, payload.classification, payload.message, payload.context)
 
     # Persist updated state
@@ -79,7 +78,6 @@ async def analyze_text(payload: AnalysisRequest, current_user: str = Depends(get
         "detected_location": agent.detected_location
     }
 
-# FIX #1: WebSocket path changed to /api/ws to match what the frontend expects
 @router.websocket("/api/ws")
 async def websocket_intercept(websocket: WebSocket):
     """WebSocket endpoint for real-time scam interception alerts."""
@@ -93,3 +91,44 @@ async def websocket_intercept(websocket: WebSocket):
     except Exception as e:
         logging.error(f"WebSocket Error: {e}")
         manager.disconnect(websocket)
+
+@router.post("/api/scan/universal")
+async def citizen_universal_scan(payload: AnalysisRequest):
+    """
+    Public citizen scam scanner endpoint.
+    Performs fast NLP intent classification, PII sanitization, and returns
+    a simple citizen verdict (SAFE, CAREFUL, SCAM) with confidence and red flags.
+    """
+    text = payload.text.strip()
+    score, category, matrix, llm_needed = analyzer.analyze_behavior([{"role": "scammer", "content": text}])
+    
+    verdict = "SAFE"
+    confidence = int(score * 100)
+    
+    if score >= 0.6:
+        verdict = "SCAM"
+    elif score >= 0.3:
+        verdict = "CAREFUL"
+        
+    explanation = "No major scam indicators detected."
+    if verdict == "SCAM":
+        explanation = f"This content contains high-risk scam indicators associated with {category.replace('_', ' ')} fraud."
+    elif verdict == "CAREFUL":
+        explanation = "This content uses urgent or suspicious language. Exercise caution."
+
+    red_flags = []
+    if "bit.ly" in text.lower() or "xyz" in text.lower() or "http" in text.lower():
+        red_flags.append("Contains unverified web link")
+    if "urgent" in text.lower() or "immediately" in text.lower() or "disconnect" in text.lower():
+        red_flags.append("Uses artificial urgency or coercion tactics")
+    if "kyc" in text.lower() or "otp" in text.lower() or "bank" in text.lower():
+        red_flags.append("Requests sensitive credentials or banking update")
+
+    return {
+        "verdict": verdict,
+        "confidence": max(15, min(99, confidence)),
+        "category": category,
+        "explanation": explanation,
+        "red_flags": red_flags,
+        "timestamp": payload.context
+    }

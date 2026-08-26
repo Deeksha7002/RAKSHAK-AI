@@ -28,7 +28,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Backend Sensitive Data
+# Backend Sensitive Data & Downloads
+backend/nltk_data/
 backend/stats.json
 backend/cases.json
 backend/users.json
