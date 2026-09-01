@@ -1,33 +1,28 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
-import './index.css'
-import App from './App.tsx'
-import { ErrorBoundary } from './components/ErrorBoundary.tsx'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
+import './index.css';
+import App from './App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 const updateSW = registerSW({
   onNeedRefresh() {
     if (confirm('New content available. Reload?')) {
-      updateSW(true)
+      updateSW(true);
     }
   },
   onOfflineReady() {
-    console.log('App is ready to work offline')
+    console.log('App is ready to work offline');
   },
-})
+});
 
-import { AuthProvider } from './context/AuthContext.tsx'
-import { ThreadProvider } from './context/ThreadProvider.tsx'
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <AuthProvider>
-        <ThreadProvider>
-          <App />
-        </ThreadProvider>
-      </AuthProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-)
-
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </StrictMode>
+  );
+}
