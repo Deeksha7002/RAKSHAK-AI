@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { HeaderNav } from './components/layout/HeaderNav';
-import { MobileBottomNav, CitizenTab } from './components/layout/MobileBottomNav';
+import { MobileBottomNav, type CitizenTab } from './components/layout/MobileBottomNav';
 import { CitizenHomeView } from './components/views/CitizenHomeView';
 import { UniversalScannerView } from './components/views/UniversalScannerView';
 import { EmergencySOSView } from './components/views/EmergencySOSView';
@@ -10,16 +10,20 @@ import { FamilyShieldView } from './components/views/FamilyShieldView';
 import { VoiceCheckerView } from './components/views/VoiceCheckerView';
 import { CitizenReportsView } from './components/views/CitizenReportsView';
 import { SettingsView } from './components/views/SettingsView';
-import { LanguageCode } from './lib/i18n';
+import { type LanguageCode } from './lib/i18n';
 import { Lock } from 'lucide-react';
 import { DEMO_ACCESS_KEY } from './lib/config';
 import './index.css';
 
-const OperatorGate: React.FC<{ onAuthorize: () => void }> = ({ onAuthorize }) => {
-    const [key, setKey] = useState('');
-    const [error, setError] = useState(false);
+interface OperatorGateProps {
+  onAuthorize: () => void;
+}
 
-    const handleSubmit = (e: React.FormEvent) => {
+const OperatorGate = ({ onAuthorize }: OperatorGateProps) => {
+    const [key, setKey] = useState<string>('');
+    const [error, setError] = useState<boolean>(false);
+
+    const handleSubmit = (e: { preventDefault: () => void }) => {
         e.preventDefault();
         if (key.trim().toUpperCase() === DEMO_ACCESS_KEY.toUpperCase()) {
             onAuthorize();
@@ -48,7 +52,7 @@ const OperatorGate: React.FC<{ onAuthorize: () => void }> = ({ onAuthorize }) =>
                         type="password"
                         placeholder="••••••••"
                         value={key}
-                        onChange={(e) => setKey(e.target.value)}
+                        onChange={(e: { target: { value: string } }) => setKey(e.target.value)}
                         style={{
                             width: '100%', padding: '10px', background: '#0f172a',
                             border: '1px solid #334155', borderRadius: '8px',
@@ -68,22 +72,22 @@ const OperatorGate: React.FC<{ onAuthorize: () => void }> = ({ onAuthorize }) =>
 export function App() {
   const [activeTab, setActiveTab] = useState<CitizenTab>('HOME');
   const [currentLang, setCurrentLang] = useState<LanguageCode>('en');
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [quickScanQuery, setQuickScanQuery] = useState('');
+  const [quickScanQuery, setQuickScanQuery] = useState<string>('');
   const [savedReports, setSavedReports] = useState<any[]>([]);
-  const [showLock, setShowLock] = useState(false);
+  const [showLock, setShowLock] = useState<boolean>(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   const handleToggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTheme((prev: 'light' | 'dark') => (prev === 'light' ? 'dark' : 'light'));
   };
 
   const handleToggleVoice = () => {
-    setVoiceEnabled(prev => !prev);
+    setVoiceEnabled((prev: boolean) => !prev);
   };
 
   const handleQuickScan = (query: string) => {
@@ -92,7 +96,7 @@ export function App() {
   };
 
   const handleSaveReport = (reportData: any) => {
-    setSavedReports(prev => [reportData, ...prev]);
+    setSavedReports((prev: any[]) => [reportData, ...prev]);
   };
 
   if (showLock) {
