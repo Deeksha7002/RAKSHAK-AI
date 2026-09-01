@@ -6,7 +6,7 @@ declare module '*.css' {
   export default content;
 }
 
-// Ambient fallbacks for React when node_modules is not yet locally installed
+// Ambient fallbacks for React & JSX when node_modules is not yet locally installed
 declare module 'react' {
   export type ReactNode = any;
   export type FC<P = {}> = (props: P) => any;
@@ -18,6 +18,12 @@ declare module 'react' {
   export type FormEvent<T = Element> = any;
   export type ChangeEvent<T = Element> = any;
   export type MouseEvent<T = Element> = any;
+  export namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+    interface Element extends any {}
+  }
   const React: any;
   export default React;
 }
@@ -26,6 +32,12 @@ declare module 'react/jsx-runtime' {
   export const jsx: any;
   export const jsxs: any;
   export const Fragment: any;
+  export namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+    interface Element extends any {}
+  }
 }
 
 declare module 'lucide-react' {
@@ -68,5 +80,16 @@ declare global {
     interface IntrinsicElements {
       [elemName: string]: any;
     }
+    interface Element extends any {}
+  }
+  namespace React {
+    namespace JSX {
+      interface IntrinsicElements {
+        [elemName: string]: any;
+      }
+      interface Element extends any {}
+    }
   }
 }
+
+export {};
