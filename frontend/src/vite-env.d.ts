@@ -1,12 +1,8 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
 
-declare module '*.css' {
-  const content: Record<string, string>;
-  export default content;
-}
+declare module '*.css';
 
-// Ambient fallbacks for React & JSX when node_modules is not yet locally installed
 declare module 'react' {
   export type ReactNode = any;
   export type FC<P = {}> = (props: P) => any;
@@ -82,14 +78,4 @@ declare global {
     }
     interface Element extends any {}
   }
-  namespace React {
-    namespace JSX {
-      interface IntrinsicElements {
-        [elemName: string]: any;
-      }
-      interface Element extends any {}
-    }
-  }
 }
-
-export {};
