@@ -68,7 +68,8 @@ declare module 'lucide-react' {
   export const Users: any;
   export const Info: any;
   export const ArrowRight: any;
-  [key: string]: any;
+  const icons: { [key: string]: any };
+  export default icons;
 }
 
 declare global {
